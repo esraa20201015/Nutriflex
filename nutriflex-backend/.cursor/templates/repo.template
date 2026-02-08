@@ -1,0 +1,234 @@
+import { Injectable, HttpStatus } from '@nestjs/common';
+import { DataSource, Repository } from 'typeorm';
+import { {{pascal name}} } from './{{name}}.entity';
+
+@Injectable()
+export class {{pascal name}}Repo extends Repository<{{pascal name}}> {
+  constructor(private dataSource: DataSource) {
+    super({{pascal name}}, dataSource.createEntityManager());
+  }
+
+  // ---------- CREATE ----------
+  async createEntity(dto: Partial<{{pascal name}}>) {
+    try {
+      const entity = this.create(dto);
+      const saved = await this.save(entity);
+
+      const result = await this.findOne({
+        where: { {{name}}_id: saved.{{name}}_id }
+      });
+
+      return {
+        status: HttpStatus.CREATED,
+        messageEn: '{{pascal name}} created successfully',
+        messageAr: 'تم إنشاء {{pascal name}} بنجاح',
+        data: result,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        messageEn: 'Error creating {{name}}',
+        messageAr: 'خطأ في إنشاء {{name}}',
+        error: error.message,
+      };
+    }
+  }
+
+  // ---------- FIND ALL ----------
+  async findAll(options?: { skip?: number; take?: number; status?: boolean }) {
+    try {
+      const query = this.createQueryBuilder('{{name}}');
+
+      if (options?.status !== undefined) {
+        query.andWhere('{{name}}.status = :status', { status: options.status });
+      }
+
+      if (options?.skip !== undefined) query.skip(options.skip);
+      if (options?.take !== undefined) query.take(options.take);
+
+      query.orderBy('{{name}}.created_date', 'DESC');
+
+      const [rows, total] = await query.getManyAndCount();
+
+      return {
+        status: HttpStatus.OK,
+        messageEn: '{{pascal name}} retrieved successfully',
+        messageAr: 'تم استرجاع {{pascal name}} بنجاح',
+        data: rows,
+        meta: {
+          total,
+          count: rows.length,
+          skip: options?.skip || 0,
+          take: options?.take || total,
+        },
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        messageEn: 'Error retrieving {{name}}',
+        messageAr: 'خطأ في استرجاع {{name}}',
+        error: error.message,
+      };
+    }
+  }
+
+  // ---------- FIND BY ID ----------
+  async findById(id: number) {
+    try {
+      const entity = await this.findOne({
+        where: { {{name}}_id: id }
+      });
+
+      if (!entity) {
+        return {
+          status: HttpStatus.NOT_FOUND,
+          messageEn: '{{pascal name}} not found',
+          messageAr: '{{pascal name}} غير موجود',
+          data: null,
+        };
+      }
+
+      return {
+        status: HttpStatus.OK,
+        messageEn: '{{pascal name}} retrieved successfully',
+        messageAr: 'تم استرجاع {{pascal name}} بنجاح',
+        data: entity,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        messageEn: 'Error retrieving {{name}}',
+        messageAr: 'خطأ في استرجاع {{name}}',
+        error: error.message,
+      };
+    }
+  }
+
+  // ---------- UPDATE ----------
+  async updateEntity(id: number, dto: Partial<{{pascal name}}>) {
+    try {
+      const entity = await this.findOne({ where: { {{name}}_id: id } });
+
+      if (!entity) {
+        return {
+          status: HttpStatus.NOT_FOUND,
+          messageEn: '{{pascal name}} not found',
+          messageAr: '{{pascal name}} غير موجود',
+          data: null,
+        };
+      }
+
+      Object.assign(entity, dto);
+      await this.save(entity);
+
+      const updated = await this.findOne({
+        where: { {{name}}_id: id }
+      });
+
+      return {
+        status: HttpStatus.OK,
+        messageEn: '{{pascal name}} updated successfully',
+        messageAr: 'تم تحديث {{pascal name}} بنجاح',
+        data: updated,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        messageEn: 'Error updating {{name}}',
+        messageAr: 'خطأ في تحديث {{name}}',
+        error: error.message,
+      };
+    }
+  }
+
+  // ---------- DELETE ----------
+  async deleteEntity(id: number) {
+    try {
+      const entity = await this.findOne({ where: { {{name}}_id: id } });
+
+      if (!entity) {
+        return {
+          status: HttpStatus.NOT_FOUND,
+          messageEn: '{{pascal name}} not found',
+          messageAr: '{{pascal name}} غير موجود',
+          data: null,
+        };
+      }
+
+      await this.remove(entity);
+
+      return {
+        status: HttpStatus.OK,
+        messageEn: '{{pascal name}} deleted successfully',
+        messageAr: 'تم حذف {{pascal name}} بنجاح',
+        data: null,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        messageEn: 'Error deleting {{name}}',
+        messageAr: 'خطأ في حذف {{name}}',
+        error: error.message,
+      };
+    }
+  }
+
+  // ---------- SEARCH ----------
+  async search(options: {
+    search?: string;
+    status?: boolean;
+    skip?: number;
+    take?: number;
+  }) {
+    try {
+      const query = this.createQueryBuilder('{{name}}');
+
+      if (options.search) {
+        query.andWhere('{{name}}.{{name}}_name LIKE :search', {
+          search: `%${options.search}%`,
+        });
+      }
+
+      if (options.status !== undefined) {
+        query.andWhere('{{name}}.status = :status', { status: options.status });
+      }
+
+      if (options.skip !== undefined) query.skip(options.skip);
+      if (options.take !== undefined) query.take(options.take);
+
+      query.orderBy('{{name}}.created_date', 'DESC');
+
+      const [rows, total] = await query.getManyAndCount();
+
+      return {
+        status: HttpStatus.OK,
+        messageEn: '{{pascal name}} search completed',
+        messageAr: 'تم البحث في {{pascal name}} بنجاح',
+        data: rows,
+        meta: {
+          total,
+          count: rows.length,
+          skip: options?.skip || 0,
+          take: options?.take || total,
+        },
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        messageEn: 'Error searching {{name}}',
+        messageAr: 'خطأ في البحث في {{name}}',
+        error: error.message,
+      };
+    }
+  }
+
+  // ---------- TOGGLE STATUS ----------
+  async toggleStatus(id: number) {
+    const found = await this.findById(id);
+    if (found.status !== 200) return found;
+
+    const entity = found.data;
+
+    return this.updateEntity(id, { status: !entity.status });
+  }
+}

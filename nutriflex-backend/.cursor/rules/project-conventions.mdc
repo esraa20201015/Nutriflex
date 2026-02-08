@@ -1,0 +1,19 @@
+---
+description: Follow Nutriflex backend architecture and code generation rules from .cursor/instructions.md
+globs: src/**/*.ts
+---
+
+# Project conventions (NestJS)
+
+When creating or editing modules, controllers, services, repos, entities, or DTOs in this project, always follow the rules defined in **.cursor/instructions.md**.
+
+In summary:
+- **Architecture:** Controller → Service → Repo → Database. Controller forwards to service; service calls repo only; repo contains all DB logic (QueryBuilder, no raw SQL).
+- **Response format:** `{ status, messageEn, messageAr, data, meta? }` for all API responses.
+- **DTOs:** CreateDto, UpdateDto, PaginationDto, SearchDto; use class-validator and @ApiProperty.
+- **Controller:** Swagger on every endpoint; CRUD + GET /search + PUT /:id/toggle-status; use PaginationDto and SearchDto.
+- **Repo:** Extend Repository<Entity>; implement createEntity, findAll, findById, search, updateEntity, deleteEntity, toggleStatus; return structured { status, messageEn, messageAr, data, meta }.
+- **Entity:** TypeORM naming, relations, audit fields (created_date, updated_date) where applicable.
+- **Pagination:** skip, take, status, area_id (if applicable). Search: search, status, area_id, email/phone if applicable.
+
+Refer to .cursor/instructions.md and .cursor/templates/ for exact patterns and templates.

@@ -1,0 +1,66 @@
+import { 
+  Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put, Query 
+} from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
+import { {{pascal name}}Service } from './{{name}}.service';
+import { Create{{pascal name}}Dto, Update{{pascal name}}Dto, PaginationDto, Search{{pascal name}}Dto } from './dto/{{name}}.dto';
+
+@ApiTags('{{pascal name}}')
+@ApiBearerAuth('access-token')
+@Controller('{{name}}')
+export class {{pascal name}}Controller {
+  constructor(private readonly {{camel name}}Service: {{pascal name}}Service) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Create new {{name}}' })
+  @ApiBody({ type: Create{{pascal name}}Dto })
+  async create(@Body() dto: Create{{pascal name}}Dto) {
+    return this.{{camel name}}Service.create(dto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all {{name}} list' })
+  @ApiQuery({ name: 'skip', required: false })
+  @ApiQuery({ name: 'take', required: false })
+  async findAll(@Query() pagination: PaginationDto) {
+    return this.{{camel name}}Service.findAll(pagination);
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search {{name}}' })
+  async search(
+    @Query() searchDto: Search{{pascal name}}Dto,
+    @Query() pagination: PaginationDto
+  ) {
+    return this.{{camel name}}Service.search(searchDto, pagination);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Find {{name}} by ID' })
+  @ApiParam({ name: 'id', type: Number })
+  async findById(@Param('id', ParseIntPipe) id: number) {
+    return this.{{camel name}}Service.findById(id);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update {{name}} by ID' })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: Update{{pascal name}}Dto
+  ) {
+    return this.{{camel name}}Service.update(id, dto);
+  }
+
+  @Put(':id/toggle-status')
+  @ApiOperation({ summary: 'Toggle status' })
+  async toggleStatus(@Param('id', ParseIntPipe) id: number) {
+    return this.{{camel name}}Service.toggleStatus(id);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete {{name}}' })
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    return this.{{camel name}}Service.delete(id);
+  }
+}

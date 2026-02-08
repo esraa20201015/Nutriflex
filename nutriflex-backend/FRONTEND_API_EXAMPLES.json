@@ -1,0 +1,168 @@
+{
+  "baseUrl": "http://localhost:3000/api",
+  "endpoints": {
+    "signUp": {
+      "url": "/auth/sign-up",
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "examples": {
+        "coach": {
+          "fullName": "John Doe",
+          "email": "coach@example.com",
+          "password": "SecurePass123",
+          "confirmPassword": "SecurePass123",
+          "role": "COACH",
+          "coachProfile": {
+            "age": 30,
+            "gender": "male",
+            "qualificationFilePath": "/uploads/qualifications/john-doe-cv.pdf",
+            "certifications": "CPR, NASM",
+            "experience": "5 years",
+            "specialization": "Strength training",
+            "profilePicture": "/uploads/profiles/john.jpg",
+            "bio": "Experienced fitness coach"
+          }
+        },
+        "trainee": {
+          "fullName": "Jane Smith",
+          "email": "trainee@example.com",
+          "password": "SecurePass123",
+          "confirmPassword": "SecurePass123",
+          "role": "TRAINEE",
+          "traineeProfile": {
+            "age": 28,
+            "gender": "female",
+            "height": 165.5,
+            "weight": 60.5,
+            "fitnessGoals": "Build muscle, lose fat",
+            "medicalConditions": "None",
+            "dietaryPreferences": "Vegetarian"
+          }
+        }
+      },
+      "successResponse": {
+        "status": 201,
+        "messageEn": "User registered successfully. Please check your email to verify your account.",
+        "messageAr": "تم التسجيل بنجاح. يرجى التحقق من بريدك الإلكتروني للتحقق من حسابك.",
+        "data": {
+          "id": "uuid-string",
+          "fullName": "John Doe",
+          "email": "coach@example.com",
+          "role": "COACH",
+          "isEmailVerified": false
+        }
+      },
+      "errorResponses": {
+        "400_validation": {
+          "status": 400,
+          "message": [
+            "Password must be at least 8 characters",
+            "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+          ]
+        },
+        "400_password_mismatch": {
+          "status": 400,
+          "messageEn": "Password and confirm password do not match",
+          "messageAr": "كلمة المرور وتأكيد كلمة المرور غير متطابقين",
+          "message": ["Password and confirm password do not match"]
+        },
+        "409_email_exists": {
+          "status": 409,
+          "messageEn": "Email already registered",
+          "messageAr": "البريد الإلكتروني مسجل مسبقاً"
+        }
+      }
+    },
+    "signIn": {
+      "url": "/auth/sign-in",
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "requestBody": {
+        "email": "user@example.com",
+        "password": "SecurePass123"
+      },
+      "successResponse": {
+        "status": 200,
+        "messageEn": "Sign in successful",
+        "messageAr": "تم تسجيل الدخول بنجاح",
+        "data": {
+          "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "user": {
+            "id": "uuid-string",
+            "fullName": "John Doe",
+            "email": "user@example.com",
+            "role": "COACH"
+          }
+        }
+      },
+      "errorResponses": {
+        "401_invalid_credentials": {
+          "status": 401,
+          "messageEn": "Invalid credentials",
+          "messageAr": "بيانات الدخول غير صحيحة"
+        },
+        "403_email_not_verified": {
+          "status": 403,
+          "messageEn": "Email not verified",
+          "messageAr": "يرجى تأكيد البريد الإلكتروني"
+        },
+        "403_account_inactive": {
+          "status": 403,
+          "messageEn": "Account inactive",
+          "messageAr": "الحساب غير نشط"
+        }
+      }
+    },
+    "verifyEmail": {
+      "url": "/auth/verify-email",
+      "method": "GET",
+      "queryParams": {
+        "token": "verification-token-from-email"
+      },
+      "successResponse": {
+        "status": 200,
+        "messageEn": "Email verified successfully",
+        "messageAr": "تم تأكيد البريد الإلكتروني بنجاح",
+        "data": {
+          "email": "user@example.com"
+        }
+      },
+      "errorResponse": {
+        "status": 400,
+        "messageEn": "Invalid or expired verification token",
+        "messageAr": "رمز التحقق غير صالح أو منتهي الصلاحية"
+      }
+    }
+  },
+  "tokenUsage": {
+    "header": "Authorization: Bearer <access_token>",
+    "example": "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  },
+  "passwordRequirements": {
+    "minLength": 8,
+    "mustContain": [
+      "At least one uppercase letter (A-Z)",
+      "At least one lowercase letter (a-z)",
+      "At least one number (0-9)"
+    ],
+    "validExamples": [
+      "SecurePass123",
+      "MyPassword1",
+      "Test1234"
+    ],
+    "invalidExamples": [
+      "password (no uppercase, no number)",
+      "PASSWORD123 (no lowercase)",
+      "Password (no number)",
+      "Pass123 (too short)"
+    ]
+  },
+  "rateLimiting": {
+    "limit": "10 requests per minute per IP",
+    "errorCode": 429
+  }
+}

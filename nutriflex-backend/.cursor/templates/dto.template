@@ -1,0 +1,70 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { 
+  IsString, IsNotEmpty, MaxLength, 
+  IsOptional, IsBoolean, IsInt, IsNumber 
+} from 'class-validator';
+
+export class Create{{pascal name}}Dto {
+  @ApiProperty({ description: '{{pascal name}} name', example: 'Example Name' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(250)
+  {{name}}_name: string;
+
+  @ApiProperty({ description: 'Status', example: true })
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
+
+  @ApiProperty({ description: 'Created by user ID', example: 1 })
+  @IsNumber()
+  @IsOptional()
+  created_by?: number;
+}
+
+export class Update{{pascal name}}Dto {
+  @ApiProperty({ example: 'Updated Name', required: false })
+  @IsString()
+  @IsOptional()
+  @MaxLength(250)
+  {{name}}_name?: string;
+
+  @ApiProperty({ example: true, required: false })
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
+
+  @ApiProperty({ description: 'Updated by user ID', example: 1 })
+  @IsNumber()
+  @IsOptional()
+  updated_by?: number;
+}
+
+export class PaginationDto {
+  @ApiProperty({ example: 0, required: false })
+  @IsNumber()
+  @IsOptional()
+  skip?: number;
+
+  @ApiProperty({ example: 10, required: false })
+  @IsNumber()
+  @IsOptional()
+  take?: number;
+
+  @ApiProperty({ example: true, required: false })
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
+}
+
+export class Search{{pascal name}}Dto {
+  @ApiProperty({ example: 'keyword', required: false })
+  @IsString()
+  @IsOptional()
+  search?: string;
+
+  @ApiProperty({ example: true, required: false })
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
+}

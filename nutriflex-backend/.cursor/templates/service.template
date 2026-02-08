@@ -1,0 +1,36 @@
+import { Injectable } from '@nestjs/common';
+import { {{pascal name}}Repo } from './{{name}}.repo';
+import { Create{{pascal name}}Dto, Update{{pascal name}}Dto, PaginationDto, Search{{pascal name}}Dto } from './dto/{{name}}.dto';
+
+@Injectable()
+export class {{pascal name}}Service {
+  constructor(private readonly repo: {{pascal name}}Repo) {}
+
+  create(dto: Create{{pascal name}}Dto) {
+    return this.repo.createEntity(dto);
+  }
+
+  findAll(pagination: PaginationDto) {
+    return this.repo.findAll(pagination);
+  }
+
+  findById(id: number) {
+    return this.repo.findById(id);
+  }
+
+  update(id: number, dto: Update{{pascal name}}Dto) {
+    return this.repo.updateEntity(id, dto);
+  }
+
+  delete(id: number) {
+    return this.repo.deleteEntity(id);
+  }
+
+  search(searchDto: Search{{pascal name}}Dto, pagination: PaginationDto) {
+    return this.repo.search({ ...searchDto, ...pagination });
+  }
+
+  toggleStatus(id: number) {
+    return this.repo.toggleStatus(id);
+  }
+}

@@ -1,0 +1,17 @@
+---
+description: main.ts and app bootstrap (middleware order, JWT, compression)
+globs: src/main.ts, src/app.module.ts
+alwaysApply: false
+---
+
+# Bootstrap and main.ts
+
+When editing `main.ts` or `app.module.ts`:
+
+1. **Middleware order (main.ts):** Register Express middleware **before** `setGlobalPrefix('api')` so they apply to all routes (including `/api/*`). Order: create app → `bodyParser.json()`, `compression()`, `helmet()` → guards/static → `setGlobalPrefix('api')` → filters/pipes → Swagger → listen.
+
+2. **compression:** Use default import and handle CJS: `import compression from 'compression'` and `app.use(typeof compression === 'function' ? compression() : (compression as { default: () => unknown }).default());` so "compression is not a function" is avoided.
+
+3. **JWT expiresIn (app.module.ts):** Use a **number** (seconds) for `signOptions.expiresIn` to satisfy TypeScript. Example: `expiresIn: process.env.JWT_EXPIRES_IN ? Number(process.env.JWT_EXPIRES_IN) || 604800 : 604800` (604800 = 7 days).
+
+4. **Port in use:** If you see `EADDRINUSE: address already in use :::3000`, another process is using port 3000. Stop the other process or set `PORT` in `.env` to a different port (e.g. 3001).

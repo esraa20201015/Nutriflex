@@ -1,0 +1,16 @@
+---
+description: Nutriflex backend context and conventions (always apply)
+alwaysApply: true
+---
+
+# Nutriflex Backend (NestJS)
+
+This project is the **Nutriflex backend** (NestJS + TypeORM + PostgreSQL). When editing or creating code:
+
+- **Architecture:** Controller → Service → Repo → Database. Controller forwards to service; service calls repo only; repo holds all DB logic (QueryBuilder, no raw SQL).
+- **Responses:** Use unified format `{ status, messageEn, messageAr, data, meta? }`.
+- **DTOs:** CreateDto, UpdateDto, PaginationDto, SearchDto; use class-validator and @ApiProperty.
+- **Controllers:** Swagger on every endpoint; CRUD + GET /search + PUT /:id/toggle-status.
+- **Code style:** TypeScript, camelCase variables, PascalCase classes, no unused imports.
+
+For full module/entity/repo/DTO patterns and templates, follow **.cursor/instructions.md** and use **.cursor/templates/**.

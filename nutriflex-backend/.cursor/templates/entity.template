@@ -1,0 +1,24 @@
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { ActionTracked } from 'src/shared/ActionTrack/action-tracked.entity';
+
+@Entity({ name: '{{name}}', comment: 'This table stores {{name}} records' })
+export class {{pascal name}} extends ActionTracked {
+
+  @PrimaryGeneratedColumn({ type: 'int', name: '{{name}}_id' })
+  {{name}}_id: number;
+
+  @Column('varchar', {
+    name: '{{name}}_name',
+    length: 250,
+    nullable: false,
+    comment: '{{pascal name}} name field',
+  })
+  {{name}}_name: string;
+
+  @Column('boolean', {
+    name: 'status',
+    default: true,
+    comment: 'Status: true = Active, false = Inactive',
+  })
+  status: boolean;
+}

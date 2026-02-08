@@ -1,0 +1,284 @@
+{
+  "baseUrl": "http://localhost:3000/api/users",
+  "authentication": {
+    "type": "Bearer Token",
+    "header": "Authorization: Bearer <jwt-token>",
+    "requiredRole": "ADMIN"
+  },
+  "endpoints": {
+    "createUser": {
+      "method": "POST",
+      "url": "/api/users",
+      "description": "Create a new user",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer <jwt-token>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "fullName": "John Doe",
+          "email": "john.doe@example.com",
+          "password": "SecurePass123",
+          "roleId": "550e8400-e29b-41d4-a716-446655440000",
+          "isEmailVerified": false,
+          "status": "ACTIVE",
+          "createdBy": "admin-user-id"
+        }
+      },
+      "successResponse": {
+        "status": 201,
+        "messageEn": "User created successfully",
+        "messageAr": "تم إنشاء المستخدم بنجاح",
+        "data": {
+          "id": "user-uuid",
+          "fullName": "John Doe",
+          "email": "john.doe@example.com",
+          "isEmailVerified": false,
+          "status": "ACTIVE",
+          "role": {
+            "id": "role-uuid",
+            "name": "TRAINEE",
+            "description": "Trainee role"
+          },
+          "createdAt": "2026-02-03T12:00:00.000Z",
+          "updatedAt": "2026-02-03T12:00:00.000Z"
+        }
+      }
+    },
+    "getAllUsers": {
+      "method": "GET",
+      "url": "/api/users?skip=0&take=20&status=ACTIVE",
+      "description": "Get paginated list of all users",
+      "queryParams": {
+        "skip": 0,
+        "take": 20,
+        "status": "ACTIVE"
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer <jwt-token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "successResponse": {
+        "status": 200,
+        "messageEn": "Users retrieved successfully",
+        "messageAr": "تم جلب المستخدمين بنجاح",
+        "data": {
+          "items": [
+            {
+              "id": "user-uuid-1",
+              "fullName": "John Doe",
+              "email": "john.doe@example.com",
+              "isEmailVerified": true,
+              "status": "ACTIVE",
+              "role": {
+                "id": "role-uuid",
+                "name": "TRAINEE",
+                "description": "Trainee role"
+              },
+              "lastLoginAt": "2026-02-03T10:00:00.000Z",
+              "createdAt": "2026-01-01T12:00:00.000Z",
+              "updatedAt": "2026-02-03T12:00:00.000Z"
+            }
+          ],
+          "total": 50,
+          "skip": 0,
+          "take": 20
+        }
+      }
+    },
+    "searchUsers": {
+      "method": "GET",
+      "url": "/api/users/search?search=john&status=ACTIVE&skip=0&take=10",
+      "description": "Search users by keyword",
+      "queryParams": {
+        "search": "john",
+        "status": "ACTIVE",
+        "skip": 0,
+        "take": 10
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer <jwt-token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "successResponse": {
+        "status": 200,
+        "messageEn": "Users found successfully",
+        "messageAr": "تم العثور على المستخدمين بنجاح",
+        "data": {
+          "items": [
+            {
+              "id": "user-uuid",
+              "fullName": "John Doe",
+              "email": "john.doe@example.com",
+              "isEmailVerified": true,
+              "status": "ACTIVE",
+              "role": {
+                "id": "role-uuid",
+                "name": "TRAINEE"
+              }
+            }
+          ],
+          "total": 5,
+          "skip": 0,
+          "take": 10
+        }
+      }
+    },
+    "getUserById": {
+      "method": "GET",
+      "url": "/api/users/550e8400-e29b-41d4-a716-446655440000",
+      "description": "Get user by ID",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer <jwt-token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "successResponse": {
+        "status": 200,
+        "messageEn": "User retrieved successfully",
+        "messageAr": "تم جلب المستخدم بنجاح",
+        "data": {
+          "id": "user-uuid",
+          "fullName": "John Doe",
+          "email": "john.doe@example.com",
+          "isEmailVerified": true,
+          "status": "ACTIVE",
+          "role": {
+            "id": "role-uuid",
+            "name": "TRAINEE",
+            "description": "Trainee role"
+          },
+          "lastLoginAt": "2026-02-03T10:00:00.000Z",
+          "createdAt": "2026-01-01T12:00:00.000Z",
+          "updatedAt": "2026-02-03T12:00:00.000Z",
+          "createdBy": "admin-uuid",
+          "updatedBy": "admin-uuid"
+        }
+      }
+    },
+    "updateUser": {
+      "method": "PUT",
+      "url": "/api/users/550e8400-e29b-41d4-a716-446655440000",
+      "description": "Update user information",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer <jwt-token>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "fullName": "Jane Doe",
+          "email": "jane.doe@example.com",
+          "status": "ACTIVE",
+          "isEmailVerified": true,
+          "updatedBy": "admin-user-id"
+        }
+      },
+      "successResponse": {
+        "status": 200,
+        "messageEn": "User updated successfully",
+        "messageAr": "تم تحديث المستخدم بنجاح",
+        "data": {
+          "id": "user-uuid",
+          "fullName": "Jane Doe",
+          "email": "jane.doe@example.com",
+          "isEmailVerified": true,
+          "status": "ACTIVE",
+          "role": {
+            "id": "role-uuid",
+            "name": "TRAINEE"
+          },
+          "updatedAt": "2026-02-03T13:00:00.000Z",
+          "updatedBy": "admin-uuid"
+        }
+      }
+    },
+    "toggleUserStatus": {
+      "method": "PUT",
+      "url": "/api/users/550e8400-e29b-41d4-a716-446655440000/toggle-status",
+      "description": "Toggle user status between ACTIVE and INACTIVE",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer <jwt-token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "successResponse": {
+        "status": 200,
+        "messageEn": "User status updated successfully",
+        "messageAr": "تم تحديث حالة المستخدم بنجاح",
+        "data": {
+          "id": "user-uuid",
+          "status": "INACTIVE",
+          "updatedAt": "2026-02-03T13:00:00.000Z"
+        }
+      }
+    },
+    "deleteUser": {
+      "method": "DELETE",
+      "url": "/api/users/550e8400-e29b-41d4-a716-446655440000",
+      "description": "Permanently delete a user",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer <jwt-token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "successResponse": {
+        "status": 200,
+        "messageEn": "User deleted successfully",
+        "messageAr": "تم حذف المستخدم بنجاح",
+        "data": null
+      }
+    }
+  },
+  "errorResponses": {
+    "400": {
+      "statusCode": 400,
+      "message": "Validation error",
+      "error": "Bad Request",
+      "details": "fullName should not be empty"
+    },
+    "401": {
+      "statusCode": 401,
+      "message": "Unauthorized",
+      "error": "Unauthorized",
+      "details": "Missing or invalid token"
+    },
+    "403": {
+      "statusCode": 403,
+      "message": "Forbidden",
+      "error": "Forbidden",
+      "details": "User doesn't have ADMIN role"
+    },
+    "404": {
+      "statusCode": 404,
+      "message": "User not found",
+      "error": "Not Found",
+      "details": "User with ID 550e8400-e29b-41d4-a716-446655440000 not found"
+    },
+    "409": {
+      "statusCode": 409,
+      "message": "Email already exists",
+      "error": "Conflict",
+      "details": "A user with this email already exists"
+    }
+  },
+  "userStatusValues": {
+    "ACTIVE": "User can log in and use the system",
+    "INACTIVE": "User account is disabled",
+    "SUSPENDED": "User account is temporarily suspended"
+  },
+  "notes": [
+    "All endpoints require ADMIN role authentication",
+    "Passwords are never returned in responses",
+    "Email addresses must be unique",
+    "Every user must have exactly one role",
+    "Default pagination: skip=0, take=10",
+    "Search searches both fullName and email fields"
+  ]
+}
