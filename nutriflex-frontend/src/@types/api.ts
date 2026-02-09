@@ -141,6 +141,54 @@ export type HealthSummary = {
     [key: string]: unknown
 }
 
+// Trainee Dashboard Types (New API Structure)
+export type TraineeDashboardMainData = {
+    currentWeight: number | null
+    weightChange30Days: number | null
+    activePlan: string | null
+    completionPercentage: number | null
+    lastMeasurementDate: string | null
+}
+
+export type TraineeOverviewData = {
+    currentWeight: number | null
+    weightChange7Days: number | null
+    weightChange30Days: number | null
+    activePlanName: string | null
+    planCompletion: number
+    daysActiveThisWeek: number
+}
+
+export type WeightHistoryItem = {
+    date: string
+    value: number
+}
+
+export type BodyMeasurementItem = {
+    date: string
+    waist: number | null
+    chest: number | null
+}
+
+export type TraineeProgressData = {
+    weightHistory: WeightHistoryItem[]
+    bodyMeasurements: BodyMeasurementItem[]
+}
+
+export type TraineeTodayData = {
+    todayWorkout: string | null
+    todayMeals: number
+    completedMeals: number
+    completedWorkout: boolean
+}
+
+export type TraineeStatusData = {
+    streakDays: number
+    lastCheckIn: string | null
+    coachName: string
+}
+
+// Legacy type for backward compatibility
 export type TraineeDashboardData = {
     currentWeight?: number
     weightChange30Days?: number

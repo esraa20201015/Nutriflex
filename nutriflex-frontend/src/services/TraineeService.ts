@@ -2,6 +2,11 @@ import ApiService from './ApiService'
 import type {
     ApiResponse,
     TraineeDashboardData,
+    TraineeDashboardMainData,
+    TraineeOverviewData,
+    TraineeProgressData,
+    TraineeTodayData,
+    TraineeStatusData,
     PlansListResponse,
     TraineePlanStatusListResponse,
     HealthMetricsListResponse,
@@ -9,11 +14,48 @@ import type {
     TraineeProgressResponse,
 } from '@/@types/api'
 
+// New API endpoints for trainee dashboard
 export async function apiGetTraineeDashboard() {
     return ApiService.fetchDataWithAxios<
-        ApiResponse<TraineeDashboardData>
+        ApiResponse<TraineeDashboardMainData>
     >({
         url: '/dashboard/trainee',
+        method: 'get',
+    })
+}
+
+export async function apiGetTraineeOverview() {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<TraineeOverviewData>
+    >({
+        url: '/dashboard/trainee/overview',
+        method: 'get',
+    })
+}
+
+export async function apiGetTraineeDashboardProgress() {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<TraineeProgressData>
+    >({
+        url: '/dashboard/trainee/progress',
+        method: 'get',
+    })
+}
+
+export async function apiGetTraineeToday() {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<TraineeTodayData>
+    >({
+        url: '/dashboard/trainee/today',
+        method: 'get',
+    })
+}
+
+export async function apiGetTraineeStatus() {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<TraineeStatusData>
+    >({
+        url: '/dashboard/trainee/status',
         method: 'get',
     })
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { apiGetRoles, apiToggleRoleStatus, apiGetUsers } from '@/services/AdminService'
-import { FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi'
+import { FiEye, FiEdit2 } from 'react-icons/fi'
 import { TbToggleRight, TbToggleLeft } from 'react-icons/tb'
 import Card from '@/components/ui/Card'
 import Tooltip from '@/components/ui/Tooltip'
@@ -367,15 +367,6 @@ const Roles = () => {
                                                         aria-label="Edit role"
                                                     >
                                                         <FiEdit2 className="w-4 h-4" />
-                                                    </button>
-                                                </Tooltip>
-                                                <Tooltip title="Delete">
-                                                    <button
-                                                        type="button"
-                                                        className="inline-flex items-center justify-center text-red-500 hover:text-red-700 dark:text-red-300 dark:hover:text-red-200 transition-colors"
-                                                        aria-label="Delete role"
-                                                    >
-                                                        <FiTrash2 className="w-4 h-4" />
                                                     </button>
                                                 </Tooltip>
                                             </td>

@@ -24,6 +24,7 @@ export class TraineeDashboardController {
         messageAr: 'المستخدم غير مصادق عليه',
       });
     }
+    // Security: user.id comes from verified JWT token - ensures trainee only sees their own data
     return this.traineeDashboardService.getDashboard(user.id);
   }
 
@@ -37,6 +38,7 @@ export class TraineeDashboardController {
         messageAr: 'المستخدم غير مصادق عليه',
       });
     }
+    // Security: user.id comes from verified JWT token - ensures trainee only sees their own data
     return this.traineeDashboardService.getOverview(user.id);
   }
 
@@ -50,6 +52,7 @@ export class TraineeDashboardController {
         messageAr: 'المستخدم غير مصادق عليه',
       });
     }
+    // Security: user.id comes from verified JWT token - ensures trainee only sees their own data
     return this.traineeDashboardService.getProgress(user.id);
   }
 
@@ -63,6 +66,7 @@ export class TraineeDashboardController {
         messageAr: 'المستخدم غير مصادق عليه',
       });
     }
+    // Security: user.id comes from verified JWT token - ensures trainee only sees their own data
     return this.traineeDashboardService.getToday(user.id);
   }
 
@@ -76,6 +80,7 @@ export class TraineeDashboardController {
         messageAr: 'المستخدم غير مصادق عليه',
       });
     }
+    // Security: user.id comes from verified JWT token - ensures trainee only sees their own data
     return this.traineeDashboardService.getStatus(user.id);
   }
 }

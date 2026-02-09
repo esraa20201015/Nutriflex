@@ -8,6 +8,15 @@ import { NutritionPlan } from '../nutrition-plan/entities/nutrition-plan.entity'
 import { NutritionPlanStatus } from '../nutrition-plan/enums/nutrition-plan-status.enum';
 import { TraineePlanStatus } from '../trainee-plan-status/entities/trainee-plan-status.entity';
 
+/**
+ * TraineeDashboardService
+ * 
+ * Security Note: All methods in this service receive traineeId from the authenticated user's JWT token.
+ * All database queries filter by trainee_id using parameterized queries to ensure:
+ * - Complete data isolation (each trainee only sees their own data)
+ * - SQL injection prevention
+ * - No possibility of accessing another trainee's data
+ */
 @Injectable()
 export class TraineeDashboardService {
   constructor(
