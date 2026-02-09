@@ -98,10 +98,10 @@ export type CoachOverviewData = {
 export type CoachTraineeProgressItem = {
     traineeId: string
     name: string
-    currentWeight?: number
-    weightChange30Days?: number
-    completionRate?: number
-    lastActivity?: string
+    currentWeight: number | null
+    weightChange30Days: number | null
+    completionRate: number
+    lastActivity: string | null
 }
 
 export type CoachTraineesProgressData = {
