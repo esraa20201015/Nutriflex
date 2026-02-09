@@ -1,0 +1,553 @@
+{
+  "endpoints": {
+    "baseUrl": "http://localhost:3000/api",
+    "nutritionPlanBase": "/api/nutrition-plan",
+    "mealBase": "/api/meal",
+    "authentication": {
+      "header": "Authorization: Bearer <access_token>",
+      "role": "COACH or ADMIN"
+    },
+    "note": "Coaches must filter plans by coach_id (from JWT token) to see only their own plans."
+  },
+  "examples": {
+    "1_get_all_plans": {
+      "endpoint": "GET /api/nutrition-plan",
+      "description": "Get all nutrition plans (filtered by coach_id)",
+      "request": {
+        "method": "GET",
+        "url": "/api/nutrition-plan",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        },
+        "queryParams": {
+          "coach_id": "coach-uuid-from-token",
+          "status": "active",
+          "skip": 0,
+          "take": 10
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Nutrition plans retrieved successfully",
+        "messageAr": "تم استرجاع خطط التغذية بنجاح",
+        "data": [
+          {
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "coach_id": "660e8400-e29b-41d4-a716-446655440001",
+            "trainee_id": "770e8400-e29b-41d4-a716-446655440002",
+            "title": "Summer Weight Loss Plan",
+            "description": "A comprehensive 12-week weight loss program",
+            "daily_calories": 1800,
+            "start_date": "2026-01-01T00:00:00.000Z",
+            "end_date": "2026-03-31T00:00:00.000Z",
+            "status": "active",
+            "coach": {
+              "id": "660e8400-e29b-41d4-a716-446655440001",
+              "fullName": "Dr. Sarah Johnson",
+              "email": "sarah.johnson@example.com"
+            },
+            "trainee": {
+              "id": "770e8400-e29b-41d4-a716-446655440002",
+              "fullName": "Ahmed Ali",
+              "email": "ahmed.ali@example.com"
+            },
+            "created_date": "2025-12-15T08:00:00.000Z",
+            "updated_date": "2026-02-01T09:00:00.000Z"
+          }
+        ],
+        "meta": {
+          "total": 1,
+          "count": 1,
+          "skip": 0,
+          "take": 10
+        }
+      },
+      "response_empty": {
+        "status": 200,
+        "messageEn": "Nutrition plans retrieved successfully",
+        "messageAr": "تم استرجاع خطط التغذية بنجاح",
+        "data": [],
+        "meta": {
+          "total": 0,
+          "count": 0,
+          "skip": 0,
+          "take": 10
+        }
+      }
+    },
+    "2_create_plan": {
+      "endpoint": "POST /api/nutrition-plan",
+      "description": "Create a new nutrition plan",
+      "request": {
+        "method": "POST",
+        "url": "/api/nutrition-plan",
+        "headers": {
+          "Authorization": "Bearer <access_token>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "coach_id": "coach-uuid-from-token",
+          "trainee_id": "trainee-uuid",
+          "title": "High Protein Diet Plan",
+          "description": "A high protein nutrition plan for muscle building",
+          "daily_calories": 2500,
+          "start_date": "2026-02-10T00:00:00.000Z",
+          "end_date": "2026-12-31T00:00:00.000Z",
+          "status": "draft"
+        }
+      },
+      "response": {
+        "status": 201,
+        "messageEn": "Nutrition plan created successfully",
+        "messageAr": "تم إنشاء خطة التغذية بنجاح",
+        "data": {
+          "id": "new-plan-uuid",
+          "coach_id": "coach-uuid-from-token",
+          "trainee_id": "trainee-uuid",
+          "title": "High Protein Diet Plan",
+          "description": "A high protein nutrition plan for muscle building",
+          "daily_calories": 2500,
+          "start_date": "2026-02-10T00:00:00.000Z",
+          "end_date": "2026-12-31T00:00:00.000Z",
+          "status": "draft",
+          "coach": {
+            "id": "coach-uuid-from-token",
+            "fullName": "Dr. Sarah Johnson",
+            "email": "sarah.johnson@example.com"
+          },
+          "trainee": {
+            "id": "trainee-uuid",
+            "fullName": "Ahmed Ali",
+            "email": "ahmed.ali@example.com"
+          },
+          "created_date": "2026-02-09T10:00:00.000Z",
+          "updated_date": "2026-02-09T10:00:00.000Z"
+        }
+      }
+    },
+    "3_get_plan_details": {
+      "endpoint": "GET /api/nutrition-plan/:id",
+      "description": "Get detailed information about a specific plan",
+      "request": {
+        "method": "GET",
+        "url": "/api/nutrition-plan/550e8400-e29b-41d4-a716-446655440000",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Nutrition plan retrieved successfully",
+        "messageAr": "تم استرجاع خطة التغذية بنجاح",
+        "data": {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "coach_id": "660e8400-e29b-41d4-a716-446655440001",
+          "trainee_id": "770e8400-e29b-41d4-a716-446655440002",
+          "title": "Summer Weight Loss Plan",
+          "description": "A comprehensive 12-week weight loss program",
+          "daily_calories": 1800,
+          "start_date": "2026-01-01T00:00:00.000Z",
+          "end_date": "2026-03-31T00:00:00.000Z",
+          "status": "active",
+          "coach": {
+            "id": "660e8400-e29b-41d4-a716-446655440001",
+            "fullName": "Dr. Sarah Johnson",
+            "email": "sarah.johnson@example.com"
+          },
+          "trainee": {
+            "id": "770e8400-e29b-41d4-a716-446655440002",
+            "fullName": "Ahmed Ali",
+            "email": "ahmed.ali@example.com"
+          },
+          "created_date": "2025-12-15T08:00:00.000Z",
+          "updated_date": "2026-02-01T09:00:00.000Z"
+        }
+      }
+    },
+    "4_update_plan": {
+      "endpoint": "PUT /api/nutrition-plan/:id",
+      "description": "Update an existing nutrition plan",
+      "request": {
+        "method": "PUT",
+        "url": "/api/nutrition-plan/550e8400-e29b-41d4-a716-446655440000",
+        "headers": {
+          "Authorization": "Bearer <access_token>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "title": "Updated Plan Title",
+          "daily_calories": 2000,
+          "status": "active"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Nutrition plan updated successfully",
+        "messageAr": "تم تحديث خطة التغذية بنجاح",
+        "data": {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "title": "Updated Plan Title",
+          "daily_calories": 2000,
+          "status": "active"
+        }
+      }
+    },
+    "5_toggle_status": {
+      "endpoint": "PUT /api/nutrition-plan/:id/toggle-status",
+      "description": "Toggle plan status (draft → active → archived → draft)",
+      "request": {
+        "method": "PUT",
+        "url": "/api/nutrition-plan/550e8400-e29b-41d4-a716-446655440000/toggle-status",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Nutrition plan updated successfully",
+        "messageAr": "تم تحديث خطة التغذية بنجاح",
+        "data": {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "status": "active"
+        }
+      }
+    },
+    "6_delete_plan": {
+      "endpoint": "DELETE /api/nutrition-plan/:id",
+      "description": "Delete a nutrition plan",
+      "request": {
+        "method": "DELETE",
+        "url": "/api/nutrition-plan/550e8400-e29b-41d4-a716-446655440000",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Nutrition plan deleted successfully",
+        "messageAr": "تم حذف خطة التغذية بنجاح",
+        "data": null
+      }
+    },
+    "7_get_plan_meals": {
+      "endpoint": "GET /api/meal",
+      "description": "Get all meals for a nutrition plan",
+      "request": {
+        "method": "GET",
+        "url": "/api/meal",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        },
+        "queryParams": {
+          "nutrition_plan_id": "550e8400-e29b-41d4-a716-446655440000"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Meals retrieved successfully",
+        "messageAr": "تم استرجاع الوجبات بنجاح",
+        "data": [
+          {
+            "id": "880e8400-e29b-41d4-a716-446655440001",
+            "nutrition_plan_id": "550e8400-e29b-41d4-a716-446655440000",
+            "name": "Oatmeal with Berries",
+            "meal_type": "breakfast",
+            "calories": 350,
+            "protein": 12.5,
+            "carbs": 55.0,
+            "fats": 8.0,
+            "instructions": "Cook 1 cup oats, add 1/2 cup mixed berries, 1 tbsp almond butter",
+            "order_index": 1,
+            "created_date": "2026-01-15T08:00:00.000Z",
+            "updated_date": "2026-01-15T08:00:00.000Z"
+          },
+          {
+            "id": "880e8400-e29b-41d4-a716-446655440002",
+            "nutrition_plan_id": "550e8400-e29b-41d4-a716-446655440000",
+            "name": "Grilled Chicken Salad",
+            "meal_type": "lunch",
+            "calories": 450,
+            "protein": 35.0,
+            "carbs": 25.0,
+            "fats": 20.0,
+            "instructions": "Grill 150g chicken breast, serve over mixed greens",
+            "order_index": 2,
+            "created_date": "2026-01-15T08:00:00.000Z",
+            "updated_date": "2026-01-15T08:00:00.000Z"
+          }
+        ],
+        "meta": {
+          "total": 2,
+          "count": 2,
+          "skip": 0,
+          "take": 10
+        }
+      }
+    },
+    "8_create_meal": {
+      "endpoint": "POST /api/meal",
+      "description": "Create a new meal for a nutrition plan",
+      "request": {
+        "method": "POST",
+        "url": "/api/meal",
+        "headers": {
+          "Authorization": "Bearer <access_token>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "nutrition_plan_id": "550e8400-e29b-41d4-a716-446655440000",
+          "name": "Oatmeal with Berries",
+          "meal_type": "breakfast",
+          "calories": 350,
+          "protein": 12.5,
+          "carbs": 55.0,
+          "fats": 8.0,
+          "instructions": "Cook 1 cup oats, add 1/2 cup mixed berries, 1 tbsp almond butter",
+          "order_index": 1
+        }
+      },
+      "response": {
+        "status": 201,
+        "messageEn": "Meal created successfully",
+        "messageAr": "تم إنشاء الوجبة بنجاح",
+        "data": {
+          "id": "new-meal-uuid",
+          "nutrition_plan_id": "550e8400-e29b-41d4-a716-446655440000",
+          "name": "Oatmeal with Berries",
+          "meal_type": "breakfast",
+          "calories": 350,
+          "protein": 12.5,
+          "carbs": 55.0,
+          "fats": 8.0,
+          "instructions": "Cook 1 cup oats, add 1/2 cup mixed berries, 1 tbsp almond butter",
+          "order_index": 1,
+          "created_date": "2026-02-09T10:00:00.000Z",
+          "updated_date": "2026-02-09T10:00:00.000Z"
+        }
+      }
+    },
+    "9_update_meal": {
+      "endpoint": "PUT /api/meal/:id",
+      "description": "Update an existing meal",
+      "request": {
+        "method": "PUT",
+        "url": "/api/meal/880e8400-e29b-41d4-a716-446655440001",
+        "headers": {
+          "Authorization": "Bearer <access_token>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Updated Oatmeal Recipe",
+          "calories": 380,
+          "protein": 15.0
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Meal updated successfully",
+        "messageAr": "تم تحديث الوجبة بنجاح",
+        "data": {
+          "id": "880e8400-e29b-41d4-a716-446655440001",
+          "name": "Updated Oatmeal Recipe",
+          "calories": 380,
+          "protein": 15.0
+        }
+      }
+    },
+    "10_delete_meal": {
+      "endpoint": "DELETE /api/meal/:id",
+      "description": "Delete a meal",
+      "request": {
+        "method": "DELETE",
+        "url": "/api/meal/880e8400-e29b-41d4-a716-446655440001",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Meal deleted successfully",
+        "messageAr": "تم حذف الوجبة بنجاح",
+        "data": null
+      }
+    },
+    "11_search_plans": {
+      "endpoint": "GET /api/nutrition-plan/search",
+      "description": "Search nutrition plans",
+      "request": {
+        "method": "GET",
+        "url": "/api/nutrition-plan/search",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        },
+        "queryParams": {
+          "coach_id": "coach-uuid-from-token",
+          "search": "weight loss",
+          "status": "active"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Nutrition plan search completed",
+        "messageAr": "تم البحث في خطط التغذية بنجاح",
+        "data": [
+          {
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "title": "Summer Weight Loss Plan",
+            "status": "active"
+          }
+        ],
+        "meta": {
+          "total": 1,
+          "count": 1,
+          "skip": 0,
+          "take": 10
+        }
+      }
+    }
+  },
+  "error_examples": {
+    "401_unauthorized": {
+      "statusCode": 401,
+      "message": "Unauthorized"
+    },
+    "403_forbidden": {
+      "messageEn": "Insufficient permissions. Required role: COACH or ADMIN",
+      "messageAr": "صلاحيات غير كافية. الدور المطلوب: COACH أو ADMIN"
+    },
+    "404_not_found": {
+      "status": 404,
+      "messageEn": "Nutrition plan not found",
+      "messageAr": "خطة التغذية غير موجودة",
+      "data": null
+    },
+    "400_validation_error": {
+      "statusCode": 400,
+      "message": [
+        "title should not be empty",
+        "trainee_id must be a UUID",
+        "start_date must be a valid ISO 8601 date string"
+      ]
+    }
+  },
+  "typescript_interfaces": {
+    "comment": "TypeScript interfaces for frontend implementation",
+    "NutritionPlan": {
+      "id": "string",
+      "coach_id": "string",
+      "trainee_id": "string",
+      "title": "string",
+      "description": "string | null",
+      "daily_calories": "number | null",
+      "start_date": "string",
+      "end_date": "string | null",
+      "status": "'draft' | 'active' | 'archived'",
+      "coach": "{ id: string; fullName: string; email: string }",
+      "trainee": "{ id: string; fullName: string; email: string }",
+      "created_date": "string",
+      "updated_date": "string"
+    },
+    "Meal": {
+      "id": "string",
+      "nutrition_plan_id": "string",
+      "name": "string",
+      "meal_type": "'breakfast' | 'lunch' | 'dinner' | 'snack'",
+      "calories": "number | null",
+      "protein": "number | null",
+      "carbs": "number | null",
+      "fats": "number | null",
+      "instructions": "string | null",
+      "order_index": "number",
+      "created_date": "string",
+      "updated_date": "string"
+    },
+    "CreatePlanDto": {
+      "coach_id": "string",
+      "trainee_id": "string",
+      "title": "string",
+      "description": "string | null",
+      "daily_calories": "number | null",
+      "start_date": "string",
+      "end_date": "string | null",
+      "status": "'draft' | 'active' | 'archived'"
+    },
+    "UpdatePlanDto": {
+      "title": "string",
+      "description": "string | null",
+      "daily_calories": "number | null",
+      "start_date": "string",
+      "end_date": "string | null",
+      "status": "'draft' | 'active' | 'archived'"
+    },
+    "CreateMealDto": {
+      "nutrition_plan_id": "string",
+      "name": "string",
+      "meal_type": "'breakfast' | 'lunch' | 'dinner' | 'snack'",
+      "calories": "number | null",
+      "protein": "number | null",
+      "carbs": "number | null",
+      "fats": "number | null",
+      "instructions": "string | null",
+      "order_index": "number"
+    },
+    "UpdateMealDto": {
+      "name": "string",
+      "meal_type": "'breakfast' | 'lunch' | 'dinner' | 'snack'",
+      "calories": "number | null",
+      "protein": "number | null",
+      "carbs": "number | null",
+      "fats": "number | null",
+      "instructions": "string | null",
+      "order_index": "number"
+    }
+  },
+  "enums": {
+    "NutritionPlanStatus": {
+      "DRAFT": "draft",
+      "ACTIVE": "active",
+      "ARCHIVED": "archived"
+    },
+    "MealType": {
+      "BREAKFAST": "breakfast",
+      "LUNCH": "lunch",
+      "DINNER": "dinner",
+      "SNACK": "snack"
+    }
+  },
+  "workflow_example": {
+    "description": "Typical workflow for creating a plan with meals",
+    "steps": [
+      {
+        "step": 1,
+        "action": "Create nutrition plan",
+        "endpoint": "POST /api/nutrition-plan",
+        "body": {
+          "coach_id": "coach-uuid",
+          "trainee_id": "trainee-uuid",
+          "title": "New Plan",
+          "start_date": "2026-02-10T00:00:00.000Z",
+          "status": "draft"
+        },
+        "response_contains": "plan.id"
+      },
+      {
+        "step": 2,
+        "action": "Create meals for the plan",
+        "endpoint": "POST /api/meal",
+        "body": {
+          "nutrition_plan_id": "<plan.id from step 1>",
+          "name": "Breakfast Meal",
+          "meal_type": "breakfast",
+          "calories": 350
+        },
+        "repeat": "For each meal (breakfast, lunch, dinner, snack)"
+      },
+      {
+        "step": 3,
+        "action": "Activate the plan",
+        "endpoint": "PUT /api/nutrition-plan/:id/toggle-status",
+        "note": "Changes status from draft to active"
+      }
+    ]
+  }
+}

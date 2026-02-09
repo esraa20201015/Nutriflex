@@ -66,6 +66,18 @@ export const protectedRoutes: Routes = [
         component: lazy(() => import('@/views/coach/Plans')),
         authority: [ADMIN, COACH],
     },
+    {
+        key: 'coach-create-plan',
+        path: '/coach/plans/new',
+        component: lazy(() => import('@/views/coach/CreatePlan')),
+        authority: [ADMIN, COACH],
+    },
+    {
+        key: 'coach-edit-plan',
+        path: '/coach/plans/:id',
+        component: lazy(() => import('@/views/coach/CreatePlan')),
+        authority: [ADMIN, COACH],
+    },
     // Trainee routes
     {
         key: 'trainee-dashboard',

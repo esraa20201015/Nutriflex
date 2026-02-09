@@ -264,6 +264,7 @@ export type CoachTraineesListResponse = {
 }
 
 // Plan Types
+// Legacy type for backward compatibility
 export type NutritionPlan = {
     id: string
     name: string
@@ -275,11 +276,117 @@ export type NutritionPlan = {
     [key: string]: unknown
 }
 
+// Coach Nutrition Plan (New API Structure)
+export type CoachNutritionPlan = {
+    id: string
+    coach_id: string
+    trainee_id: string
+    title: string
+    description: string | null
+    daily_calories: number | null
+    start_date: string
+    end_date: string | null
+    status: 'draft' | 'active' | 'archived'
+    coach: {
+        id: string
+        fullName: string
+        email: string
+    }
+    trainee: {
+        id: string
+        fullName: string
+        email: string
+    }
+    created_date: string
+    updated_date: string
+}
+
 export type PlansListResponse = {
-    plans: NutritionPlan[]
+    plans: CoachNutritionPlan[]
     total?: number
     skip?: number
     take?: number
+    meta?: {
+        total: number
+        count: number
+        skip: number
+        take: number
+    }
+}
+
+// Meal Types (Coach API Structure)
+export type CoachMeal = {
+    id: string
+    nutrition_plan_id: string
+    name: string
+    meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+    calories: number | null
+    protein: number | null
+    carbs: number | null
+    fats: number | null
+    instructions: string | null
+    order_index: number
+    created_date: string
+    updated_date: string
+}
+
+export type MealsListResponse = {
+    meals?: CoachMeal[]
+    data?: CoachMeal[]
+    total?: number
+    count?: number
+    skip?: number
+    take?: number
+    meta?: {
+        total: number
+        count: number
+        skip: number
+        take: number
+    }
+}
+
+// DTOs for creating/updating
+export type CreatePlanDto = {
+    coach_id: string
+    trainee_id: string
+    title: string
+    description?: string | null
+    daily_calories?: number | null
+    start_date: string
+    end_date?: string | null
+    status?: 'draft' | 'active' | 'archived'
+}
+
+export type UpdatePlanDto = {
+    title?: string
+    description?: string | null
+    daily_calories?: number | null
+    start_date?: string
+    end_date?: string | null
+    status?: 'draft' | 'active' | 'archived'
+}
+
+export type CreateMealDto = {
+    nutrition_plan_id: string
+    name: string
+    meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+    calories?: number | null
+    protein?: number | null
+    carbs?: number | null
+    fats?: number | null
+    instructions?: string | null
+    order_index?: number
+}
+
+export type UpdateMealDto = {
+    name?: string
+    meal_type?: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+    calories?: number | null
+    protein?: number | null
+    carbs?: number | null
+    fats?: number | null
+    instructions?: string | null
+    order_index?: number
 }
 
 // Trainee Plans API Types (New Structure)
