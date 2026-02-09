@@ -32,6 +32,7 @@ export type SignUpResponse = {
 }
 
 export type CoachProfile = {
+    fullName: string // Required when role is COACH
     age: number
     gender: 'male' | 'female'
     qualificationFilePath?: string

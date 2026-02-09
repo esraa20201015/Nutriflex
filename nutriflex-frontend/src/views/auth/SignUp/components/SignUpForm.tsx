@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import { FormItem, Form } from '@/components/ui/Form'
@@ -56,6 +57,10 @@ const baseSchema = z.object({
 
 // Coach profile schema
 const coachProfileSchema = z.object({
+    fullName: z
+        .string({ required_error: 'Full name is required' })
+        .min(1, { message: 'Full name is required' })
+        .max(255, { message: 'Full name must be less than 255 characters' }),
     age: z
         .number({ required_error: 'Age is required' })
         .min(1, { message: 'Age must be at least 1' })
@@ -111,13 +116,13 @@ const validationSchema: ZodType<SignUpCredential> = baseSchema
     .refine(
         (data) => {
             if (data.role === 'COACH') {
-                return !!data.coachProfile
+                return !!data.coachProfile && !!data.coachProfile.fullName && data.coachProfile.fullName.trim().length > 0
             }
             return true
         },
         {
-            message: 'Coach profile is required for COACH sign-up',
-            path: ['coachProfile'],
+            message: 'Coach profile with full name is required for COACH sign-up',
+            path: ['coachProfile', 'fullName'],
         },
     )
     .refine(
@@ -139,6 +144,7 @@ const SignUpForm = (props: SignUpFormProps) => {
     const [isSubmitting, setSubmitting] = useState<boolean>(false)
     const [step, setStep] = useState(0)
     const { signUp } = useAuth()
+    const navigate = useNavigate()
 
     const {
         handleSubmit,
@@ -146,6 +152,7 @@ const SignUpForm = (props: SignUpFormProps) => {
         control,
         watch,
         trigger,
+        setValue,
     } = useForm<SignUpCredential>({
         resolver: zodResolver(validationSchema),
         defaultValues: {
@@ -160,6 +167,13 @@ const SignUpForm = (props: SignUpFormProps) => {
 
     // Generate fullName from firstName and lastName
     const fullName = firstName && lastName ? `${firstName} ${lastName}` : ''
+
+    // Update coachProfile.fullName when firstName or lastName changes (for COACH role)
+    useEffect(() => {
+        if (selectedRole === 'COACH' && fullName) {
+            setValue('coachProfile.fullName', fullName, { shouldValidate: true })
+        }
+    }, [fullName, selectedRole, setValue])
 
     /** Read a file as base64 data URL for API upload. */
     const readFileAsDataUrl = (file: File): Promise<string> =>
@@ -205,7 +219,11 @@ const SignUpForm = (props: SignUpFormProps) => {
 
             // Add role-specific profile
             if (values.role === 'COACH' && values.coachProfile) {
-                submitData.coachProfile = values.coachProfile
+                // Ensure coachProfile includes required fullName
+                submitData.coachProfile = {
+                    ...values.coachProfile,
+                    fullName: values.coachProfile.fullName || submitData.fullName,
+                }
             } else if (values.role === 'TRAINEE' && values.traineeProfile) {
                 submitData.traineeProfile = values.traineeProfile
             }
@@ -214,11 +232,17 @@ const SignUpForm = (props: SignUpFormProps) => {
 
             if (result?.status === 'failed') {
                 setMessage?.(result.message)
+                setSubmitting(false)
             } else if (result?.status === 'success') {
                 setMessage?.(result.message)
+                // Redirect to sign-in page after successful sign-up
+                // Small delay to show success message
+                setTimeout(() => {
+                    navigate('/sign-in', { replace: true })
+                }, 1500)
+            } else {
+                setSubmitting(false)
             }
-
-            setSubmitting(false)
         }
     }
 
@@ -374,6 +398,19 @@ const SignUpForm = (props: SignUpFormProps) => {
                                 <div className="mb-2">
                                     <h4 className="text-lg font-semibold">Coach Profile</h4>
                                 </div>
+
+                                {/* Hidden fullName field - auto-populated from firstName + lastName */}
+                                <Controller
+                                    name="coachProfile.fullName"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <input
+                                            type="hidden"
+                                            {...field}
+                                            value={fullName || field.value || ''}
+                                        />
+                                    )}
+                                />
 
                                 <FormItem
                                     className="mb-2"

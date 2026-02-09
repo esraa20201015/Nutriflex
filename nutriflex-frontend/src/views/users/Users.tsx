@@ -207,7 +207,11 @@ const Users = () => {
                 header: 'Role',
                 accessorKey: 'role',
                 cell: ({ row }) => {
-                    const role = row.original.role
+                    const roleData = row.original.role
+                    // Handle both string and object role formats
+                    const roleName = typeof roleData === 'string' 
+                        ? roleData 
+                        : (roleData?.name || roleData?.id || 'UNKNOWN')
                     const roleTagClass = {
                         ADMIN:
                             'text-white bg-indigo-600 dark:bg-indigo-500/80 border-0 rounded',
@@ -219,11 +223,11 @@ const Users = () => {
                     return (
                         <Tag
                             className={
-                                roleTagClass[role] ||
+                                roleTagClass[roleName as keyof typeof roleTagClass] ||
                                 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border-0 rounded'
                             }
                         >
-                            {role}
+                            {roleName}
                         </Tag>
                     )
                 },
