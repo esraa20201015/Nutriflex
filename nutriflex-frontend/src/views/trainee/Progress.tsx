@@ -1,47 +1,29 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { apiGetTraineeDashboardProgress } from '@/services/TraineeService'
+import Chart from '@/components/shared/Chart'
+import Card from '@/components/ui/Card'
+import Spinner from '@/components/ui/Spinner'
 import {
-    apiGetHealthMetric,
-    apiGetBodyMeasurements,
-    apiGetTraineeProgress,
-} from '@/services/TraineeService'
-import { useSessionUser } from '@/store/authStore'
-import type {
-    HealthMetric,
-    BodyMeasurement,
-    TraineeProgress,
-} from '@/@types/api'
+    PiChartBarDuotone,
+    PiRulerDuotone,
+    PiTrendUpDuotone,
+    PiTrendDownDuotone,
+} from 'react-icons/pi'
+import type { TraineeProgressData } from '@/@types/api'
 
 const Progress = () => {
-    const [weightMetrics, setWeightMetrics] = useState<HealthMetric[]>([])
-    const [measurements, setMeasurements] = useState<BodyMeasurement[]>([])
-    const [progress, setProgress] = useState<TraineeProgress[]>([])
+    const [progressData, setProgressData] =
+        useState<TraineeProgressData | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const user = useSessionUser((state) => state.user)
 
     useEffect(() => {
         const loadProgress = async () => {
-            if (!user.id) return
-
             try {
                 setLoading(true)
                 setError(null)
-
-                const [weightResp, measurementsResp, progressResp] =
-                    await Promise.all([
-                        apiGetHealthMetric({
-                            trainee_id: user.id,
-                            metric_type: 'weight',
-                        }),
-                        apiGetBodyMeasurements(user.id),
-                        apiGetTraineeProgress({
-                            trainee_id: user.id,
-                        }),
-                    ])
-
-                setWeightMetrics(weightResp.data.metrics || [])
-                setMeasurements(measurementsResp.data.measurements || [])
-                setProgress(progressResp.data.progress || [])
+                const response = await apiGetTraineeDashboardProgress()
+                setProgressData(response.data)
             } catch (err) {
                 setError(
                     err instanceof Error
@@ -54,12 +36,129 @@ const Progress = () => {
         }
 
         loadProgress()
-    }, [user.id])
+    }, [])
+
+    // Prepare weight chart data
+    const weightChartData = useMemo(() => {
+        if (
+            !progressData?.weightHistory ||
+            progressData.weightHistory.length === 0
+        ) {
+            return {
+                series: [{ name: 'Weight', data: [] }],
+                categories: [],
+            }
+        }
+
+        const sorted = [...progressData.weightHistory].sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        )
+
+        return {
+            series: [
+                {
+                    name: 'Weight (kg)',
+                    data: sorted.map((item) => item.value),
+                },
+            ],
+            categories: sorted.map((item) => {
+                const date = new Date(item.date)
+                return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                })
+            }),
+        }
+    }, [progressData?.weightHistory])
+
+    // Prepare body measurements chart data
+    const bodyMeasurementsChartData = useMemo(() => {
+        if (
+            !progressData?.bodyMeasurements ||
+            progressData.bodyMeasurements.length === 0
+        ) {
+            return {
+                series: [],
+                categories: [],
+            }
+        }
+
+        const sorted = [...progressData.bodyMeasurements].sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        )
+
+        // Filter out entries where both waist and chest are null
+        const validEntries = sorted.filter(
+            (item) => item.waist !== null || item.chest !== null,
+        )
+
+        if (validEntries.length === 0) {
+            return {
+                series: [],
+                categories: [],
+            }
+        }
+
+        const waistData: (number | null)[] = []
+        const chestData: (number | null)[] = []
+        const categories: string[] = []
+
+        validEntries.forEach((item) => {
+            categories.push(
+                new Date(item.date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                }),
+            )
+            waistData.push(item.waist)
+            chestData.push(item.chest)
+        })
+
+        const series = []
+        if (waistData.some((val) => val !== null)) {
+            series.push({
+                name: 'Waist (cm)',
+                data: waistData,
+            })
+        }
+        if (chestData.some((val) => val !== null)) {
+            series.push({
+                name: 'Chest (cm)',
+                data: chestData,
+            })
+        }
+
+        return {
+            series,
+            categories,
+        }
+    }, [progressData?.bodyMeasurements])
+
+    // Calculate weight change
+    const weightChange = useMemo(() => {
+        if (
+            !progressData?.weightHistory ||
+            progressData.weightHistory.length < 2
+        ) {
+            return null
+        }
+
+        const sorted = [...progressData.weightHistory].sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        )
+        const first = sorted[0].value
+        const last = sorted[sorted.length - 1].value
+        return {
+            change: last - first,
+            firstDate: sorted[0].date,
+            lastDate: sorted[sorted.length - 1].date,
+        }
+    }, [progressData?.weightHistory])
 
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <div className="text-lg">Loading progress...</div>
+                <Spinner size={40} />
             </div>
         )
     }
@@ -67,149 +166,224 @@ const Progress = () => {
     if (error) {
         return (
             <div className="flex items-center justify-center h-64">
-                <div className="text-lg text-red-500">Error: {error}</div>
+                <div className="text-center">
+                    <p className="text-lg text-red-500 mb-2">Error</p>
+                    <p className="text-gray-600 dark:text-gray-400">{error}</p>
+                </div>
             </div>
         )
     }
 
+    const hasWeightData = weightChartData.categories.length > 0
+    const hasBodyMeasurementsData =
+        bodyMeasurementsChartData.categories.length > 0
+    const hasNoData = !hasWeightData && !hasBodyMeasurementsData
+
     return (
-        <div>
-            <div className="mb-6">
+        <div className="space-y-6">
+            {/* Header */}
+            <div>
                 <h2 className="text-2xl font-bold">Progress</h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                    Track your fitness journey
+                    Track your fitness journey over time
                 </p>
             </div>
 
-            <div className="space-y-6">
-                {/* Weight Metrics */}
-                {weightMetrics.length > 0 && (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-                        <h3 className="text-lg font-semibold mb-4">
-                            Weight History
-                        </h3>
-                        <div className="space-y-2">
-                            {weightMetrics.slice(0, 10).map((metric) => (
-                                <div
-                                    key={metric.id}
-                                    className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded"
-                                >
-                                    <span className="text-sm">
-                                        {new Date(
-                                            metric.recordedAt,
-                                        ).toLocaleDateString()}
-                                    </span>
-                                    <span className="font-semibold">
-                                        {metric.value} kg
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Body Measurements */}
-                {measurements.length > 0 && (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-                        <h3 className="text-lg font-semibold mb-4">
-                            Body Measurements
-                        </h3>
-                        <div className="space-y-2">
-                            {measurements.slice(0, 10).map((measurement) => (
-                                <div
-                                    key={measurement.id}
-                                    className="p-3 bg-gray-50 dark:bg-gray-700 rounded"
-                                >
-                                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                                        {new Date(
-                                            measurement.recordedAt,
-                                        ).toLocaleDateString()}
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                                        {measurement.measurements.chest && (
-                                            <div>
-                                                Chest: {measurement.measurements.chest} cm
-                                            </div>
-                                        )}
-                                        {measurement.measurements.waist && (
-                                            <div>
-                                                Waist: {measurement.measurements.waist} cm
-                                            </div>
-                                        )}
-                                        {measurement.measurements.hips && (
-                                            <div>
-                                                Hips: {measurement.measurements.hips} cm
-                                            </div>
-                                        )}
-                                        {measurement.measurements.arms && (
-                                            <div>
-                                                Arms: {measurement.measurements.arms} cm
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Progress Summary */}
-                {progress.length > 0 && (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-                        <h3 className="text-lg font-semibold mb-4">
-                            Progress Summary
-                        </h3>
-                        <div className="space-y-2">
-                            {progress.map((p, idx) => (
-                                <div
-                                    key={idx}
-                                    className="p-3 bg-gray-50 dark:bg-gray-700 rounded"
-                                >
-                                    {p.weightChange !== undefined && (
-                                        <div className="text-sm">
-                                            Weight Change:{' '}
+            {/* Weight Change Summary */}
+            {weightChange && (
+                <Card>
+                    <div className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                                    Overall Weight Change
+                                </h3>
+                                <div className="flex items-baseline gap-2">
+                                    {weightChange.change !== 0 ? (
+                                        <>
+                                            {weightChange.change < 0 ? (
+                                                <PiTrendDownDuotone className="w-5 h-5 text-green-500" />
+                                            ) : (
+                                                <PiTrendUpDuotone className="w-5 h-5 text-red-500" />
+                                            )}
                                             <span
-                                                className={`font-semibold ${
-                                                    p.weightChange >= 0
-                                                        ? 'text-green-500'
-                                                        : 'text-red-500'
+                                                className={`text-2xl font-bold ${
+                                                    weightChange.change < 0
+                                                        ? 'text-green-600 dark:text-green-400'
+                                                        : 'text-red-600 dark:text-red-400'
                                                 }`}
                                             >
-                                                {p.weightChange >= 0 ? '+' : ''}
-                                                {p.weightChange} kg
+                                                {weightChange.change > 0 ? '+' : ''}
+                                                {weightChange.change.toFixed(1)} kg
                                             </span>
-                                        </div>
-                                    )}
-                                    {p.bodyFatChange !== undefined && (
-                                        <div className="text-sm">
-                                            Body Fat Change:{' '}
-                                            <span className="font-semibold">
-                                                {p.bodyFatChange}%
-                                            </span>
-                                        </div>
-                                    )}
-                                    {p.muscleMassChange !== undefined && (
-                                        <div className="text-sm">
-                                            Muscle Mass Change:{' '}
-                                            <span className="font-semibold">
-                                                {p.muscleMassChange} kg
-                                            </span>
-                                        </div>
+                                        </>
+                                    ) : (
+                                        <span className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+                                            No change
+                                        </span>
                                     )}
                                 </div>
-                            ))}
+                            </div>
+                            <div className="text-right text-sm text-gray-500 dark:text-gray-400">
+                                <div>
+                                    From:{' '}
+                                    {new Date(
+                                        weightChange.firstDate,
+                                    ).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                    })}
+                                </div>
+                                <div>
+                                    To:{' '}
+                                    {new Date(
+                                        weightChange.lastDate,
+                                    ).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                    })}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                )}
+                </Card>
+            )}
 
-                {weightMetrics.length === 0 &&
-                    measurements.length === 0 &&
-                    progress.length === 0 && (
-                        <div className="text-center text-gray-500 py-8">
-                            No progress data available
+            {/* Weight Progress Chart */}
+            {hasWeightData ? (
+                <Card>
+                    <div className="p-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <PiChartBarDuotone className="w-5 h-5" />
+                            Weight History
+                        </h3>
+                        <Chart
+                            type="line"
+                            series={weightChartData.series}
+                            xAxis={weightChartData.categories}
+                            height={350}
+                            customOptions={{
+                                colors: ['#3b82f6'],
+                                stroke: {
+                                    curve: 'smooth',
+                                    width: 3,
+                                },
+                                markers: {
+                                    size: 5,
+                                    hover: {
+                                        size: 7,
+                                    },
+                                },
+                                yaxis: {
+                                    title: {
+                                        text: 'Weight (kg)',
+                                    },
+                                },
+                                tooltip: {
+                                    y: {
+                                        formatter: (val: number) => `${val} kg`,
+                                    },
+                                },
+                            }}
+                        />
+                        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                            Showing {progressData?.weightHistory.length || 0}{' '}
+                            weight measurements
                         </div>
-                    )}
-            </div>
+                    </div>
+                </Card>
+            ) : (
+                <Card>
+                    <div className="p-12 text-center">
+                        <PiChartBarDuotone className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            No Weight Data
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400">
+                            Start tracking your weight to see your progress over
+                            time
+                        </p>
+                    </div>
+                </Card>
+            )}
+
+            {/* Body Measurements Chart */}
+            {hasBodyMeasurementsData ? (
+                <Card>
+                    <div className="p-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <PiRulerDuotone className="w-5 h-5" />
+                            Body Measurements
+                        </h3>
+                        <Chart
+                            type="line"
+                            series={bodyMeasurementsChartData.series}
+                            xAxis={bodyMeasurementsChartData.categories}
+                            height={350}
+                            customOptions={{
+                                colors: ['#8b5cf6', '#ec4899'],
+                                stroke: {
+                                    curve: 'smooth',
+                                    width: 3,
+                                },
+                                markers: {
+                                    size: 5,
+                                    hover: {
+                                        size: 7,
+                                    },
+                                },
+                                yaxis: {
+                                    title: {
+                                        text: 'Measurement (cm)',
+                                    },
+                                },
+                                tooltip: {
+                                    y: {
+                                        formatter: (val: number | null) =>
+                                            val !== null ? `${val} cm` : 'N/A',
+                                    },
+                                },
+                            }}
+                        />
+                        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                            Showing{' '}
+                            {progressData?.bodyMeasurements.length || 0} body
+                            measurement records
+                        </div>
+                    </div>
+                </Card>
+            ) : (
+                <Card>
+                    <div className="p-12 text-center">
+                        <PiRulerDuotone className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            No Body Measurement Data
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400">
+                            Start tracking your body measurements (waist, chest)
+                            to see your progress
+                        </p>
+                    </div>
+                </Card>
+            )}
+
+            {/* Empty State - No Data at All */}
+            {hasNoData && (
+                <Card>
+                    <div className="p-12 text-center">
+                        <PiChartBarDuotone className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            No Progress Data Yet
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400">
+                            Start tracking your weight and body measurements to
+                            see your progress over time
+                        </p>
+                    </div>
+                </Card>
+            )}
         </div>
     )
 }
