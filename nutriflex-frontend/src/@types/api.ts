@@ -282,6 +282,78 @@ export type PlansListResponse = {
     take?: number
 }
 
+// Trainee Plans API Types (New Structure)
+export type TraineeNutritionPlan = {
+    id: string
+    title: string
+    description: string | null
+    daily_calories: number | null
+    start_date: string
+    end_date: string | null
+    status: 'draft' | 'active' | 'archived'
+    coach: {
+        id: string
+        fullName: string
+        email: string
+    }
+    completionStatus: {
+        completion_percentage: number
+        status: 'not_started' | 'in_progress' | 'completed'
+        last_updated: string | null
+    }
+    created_date: string
+    updated_date: string
+}
+
+export type TraineePlansListResponse = {
+    data: TraineeNutritionPlan[]
+    meta: {
+        total: number
+        count: number
+        skip: number
+        take: number
+    }
+}
+
+export type Meal = {
+    id: string
+    name: string
+    meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+    calories: number | null
+    protein: number | null
+    carbs: number | null
+    fats: number | null
+    instructions: string | null
+    order_index: number
+}
+
+export type TraineePlanDetails = TraineeNutritionPlan & {
+    meals: Meal[]
+}
+
+export type PlanMealsResponse = {
+    planId: string
+    planTitle: string
+    meals: Meal[]
+    groupedByType: {
+        breakfast: Meal[]
+        lunch: Meal[]
+        dinner: Meal[]
+        snack: Meal[]
+    }
+}
+
+export type PlanStatusData = {
+    planId: string
+    planTitle: string
+    completion_percentage: number
+    status: 'not_started' | 'in_progress' | 'completed'
+    last_updated: string | null
+    daysRemaining: number
+    daysElapsed: number
+    totalDays: number
+}
+
 // Trainee Plan Status Types
 export type TraineePlanStatus = {
     id: string

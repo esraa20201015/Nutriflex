@@ -80,6 +80,12 @@ export const protectedRoutes: Routes = [
         authority: [ADMIN, TRAINEE],
     },
     {
+        key: 'plan-details',
+        path: '/trainee/plans/:id',
+        component: lazy(() => import('@/views/trainee/PlanDetails')),
+        authority: [ADMIN, TRAINEE],
+    },
+    {
         key: 'progress',
         path: '/trainee/progress',
         component: lazy(() => import('@/views/trainee/Progress')),

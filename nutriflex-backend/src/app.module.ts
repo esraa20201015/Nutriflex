@@ -24,6 +24,7 @@ import { TraineePlanStatusModule } from './trainee-plan-status/trainee-plan-stat
 import { BodyMeasurementModule } from './body-measurement/body-measurement.module';
 import { CoachDashboardModule } from './coach-dashboard/coach-dashboard.module';
 import { TraineeDashboardModule } from './trainee-dashboard/trainee-dashboard.module';
+import { TraineePlansModule } from './trainee-plans/trainee-plans.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { TraineeDashboardModule } from './trainee-dashboard/trainee-dashboard.mo
     BodyMeasurementModule,
     CoachDashboardModule,
     TraineeDashboardModule,
+    TraineePlansModule,
   ],
   controllers: [AppController, HealthController, MenuController],
   providers: [AppService],

@@ -12,6 +12,11 @@ import type {
     HealthMetricsListResponse,
     BodyMeasurementsListResponse,
     TraineeProgressResponse,
+    TraineePlansListResponse,
+    TraineeNutritionPlan,
+    TraineePlanDetails,
+    PlanMealsResponse,
+    PlanStatusData,
 } from '@/@types/api'
 
 // New API endpoints for trainee dashboard
@@ -119,5 +124,47 @@ export async function apiGetTraineeProgress(params: {
         url: '/trainee-progress',
         method: 'get',
         params,
+    })
+}
+
+// Trainee Plans API endpoints
+export async function apiGetTraineeMyPlans(params?: {
+    status?: string
+    skip?: number
+    take?: number
+}) {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<TraineeNutritionPlan[]>
+    >({
+        url: '/plans/trainee',
+        method: 'get',
+        params,
+    })
+}
+
+export async function apiGetTraineePlanDetails(planId: string) {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<TraineePlanDetails>
+    >({
+        url: `/plans/trainee/${planId}`,
+        method: 'get',
+    })
+}
+
+export async function apiGetTraineePlanMeals(planId: string) {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<PlanMealsResponse>
+    >({
+        url: `/plans/trainee/${planId}/meals`,
+        method: 'get',
+    })
+}
+
+export async function apiGetTraineePlanStatus(planId: string) {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<PlanStatusData>
+    >({
+        url: `/plans/trainee/${planId}/status`,
+        method: 'get',
     })
 }
