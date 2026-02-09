@@ -12,6 +12,7 @@ import { TraineeProfilesController } from './trainee-profiles.controller';
 import { AuthModule } from '../auth/auth.module';
 import { CurrentProfileController } from './current-profile.controller';
 import { UsersModule } from '../users/users.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([CoachProfile, TraineeProfile]),

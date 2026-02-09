@@ -11,6 +11,7 @@ export interface CreateCoachProfileDto {
   years_of_experience?: number | null;
   certifications?: string | null;
   profile_image_url?: string | null;
+  certification_document?: string | null;
   status?: boolean;
 }
 
@@ -43,6 +44,7 @@ export class ProfilesService {
       years_of_experience: dto.years_of_experience ?? null,
       certifications: dto.certifications ?? null,
       profile_image_url: dto.profile_image_url ?? null,
+      certification_document: dto.certification_document ?? null,
       status: dto.status ?? true, // Default to active (true)
     });
     return this.coachProfileRepo.save(profile);

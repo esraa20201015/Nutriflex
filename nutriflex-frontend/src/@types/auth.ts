@@ -34,12 +34,16 @@ export type SignUpResponse = {
 export type CoachProfile = {
     age: number
     gender: 'male' | 'female'
-    qualificationFilePath: string
+    qualificationFilePath?: string
     certifications?: string
     experience?: string
     specialization?: string
     profilePicture?: string
     bio?: string
+    /** Base64 or data URL for profile image (sign-up / coach profile). */
+    profileImageBase64?: string
+    /** Base64 or data URL for certification document (sign-up / coach profile). */
+    certificationDocumentBase64?: string
 }
 
 export type TraineeProfile = {
@@ -50,6 +54,8 @@ export type TraineeProfile = {
     fitnessGoals: string
     medicalConditions?: string
     dietaryPreferences?: string
+    /** Base64 or data URL for avatar (sign-up). */
+    avatarBase64?: string
 }
 
 export type SignUpCredential = {

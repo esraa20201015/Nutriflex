@@ -50,8 +50,17 @@ export class CoachProfileDto {
   @ApiProperty({ example: '/uploads/profiles/john-doe-profile.jpg', description: 'URL to profile image', required: false })
   @IsString()
   @IsOptional()
-  @MaxLength(500)
   profileImageUrl?: string | null;
+
+  @ApiProperty({ description: 'Profile image as base64 (raw or data:image/...;base64,...) for upload', required: false })
+  @IsString()
+  @IsOptional()
+  profileImageBase64?: string | null;
+
+  @ApiProperty({ description: 'Certification document/image as base64 for upload', required: false })
+  @IsString()
+  @IsOptional()
+  certificationDocumentBase64?: string | null;
 }
 
 /** Trainee-specific fields for sign-up (trainee profile) */
@@ -100,6 +109,11 @@ export class TraineeProfileDto {
   @IsString()
   @IsOptional()
   medicalNotes?: string | null;
+
+  @ApiProperty({ description: 'Avatar image as base64 for upload', required: false })
+  @IsString()
+  @IsOptional()
+  avatarBase64?: string | null;
 }
 
 export class SignUpDto {

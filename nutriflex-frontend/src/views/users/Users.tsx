@@ -3,8 +3,9 @@ import { ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/shared/DataTable'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import Badge from '@/components/ui/Badge'
-import Segment from '@/components/ui/Segment'
+import Tag from '@/components/ui/Tag'
+import Tooltip from '@/components/ui/Tooltip'
+import Spinner from '@/components/ui/Spinner'
 import {
     apiGetUsers,
     apiSearchUsers,
@@ -12,10 +13,20 @@ import {
     apiToggleUserStatus,
 } from '@/services/UserService'
 import type { UserWithProfile } from '@/@types/user'
-import { HiOutlinePencil, HiOutlineTrash, HiOutlineSearch } from 'react-icons/hi'
+import {
+    HiOutlinePencil,
+    HiOutlineTrash,
+    HiOutlineSearch,
+    HiOutlineEye,
+    HiOutlineFilter,
+} from 'react-icons/hi'
+import { PiUserDuotone } from 'react-icons/pi'
+import { TbToggleRight, TbToggleLeft } from 'react-icons/tb'
+import Avatar from '@/components/ui/Avatar'
 import toast from '@/components/ui/toast'
 import Notification from '@/components/ui/Notification'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
+import Dropdown from '@/components/ui/Dropdown'
 
 const Users = () => {
     const [users, setUsers] = useState<UserWithProfile[]>([])
@@ -29,6 +40,7 @@ const Users = () => {
     const [statusFilter, setStatusFilter] = useState<
         'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALL'
     >('ALL')
+    const [togglingUserId, setTogglingUserId] = useState<string | null>(null)
 
     const loadUsers = async () => {
         setLoading(true)
@@ -44,12 +56,31 @@ const Users = () => {
                 })
             }
 
-            if (response?.data) {
-                setUsers(response.data.users)
+            if (response?.data !== undefined) {
+                const rawList = Array.isArray(response.data)
+                    ? response.data
+                    : (response.data as { users?: UserWithProfile[] })?.users ?? []
+                const usersList = (rawList as Record<string, unknown>[]).map(
+                    (u) => ({
+                        ...u,
+                        avatar: (u.avatarUrl ?? u.avatar_url ?? u.avatar) as
+                            | string
+                            | undefined,
+                        status: (typeof u.status === 'string'
+                            ? u.status.toUpperCase()
+                            : u.status) as UserWithProfile['status'],
+                        role: (u.role ?? 'ADMIN') as UserWithProfile['role'],
+                    }),
+                ) as UserWithProfile[]
+                setUsers(usersList)
                 if (!searchKeyword.trim()) {
+                    const total =
+                        (response as { meta?: { total?: number } })?.meta?.total ??
+                        (response.data as { total?: number })?.total ??
+                        0
                     setPagingData((prev) => ({
                         ...prev,
-                        total: response.data.total,
+                        total: Number(total),
                     }))
                 }
             }
@@ -116,6 +147,8 @@ const Users = () => {
         userId: string,
         currentStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED',
     ) => {
+        if (togglingUserId) return
+        setTogglingUserId(userId)
         const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
         try {
             await apiToggleUserStatus(userId, { status: newStatus })
@@ -135,6 +168,8 @@ const Users = () => {
                     {errorMessage}
                 </Notification>,
             )
+        } finally {
+            setTogglingUserId(null)
         }
     }
 
@@ -145,11 +180,24 @@ const Users = () => {
                 accessorKey: 'fullName',
                 cell: ({ row }) => {
                     const user = row.original
+                    const avatarSrc =
+                        user.avatar ||
+                        (user as { avatarUrl?: string }).avatarUrl ||
+                        (user as { avatar_url?: string }).avatar_url
                     return (
-                        <div>
-                            <div className="font-semibold">{user.fullName}</div>
-                            <div className="text-sm text-gray-500">
-                                {user.email}
+                        <div className="flex items-center gap-3">
+                            <Avatar
+                                size={40}
+                                shape="circle"
+                                src={avatarSrc}
+                                alt={user.fullName}
+                                {...(!avatarSrc && { icon: <PiUserDuotone className="text-lg" /> })}
+                            />
+                            <div>
+                                <div className="font-semibold">{user.fullName}</div>
+                                <div className="text-sm text-gray-500">
+                                    {user.email}
+                                </div>
                             </div>
                         </div>
                     )
@@ -160,17 +208,23 @@ const Users = () => {
                 accessorKey: 'role',
                 cell: ({ row }) => {
                     const role = row.original.role
-                    const roleColors = {
-                        ADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-                        COACH: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-                        TRAINEE: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+                    const roleTagClass = {
+                        ADMIN:
+                            'text-white bg-indigo-600 dark:bg-indigo-500/80 border-0 rounded',
+                        COACH:
+                            'text-white bg-blue-600 dark:bg-blue-500/80 border-0 rounded',
+                        TRAINEE:
+                            'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100 border-0 rounded',
                     }
                     return (
-                        <Badge
-                            className={roleColors[role] || 'bg-gray-100 text-gray-800'}
+                        <Tag
+                            className={
+                                roleTagClass[role] ||
+                                'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border-0 rounded'
+                            }
                         >
                             {role}
-                        </Badge>
+                        </Tag>
                     )
                 },
             },
@@ -179,17 +233,23 @@ const Users = () => {
                 accessorKey: 'status',
                 cell: ({ row }) => {
                     const status = row.original.status
-                    const statusColors = {
-                        ACTIVE: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-                        INACTIVE: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-                        SUSPENDED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+                    const statusTagClass = {
+                        ACTIVE:
+                            'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100 border-0 rounded',
+                        INACTIVE:
+                            'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-200 border-0 rounded',
+                        SUSPENDED:
+                            'text-red-600 bg-red-100 dark:text-red-100 dark:bg-red-500/20 border-0 rounded',
                     }
                     return (
-                        <Badge
-                            className={statusColors[status] || 'bg-gray-100 text-gray-800'}
+                        <Tag
+                            className={
+                                statusTagClass[status] ||
+                                'bg-gray-100 text-gray-800 border-0 rounded'
+                            }
                         >
                             {status}
-                        </Badge>
+                        </Tag>
                     )
                 },
             },
@@ -198,13 +258,13 @@ const Users = () => {
                 accessorKey: 'isEmailVerified',
                 cell: ({ row }) => {
                     return row.original.isEmailVerified ? (
-                        <Badge className="bg-green-100 text-green-800">
+                        <Tag className="bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100 border-0 rounded">
                             Verified
-                        </Badge>
+                        </Tag>
                     ) : (
-                        <Badge className="bg-yellow-100 text-yellow-800">
+                        <Tag className="text-amber-600 bg-amber-100 dark:text-amber-100 dark:bg-amber-500/20 border-0 rounded">
                             Not Verified
-                        </Badge>
+                        </Tag>
                     )
                 },
             },
@@ -214,43 +274,106 @@ const Users = () => {
                 cell: ({ row }) => {
                     const user = row.original
                     return (
-                        <div className="flex items-center gap-2">
-                            <Button
-                                size="sm"
-                                variant="plain"
-                                icon={<HiOutlinePencil />}
-                                onClick={() => {
-                                    // TODO: Navigate to edit page
-                                    toast.push(
-                                        <Notification type="info" title="Info">
-                                            Edit functionality coming soon
-                                        </Notification>,
-                                    )
-                                }}
-                            />
-                            <Button
-                                size="sm"
-                                variant="plain"
-                                icon={<HiOutlineTrash />}
-                                onClick={() => handleDeleteClick(user.id)}
-                                className="text-red-600 hover:text-red-700"
-                            />
-                            {(user.status === 'ACTIVE' ||
-                                user.status === 'INACTIVE') && (
+                        <div className="flex items-center gap-1">
+                            <Tooltip title="Edit">
                                 <Button
                                     size="sm"
                                     variant="plain"
-                                    onClick={() =>
-                                        handleToggleStatus(
-                                            user.id,
-                                            user.status,
+                                    icon={
+                                        <HiOutlinePencil className="text-lg" />
+                                    }
+                                    onClick={() => {
+                                        // TODO: Navigate to edit page
+                                        toast.push(
+                                            <Notification
+                                                type="info"
+                                                title="Info"
+                                            >
+                                                Edit functionality coming soon
+                                            </Notification>,
                                         )
+                                    }}
+                                />
+                            </Tooltip>
+                            <Tooltip title="View">
+                                <Button
+                                    size="sm"
+                                    variant="plain"
+                                    icon={
+                                        <HiOutlineEye className="text-lg" />
+                                    }
+                                    onClick={() => {
+                                        // TODO: Navigate to view user
+                                        toast.push(
+                                            <Notification
+                                                type="info"
+                                                title="Info"
+                                            >
+                                                View functionality coming soon
+                                            </Notification>,
+                                        )
+                                    }}
+                                />
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                                <Button
+                                    size="sm"
+                                    variant="plain"
+                                    icon={
+                                        <HiOutlineTrash className="text-lg" />
+                                    }
+                                    onClick={() =>
+                                        handleDeleteClick(user.id)
+                                    }
+                                    className="text-red-600 hover:text-red-700"
+                                />
+                            </Tooltip>
+                            {(user.status === 'ACTIVE' ||
+                                user.status === 'INACTIVE') && (
+                                <Tooltip
+                                    title={
+                                        user.status === 'ACTIVE'
+                                            ? 'Active'
+                                            : 'Inactive'
                                     }
                                 >
-                                    {user.status === 'ACTIVE'
-                                        ? 'Deactivate'
-                                        : 'Activate'}
-                                </Button>
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={
+                                            user.status === 'ACTIVE'
+                                                ? 'Deactivate user'
+                                                : 'Activate user'
+                                        }
+                                        className="inline-flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                                        onClick={() =>
+                                            handleToggleStatus(
+                                                user.id,
+                                                user.status,
+                                            )
+                                        }
+                                        onKeyDown={(e) => {
+                                            if (
+                                                e.key === 'Enter' ||
+                                                e.key === ' '
+                                            ) {
+                                                e.preventDefault()
+                                                handleToggleStatus(
+                                                    user.id,
+                                                    user.status,
+                                                )
+                                            }
+                                        }}
+                                    >
+                                        {togglingUserId === user.id ? (
+                                            <Spinner size={20} />
+                                        ) : user.status === 'ACTIVE' ? (
+                                            <TbToggleRight className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                        ) : (
+                                            <TbToggleLeft className="w-6 h-6 text-red-600 dark:text-red-400" />
+                                        )}
+                                    </div>
+                                </Tooltip>
                             )}
                         </div>
                     )
@@ -274,40 +397,94 @@ const Users = () => {
                 </Button>
             </div>
 
-            <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center">
-                <div className="flex-1">
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+                <div className="flex-1 min-w-[200px]">
                     <Input
                         placeholder="Search by name or email..."
                         value={searchKeyword}
                         onChange={(e) => setSearchKeyword(e.target.value)}
-                        onKeyPress={(e) => {
+                        onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 handleSearch()
                             }
                         }}
+                        className="bg-gray-100 dark:bg-gray-700 border-0 focus:ring-2 focus:ring-indigo-500/20 rounded-lg"
                         suffix={
                             <HiOutlineSearch
-                                className="cursor-pointer"
+                                className="cursor-pointer text-gray-500 dark:text-gray-400 text-lg"
                                 onClick={handleSearch}
                             />
                         }
                     />
                 </div>
-                <Segment
-                    value={statusFilter}
-                    onChange={(value) =>
-                        setStatusFilter(
-                            (value as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALL') ||
-                                'ALL',
-                        )
+                <Dropdown
+                    title={
+                        <span className="flex items-center gap-2">
+                            <HiOutlineFilter className="text-lg" />
+                            Filter
+                        </span>
                     }
-                    size="sm"
+                    placement="bottom-start"
+                    menuClass="min-w-[180px] py-1"
+                    toggleClassName="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border-0 rounded-lg px-4 py-2 font-medium"
                 >
-                    <Segment.Item value="ALL">All</Segment.Item>
-                    <Segment.Item value="ACTIVE">Active</Segment.Item>
-                    <Segment.Item value="INACTIVE">Inactive</Segment.Item>
-                    <Segment.Item value="SUSPENDED">Suspended</Segment.Item>
-                </Segment>
+                    <Dropdown.Item
+                        eventKey="ALL"
+                        onClick={() => {
+                            setStatusFilter('ALL')
+                            setPagingData((prev) => ({ ...prev, pageIndex: 1 }))
+                        }}
+                        className={
+                            statusFilter === 'ALL'
+                                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+                                : ''
+                        }
+                    >
+                        All
+                    </Dropdown.Item>
+                    <Dropdown.Item
+                        eventKey="ACTIVE"
+                        onClick={() => {
+                            setStatusFilter('ACTIVE')
+                            setPagingData((prev) => ({ ...prev, pageIndex: 1 }))
+                        }}
+                        className={
+                            statusFilter === 'ACTIVE'
+                                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+                                : ''
+                        }
+                    >
+                        Active
+                    </Dropdown.Item>
+                    <Dropdown.Item
+                        eventKey="INACTIVE"
+                        onClick={() => {
+                            setStatusFilter('INACTIVE')
+                            setPagingData((prev) => ({ ...prev, pageIndex: 1 }))
+                        }}
+                        className={
+                            statusFilter === 'INACTIVE'
+                                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+                                : ''
+                        }
+                    >
+                        Inactive
+                    </Dropdown.Item>
+                    <Dropdown.Item
+                        eventKey="SUSPENDED"
+                        onClick={() => {
+                            setStatusFilter('SUSPENDED')
+                            setPagingData((prev) => ({ ...prev, pageIndex: 1 }))
+                        }}
+                        className={
+                            statusFilter === 'SUSPENDED'
+                                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+                                : ''
+                        }
+                    >
+                        Suspended
+                    </Dropdown.Item>
+                </Dropdown>
             </div>
 
             <DataTable

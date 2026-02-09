@@ -59,7 +59,7 @@ export class CoachProfile extends ActionTracked {
   })
   years_of_experience: number | null;
 
-  /** Certifications and qualifications */
+  /** Certifications and qualifications (text description) */
   @Column('text', {
     name: 'certifications',
     nullable: true,
@@ -67,12 +67,19 @@ export class CoachProfile extends ActionTracked {
   })
   certifications: string | null;
 
-  /** URL to profile image */
-  @Column('varchar', {
-    name: 'profile_image_url',
-    length: 500,
+  /** Certification document/image as base64 data URL (upload) */
+  @Column('text', {
+    name: 'certification_document',
     nullable: true,
-    comment: 'URL to profile image',
+    comment: 'Uploaded certification image/document as base64 data URL',
+  })
+  certification_document: string | null;
+
+  /** Profile image: URL or base64 data URL (data:image/...;base64,...) for upload */
+  @Column('text', {
+    name: 'profile_image_url',
+    nullable: true,
+    comment: 'Profile image URL or base64 data URL',
   })
   profile_image_url: string | null;
 

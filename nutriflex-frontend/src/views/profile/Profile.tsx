@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSessionUser } from '@/store/authStore'
 import ApiService from '@/services/ApiService'
+import toast from '@/components/ui/toast'
+import Notification from '@/components/ui/Notification'
 import type { ApiResponse, TraineeDashboardData } from '@/@types/api'
 
 type MeProfilePayload = {
@@ -13,10 +15,10 @@ type MeProfilePayload = {
 type MeProfileResponse = ApiResponse<MeProfilePayload>
 type TraineeDashboardResponse = ApiResponse<TraineeDashboardData>
 type GenericResponse = ApiResponse<Record<string, unknown> | null>
-type AvatarUploadResponse = ApiResponse<{ avatarUrl: string }>
 
 const Profile = () => {
     const { fullName, email, role } = useSessionUser((state) => state.user)
+    const setUser = useSessionUser((state) => state.setUser)
 
     const [serverRole, setServerRole] = useState<string | null>(null)
     const [profile, setProfile] = useState<any | null>(null)
@@ -58,6 +60,7 @@ const Profile = () => {
                 setProfile(res.data.profile)
                 const avatar = res.data.avatarUrl || ''
                 setAvatarUrl(avatar)
+                setUser({ avatar: avatar || undefined })
 
                 if (res.data.role === 'TRAINEE') {
                     const traineeRes =
@@ -93,27 +96,39 @@ const Profile = () => {
         if (!file) return
 
         try {
-            const formData = new FormData()
-            formData.append('file', file)
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = () => resolve(reader.result as string)
+                reader.onerror = () => reject(reader.error)
+                reader.readAsDataURL(file)
+            })
 
-            const res =
-                await ApiService.fetchDataWithAxios<AvatarUploadResponse>({
-                    url: '/profile/avatar',
-                    method: 'post',
-                    data: formData,
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                })
-
-            const newAvatarUrl = res.data.avatarUrl
-            if (newAvatarUrl) {
-                setAvatarUrl(newAvatarUrl)
-            }
-        } catch {
-            setAccountMessage('Unable to upload avatar image.')
+            const res = await ApiService.fetchDataWithAxios<MeProfileResponse>({
+                url: '/profile/me',
+                method: 'put',
+                data: { avatarBase64: dataUrl },
+            })
+            const savedAvatar = res.data?.avatarUrl ?? dataUrl
+            setAvatarUrl(savedAvatar)
+            setUser({ avatar: savedAvatar })
+            setAccountMessage('Avatar updated.')
+            toast.push(
+                <Notification type="success" title="Success">
+                    Avatar updated.
+                </Notification>,
+            )
+        } catch (err: unknown) {
+            const errorMessage =
+                (err as { response?: { data?: { messageEn?: string } } })
+                    ?.response?.data?.messageEn ||
+                'Unable to upload avatar image.'
+            setAccountMessage(errorMessage)
+            toast.push(
+                <Notification type="danger" title="Failed">
+                    {errorMessage}
+                </Notification>,
+            )
         } finally {
-            // clear file input so same file can be selected again if needed
             if (fileInputRef.current) {
                 fileInputRef.current.value = ''
             }
@@ -140,7 +155,7 @@ const Profile = () => {
         setAccountMessage(null)
         try {
             const res =
-                await ApiService.fetchDataWithAxios<GenericResponse>({
+                await ApiService.fetchDataWithAxios<MeProfileResponse>({
                     url: '/profile/me',
                     method: 'put',
                     data: {
@@ -149,9 +164,31 @@ const Profile = () => {
                         avatarUrl: avatarUrl || null,
                     },
                 })
-            setAccountMessage(res.messageEn || 'Account updated successfully.')
-        } catch {
-            setAccountMessage('Unable to update account details.')
+            const message = res.messageEn || 'Profile updated successfully.'
+            setAccountMessage(message)
+            const updatedAvatar = res.data?.avatarUrl ?? avatarUrl
+            setAvatarUrl(updatedAvatar || '')
+            setUser({
+                fullName: accountName,
+                email: accountEmail,
+                avatar: updatedAvatar || undefined,
+            })
+            toast.push(
+                <Notification type="success" title="Success">
+                    {message}
+                </Notification>,
+            )
+        } catch (err: unknown) {
+            const errorMessage =
+                (err as { response?: { data?: { messageEn?: string } } })
+                    ?.response?.data?.messageEn ||
+                'Unable to update account details.'
+            setAccountMessage(errorMessage)
+            toast.push(
+                <Notification type="danger" title="Failed">
+                    {errorMessage}
+                </Notification>,
+            )
         } finally {
             setAccountSaving(false)
         }
@@ -162,7 +199,13 @@ const Profile = () => {
         setPasswordMessage(null)
 
         if (!newPassword || newPassword !== confirmPassword) {
-            setPasswordMessage('New password and confirmation must match.')
+            const msg = 'New password and confirmation must match.'
+            setPasswordMessage(msg)
+            toast.push(
+                <Notification type="danger" title="Validation">
+                    {msg}
+                </Notification>,
+            )
             return
         }
 
@@ -177,14 +220,27 @@ const Profile = () => {
                         newPassword,
                     },
                 })
-            setPasswordMessage(
-                res.messageEn || 'Password updated successfully.',
+            const message = res.messageEn || 'Password updated successfully.'
+            setPasswordMessage(message)
+            toast.push(
+                <Notification type="success" title="Success">
+                    {message}
+                </Notification>,
             )
             setCurrentPassword('')
             setNewPassword('')
             setConfirmPassword('')
-        } catch {
-            setPasswordMessage('Unable to update password.')
+        } catch (err: unknown) {
+            const errorMessage =
+                (err as { response?: { data?: { messageEn?: string } } })
+                    ?.response?.data?.messageEn ||
+                'Unable to update password.'
+            setPasswordMessage(errorMessage)
+            toast.push(
+                <Notification type="danger" title="Failed">
+                    {errorMessage}
+                </Notification>,
+            )
         } finally {
             setPasswordSaving(false)
         }
@@ -421,7 +477,7 @@ const Profile = () => {
                                     Edit avatar
                                 </button>
                                 <p className="mt-2 text-[11px] text-gray-500">
-                                    JPG, PNG, up to a few MB.
+                                    JPG, PNG, up to a few MB. Saves when you choose a file; appears in the header and everywhere.
                                 </p>
                             </div>
 
@@ -477,8 +533,8 @@ const Profile = () => {
                                 </form>
                             </div>
 
-                            {/* Password settings */}
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 text-sm text-gray-600 dark:text-gray-300">
+                            {/* Password settings - full width below Avatar + Account Details */}
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 text-sm text-gray-600 dark:text-gray-300 lg:col-span-3">
                                 <h2 className="text-sm font-semibold mb-4">
                                     Change Password
                                 </h2>
@@ -499,31 +555,33 @@ const Profile = () => {
                                             }
                                         />
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="block text-gray-500">
-                                            New password
-                                        </label>
-                                        <input
-                                            type="password"
-                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                            value={newPassword}
-                                            onChange={(e) =>
-                                                setNewPassword(e.target.value)
-                                            }
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="block text-gray-500">
-                                            Confirm new password
-                                        </label>
-                                        <input
-                                            type="password"
-                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                            value={confirmPassword}
-                                            onChange={(e) =>
-                                                setConfirmPassword(e.target.value)
-                                            }
-                                        />
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="space-y-1">
+                                            <label className="block text-gray-500">
+                                                New password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                                value={newPassword}
+                                                onChange={(e) =>
+                                                    setNewPassword(e.target.value)
+                                                }
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="block text-gray-500">
+                                                Confirm new password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                                value={confirmPassword}
+                                                onChange={(e) =>
+                                                    setConfirmPassword(e.target.value)
+                                                }
+                                            />
+                                        </div>
                                     </div>
                                     {passwordMessage && (
                                         <div className="text-xs text-gray-500">

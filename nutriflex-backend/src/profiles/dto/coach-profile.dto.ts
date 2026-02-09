@@ -45,11 +45,20 @@ export class CreateCoachProfileDto {
   @IsOptional()
   certifications?: string | null;
 
-  @ApiProperty({ description: 'URL to profile image', required: false })
+  @ApiProperty({ description: 'Profile image URL or base64 data URL', required: false })
   @IsString()
   @IsOptional()
-  @MaxLength(500)
   profile_image_url?: string | null;
+
+  @ApiProperty({ description: 'Profile image as base64 for upload', required: false })
+  @IsString()
+  @IsOptional()
+  profile_image_base64?: string | null;
+
+  @ApiProperty({ description: 'Certification document/image as base64 for upload', required: false })
+  @IsString()
+  @IsOptional()
+  certification_document_base64?: string | null;
 
   @ApiProperty({ description: 'Status: true = Active, false = Inactive', example: true, required: false })
   @IsBoolean()
@@ -90,8 +99,17 @@ export class UpdateCoachProfileDto {
   @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
-  @MaxLength(500)
   profile_image_url?: string | null;
+
+  @ApiProperty({ description: 'Profile image as base64 for upload', required: false })
+  @IsString()
+  @IsOptional()
+  profile_image_base64?: string | null;
+
+  @ApiProperty({ description: 'Certification document as base64 for upload', required: false })
+  @IsString()
+  @IsOptional()
+  certification_document_base64?: string | null;
 
   @ApiProperty({ example: true, required: false })
   @IsBoolean()
