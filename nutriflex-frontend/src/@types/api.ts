@@ -69,21 +69,15 @@ export type TraineeProgressOverview = {
 }
 
 export type CoachDashboardData = {
-    assignedTrainees?: number
-    activeTrainees?: number
-    inactiveTrainees?: number
-    plansCreated?: number
-    completedPlans?: number
-    averageCompletionRate?: number
-    trainees?: TraineeProgressOverview[]
-    alerts?: Array<{
-        id: string
-        message: string
-        type: 'info' | 'warning' | 'error' | 'success'
-        createdAt?: string
-        [key: string]: unknown
+    assignedTrainees: number
+    activeTrainees: number
+    inactiveTrainees: number
+    plansCreated: number
+    completedPlans: number
+    alerts: Array<{
+        traineeId: string
+        reason: string
     }>
-    [key: string]: unknown
 }
 
 export type CoachOverviewData = {

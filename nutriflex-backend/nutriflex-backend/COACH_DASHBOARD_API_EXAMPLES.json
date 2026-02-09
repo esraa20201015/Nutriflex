@@ -1,0 +1,346 @@
+{
+  "endpoints": {
+    "baseUrl": "http://localhost:3000/api/dashboard/coach",
+    "authentication": {
+      "header": "Authorization: Bearer <access_token>",
+      "role": "COACH"
+    },
+    "note": "All endpoints should be called when the coach dashboard page loads. Can be called in parallel for better performance."
+  },
+  "examples": {
+    "1_main_dashboard": {
+      "endpoint": "GET /api/dashboard/coach",
+      "description": "Main dashboard statistics for cards/widgets",
+      "request": {
+        "method": "GET",
+        "url": "/api/dashboard/coach",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Coach dashboard statistics retrieved successfully",
+        "messageAr": "تم استرجاع إحصائيات لوحة تحكم المدرب بنجاح",
+        "data": {
+          "assignedTrainees": 12,
+          "activeTrainees": 9,
+          "inactiveTrainees": 3,
+          "plansCreated": 18,
+          "completedPlans": 6,
+          "alerts": [
+            {
+              "traineeId": "trainee-uuid-1",
+              "reason": "No activity in 7 days"
+            },
+            {
+              "traineeId": "trainee-uuid-2",
+              "reason": "Weight increased unexpectedly"
+            }
+          ]
+        }
+      },
+      "response_no_alerts": {
+        "status": 200,
+        "messageEn": "Coach dashboard statistics retrieved successfully",
+        "messageAr": "تم استرجاع إحصائيات لوحة تحكم المدرب بنجاح",
+        "data": {
+          "assignedTrainees": 5,
+          "activeTrainees": 5,
+          "inactiveTrainees": 0,
+          "plansCreated": 8,
+          "completedPlans": 2,
+          "alerts": []
+        }
+      },
+      "response_no_trainees": {
+        "status": 200,
+        "messageEn": "Coach dashboard statistics retrieved successfully",
+        "messageAr": "تم استرجاع إحصائيات لوحة تحكم المدرب بنجاح",
+        "data": {
+          "assignedTrainees": 0,
+          "activeTrainees": 0,
+          "inactiveTrainees": 0,
+          "plansCreated": 0,
+          "completedPlans": 0,
+          "alerts": []
+        }
+      }
+    },
+    "2_overview": {
+      "endpoint": "GET /api/dashboard/coach/overview",
+      "description": "Detailed plan statistics",
+      "request": {
+        "method": "GET",
+        "url": "/api/dashboard/coach/overview",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Coach dashboard overview retrieved successfully",
+        "messageAr": "تم استرجاع نظرة عامة على لوحة تحكم المدرب بنجاح",
+        "data": {
+          "assignedTrainees": 12,
+          "activeTrainees": 9,
+          "inactiveTrainees": 3,
+          "plansCreated": 18,
+          "activePlans": 7,
+          "completedPlans": 6
+        }
+      }
+    },
+    "3_trainees_progress": {
+      "endpoint": "GET /api/dashboard/coach/trainees-progress",
+      "description": "Trainees progress summary for table/list",
+      "request": {
+        "method": "GET",
+        "url": "/api/dashboard/coach/trainees-progress",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Trainee progress retrieved successfully",
+        "messageAr": "تم استرجاع تقدم المتدربين بنجاح",
+        "data": {
+          "trainees": [
+            {
+              "traineeId": "trainee-uuid-1",
+              "name": "Ahmed Ali",
+              "currentWeight": 82.5,
+              "weightChange30Days": -1.8,
+              "completionRate": 65,
+              "lastActivity": "2026-02-08"
+            },
+            {
+              "traineeId": "trainee-uuid-2",
+              "name": "Sara Mohamed",
+              "currentWeight": 68.0,
+              "weightChange30Days": 0.0,
+              "completionRate": 30,
+              "lastActivity": "2026-02-05"
+            },
+            {
+              "traineeId": "trainee-uuid-3",
+              "name": "Mohamed Hassan",
+              "currentWeight": 75.0,
+              "weightChange30Days": -2.5,
+              "completionRate": 85,
+              "lastActivity": "2026-02-09"
+            }
+          ]
+        }
+      },
+      "response_partial_data": {
+        "status": 200,
+        "messageEn": "Trainee progress retrieved successfully",
+        "messageAr": "تم استرجاع تقدم المتدربين بنجاح",
+        "data": {
+          "trainees": [
+            {
+              "traineeId": "trainee-uuid-1",
+              "name": "Ahmed Ali",
+              "currentWeight": null,
+              "weightChange30Days": null,
+              "completionRate": 0,
+              "lastActivity": null
+            },
+            {
+              "traineeId": "trainee-uuid-2",
+              "name": "Sara Mohamed",
+              "currentWeight": 68.0,
+              "weightChange30Days": null,
+              "completionRate": 45,
+              "lastActivity": "2026-02-05"
+            }
+          ]
+        }
+      },
+      "response_empty": {
+        "status": 200,
+        "messageEn": "Trainee progress retrieved successfully",
+        "messageAr": "تم استرجاع تقدم المتدربين بنجاح",
+        "data": {
+          "trainees": []
+        }
+      }
+    },
+    "4_alerts": {
+      "endpoint": "GET /api/dashboard/coach/alerts",
+      "description": "Alerts for trainees needing attention",
+      "request": {
+        "method": "GET",
+        "url": "/api/dashboard/coach/alerts",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Coach alerts retrieved successfully",
+        "messageAr": "تم استرجاع تنبيهات المدرب بنجاح",
+        "data": {
+          "alerts": [
+            {
+              "traineeId": "trainee-uuid-1",
+              "reason": "No activity for 7 days"
+            },
+            {
+              "traineeId": "trainee-uuid-2",
+              "reason": "Weight increased unexpectedly"
+            }
+          ]
+        }
+      },
+      "response_empty": {
+        "status": 200,
+        "messageEn": "Coach alerts retrieved successfully",
+        "messageAr": "تم استرجاع تنبيهات المدرب بنجاح",
+        "data": {
+          "alerts": []
+        }
+      }
+    },
+    "5_recent_activity": {
+      "endpoint": "GET /api/dashboard/coach/recent-activity",
+      "description": "Recent activity feed for all trainees",
+      "request": {
+        "method": "GET",
+        "url": "/api/dashboard/coach/recent-activity",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Recent activity retrieved successfully",
+        "messageAr": "تم استرجاع النشاط الأخير بنجاح",
+        "data": {
+          "activities": [
+            {
+              "type": "WEIGHT_UPDATE",
+              "trainee": "Ahmed Ali",
+              "value": "+0.8 kg",
+              "date": "2026-02-08"
+            },
+            {
+              "type": "PLAN_COMPLETED",
+              "trainee": "Sara Mohamed",
+              "date": "2026-02-05"
+            },
+            {
+              "type": "WEIGHT_UPDATE",
+              "trainee": "Ahmed Ali",
+              "value": "-1.2 kg",
+              "date": "2026-02-01"
+            },
+            {
+              "type": "WEIGHT_UPDATE",
+              "trainee": "Mohamed Hassan",
+              "value": "-0.5 kg",
+              "date": "2026-01-30"
+            },
+            {
+              "type": "PLAN_COMPLETED",
+              "trainee": "Ahmed Ali",
+              "date": "2026-01-25"
+            }
+          ]
+        }
+      },
+      "response_empty": {
+        "status": 200,
+        "messageEn": "Recent activity retrieved successfully",
+        "messageAr": "تم استرجاع النشاط الأخير بنجاح",
+        "data": {
+          "activities": []
+        }
+      }
+    }
+  },
+  "error_examples": {
+    "401_unauthorized": {
+      "statusCode": 401,
+      "message": "Unauthorized"
+    },
+    "403_forbidden": {
+      "messageEn": "User not authenticated",
+      "messageAr": "المستخدم غير مصادق عليه"
+    },
+    "500_internal_error": {
+      "statusCode": 500,
+      "message": "Internal server error"
+    }
+  },
+  "typescript_interfaces": {
+    "comment": "TypeScript interfaces for frontend implementation",
+    "CoachDashboardStatistics": {
+      "assignedTrainees": "number",
+      "activeTrainees": "number",
+      "inactiveTrainees": "number",
+      "plansCreated": "number",
+      "completedPlans": "number",
+      "alerts": "Array<{ traineeId: string; reason: string }>"
+    },
+    "CoachDashboardOverview": {
+      "assignedTrainees": "number",
+      "activeTrainees": "number",
+      "inactiveTrainees": "number",
+      "plansCreated": "number",
+      "activePlans": "number",
+      "completedPlans": "number"
+    },
+    "TraineeProgress": {
+      "traineeId": "string",
+      "name": "string",
+      "currentWeight": "number | null",
+      "weightChange30Days": "number | null",
+      "completionRate": "number",
+      "lastActivity": "string | null"
+    },
+    "Alert": {
+      "traineeId": "string",
+      "reason": "string"
+    },
+    "Activity": {
+      "type": "'WEIGHT_UPDATE' | 'PLAN_COMPLETED'",
+      "trainee": "string",
+      "value": "string | undefined",
+      "date": "string"
+    }
+  },
+  "loading_strategy": {
+    "recommended": "Load all endpoints in parallel using Promise.all()",
+    "example": {
+      "javascript": "const [dashboard, progress, alerts, activity] = await Promise.all([getDashboard(), getTraineesProgress(), getAlerts(), getRecentActivity()]);",
+      "typescript": "const [dashboard, progress, alerts, activity] = await Promise.all<[DashboardResponse, ProgressResponse, AlertsResponse, ActivityResponse]>([api.get('/dashboard/coach'), api.get('/dashboard/coach/trainees-progress'), api.get('/dashboard/coach/alerts'), api.get('/dashboard/coach/recent-activity')]);"
+    }
+  },
+  "dashboard_layout": {
+    "sections": [
+      {
+        "section": "Statistics Cards",
+        "endpoint": "GET /api/dashboard/coach",
+        "data": "data.assignedTrainees, data.activeTrainees, data.plansCreated, data.completedPlans"
+      },
+      {
+        "section": "Alerts Widget",
+        "endpoint": "GET /api/dashboard/coach/alerts",
+        "data": "data.alerts"
+      },
+      {
+        "section": "My Trainees Table",
+        "endpoint": "GET /api/dashboard/coach/trainees-progress",
+        "data": "data.trainees"
+      },
+      {
+        "section": "Recent Activity Feed",
+        "endpoint": "GET /api/dashboard/coach/recent-activity",
+        "data": "data.activities"
+      }
+    ]
+  }
+}
