@@ -372,6 +372,56 @@ export type CreateMealDto = {
     order_index?: number
 }
 
+// Coach Plan Wizard DTOs (create with details)
+export type NutritionPlanStatus = 'draft' | 'active' | 'archived'
+
+export type ExerciseType = 'cardio' | 'strength' | 'calisthenics' | 'flexibility'
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
+export interface PlanExerciseDto {
+    exercise_id?: string
+    name: string
+    exercise_type: ExerciseType
+    day_index?: number
+    sets?: number | null
+    reps?: number | null
+    duration_minutes?: number | null
+    notes?: string | null
+    order_index?: number
+}
+
+export interface MealIngredientInputDto {
+    name: string
+    quantity?: number | null
+    unit?: string | null
+    calories?: number | null
+    notes?: string | null
+    order_index?: number
+}
+
+export interface PlanMealDto {
+    meal_type: MealType
+    name: string
+    calories?: number | null
+    instructions?: string | null
+    order_index?: number
+    ingredients?: MealIngredientInputDto[]
+}
+
+export interface CreatePlanWithDetailsDto {
+    coach_id: string
+    trainee_id: string
+    title: string
+    description?: string | null
+    daily_calories?: number | null
+    start_date: string
+    end_date?: string | null
+    status?: NutritionPlanStatus
+    exercises?: PlanExerciseDto[]
+    meals?: PlanMealDto[]
+}
+
 export type UpdateMealDto = {
     name?: string
     meal_type?: 'breakfast' | 'lunch' | 'dinner' | 'snack'

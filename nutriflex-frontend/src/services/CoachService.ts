@@ -17,6 +17,7 @@ import type {
     CreateMealDto,
     UpdateMealDto,
     TraineePlanStatusListResponse,
+    CreatePlanWithDetailsDto,
 } from '@/@types/api'
 
 export async function apiGetCoachDashboard() {
@@ -117,6 +118,15 @@ export async function apiCreatePlan(data: CreatePlanDto) {
         ApiResponse<CoachNutritionPlan>
     >({
         url: '/nutrition-plan',
+        method: 'post',
+        data,
+    })
+}
+
+// Create plan with exercises & meals in a single wizard submit
+export async function apiCreatePlanWithDetails(data: CreatePlanWithDetailsDto) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachNutritionPlan>>({
+        url: '/nutrition-plan/coach-with-details',
         method: 'post',
         data,
     })

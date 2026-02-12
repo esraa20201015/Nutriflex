@@ -28,6 +28,7 @@ import {
   UpdateNutritionPlanDto,
   PaginationDto,
   SearchNutritionPlanDto,
+  CreatePlanWithDetailsDto,
 } from './dto/nutrition-plan.dto';
 
 @ApiTags('Nutrition Plan')
@@ -43,6 +44,18 @@ export class NutritionPlanController {
   @ApiBody({ type: CreateNutritionPlanDto })
   async create(@Body() dto: CreateNutritionPlanDto) {
     return this.nutritionPlanService.create(dto);
+  }
+
+  @Post('coach-with-details')
+  @ApiOperation({
+    summary: 'Create nutrition plan with exercises and meals (Coach Plans wizard)',
+    description:
+      'Creates a nutrition plan and attaches exercises and meals in a single request. ' +
+      'Intended for use by the Coach Plans page (not coach dashboard).',
+  })
+  @ApiBody({ type: CreatePlanWithDetailsDto })
+  async createWithDetails(@Body() dto: CreatePlanWithDetailsDto) {
+    return this.nutritionPlanService.createWithDetails(dto);
   }
 
   @Get()

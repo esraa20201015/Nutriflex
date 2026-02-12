@@ -4,10 +4,12 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { ActionTracked } from '../../shared/ActionTrack/action-tracked.entity';
 import { NutritionPlan } from '../../nutrition-plan/entities/nutrition-plan.entity';
 import { MealType } from '../enums/meal-type.enum';
+import type { MealIngredient } from './meal-ingredient.entity';
 
 /**
  * Meal – belongs to a nutrition plan (breakfast, lunch, dinner, snack).
@@ -47,4 +49,8 @@ export class Meal extends ActionTracked {
 
   @Column({ name: 'order_index', type: 'int', default: 0 })
   order_index: number;
+
+  /** Structured ingredients attached to this meal (optional, for detailed meal breakdown). */
+  @OneToMany('MealIngredient', 'meal')
+  ingredients: MealIngredient[];
 }
