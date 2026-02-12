@@ -257,6 +257,26 @@ export type CoachTraineesListResponse = {
     take?: number
 }
 
+// Coach selection types
+export interface PublicCoachProfile {
+    id: string
+    fullName: string
+    profileImageUrl?: string | null
+    specialization?: string | null
+    yearsOfExperience?: number | null
+    certifications?: string | null
+    bio?: string | null
+    isSelected?: boolean
+}
+
+export type ApiListCoachesResponse = PublicCoachProfile[]
+
+export interface SelectCoachResult {
+    coach_id: string
+    trainee_id: string
+    status: 'active' | 'paused' | 'completed'
+}
+
 // Plan Types
 // Legacy type for backward compatibility
 export type NutritionPlan = {

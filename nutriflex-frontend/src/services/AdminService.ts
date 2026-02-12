@@ -9,6 +9,8 @@ import type {
     User,
     RolesListResponse,
     Role,
+    ApiListCoachesResponse,
+    SelectCoachResult,
 } from '@/@types/api'
 
 export async function apiGetAdminDashboard() {
@@ -129,5 +131,26 @@ export async function apiDeleteRole(id: string) {
     return ApiService.fetchDataWithAxios<ApiResponse<{ id: string }>>({
         url: `/roles/${id}`,
         method: 'delete',
+    })
+}
+
+// Coach assignment (admin)
+export async function apiAdminGetAvailableCoaches(params?: {
+    trainee_id?: string
+}) {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<ApiListCoachesResponse>
+    >({
+        url: '/coaches/available',
+        method: 'get',
+        params,
+    })
+}
+
+export async function apiAdminAssignCoach(traineeId: string, coachId: string) {
+    return ApiService.fetchDataWithAxios<ApiResponse<SelectCoachResult>>({
+        url: `/admin/trainees/${traineeId}/coach`,
+        method: 'post',
+        data: { coach_id: coachId },
     })
 }

@@ -86,6 +86,18 @@ export const protectedRoutes: Routes = [
         authority: [ADMIN, TRAINEE],
     },
     {
+        key: 'trainee-coaches',
+        path: '/trainee/choose-coach',
+        component: lazy(() => import('@/views/trainee/Coaches')),
+        authority: [ADMIN, TRAINEE],
+    },
+    {
+        key: 'trainee-coach-details',
+        path: '/trainee/coaches/:id',
+        component: lazy(() => import('@/views/trainee/CoachDetails')),
+        authority: [ADMIN, TRAINEE],
+    },
+    {
         key: 'my-plans',
         path: '/trainee/plans',
         component: lazy(() => import('@/views/trainee/MyPlans')),

@@ -10,6 +10,58 @@ import {
   Max,
 } from 'class-validator';
 
+/**
+ * Public-facing coach profile information returned to trainees/admins
+ * when listing available coaches for selection.
+ */
+export class PublicCoachProfileDto {
+  @ApiProperty({ description: 'Coach user ID', example: 'uuid' })
+  @IsString()
+  id: string;
+
+  @ApiProperty({ description: 'Coach full name', example: 'John Doe' })
+  @IsString()
+  fullName: string;
+
+  @ApiProperty({ description: 'Profile image URL or data URL', required: false })
+  @IsString()
+  @IsOptional()
+  profileImageUrl?: string | null;
+
+  @ApiProperty({ description: 'Specialization', example: 'Strength Training', required: false })
+  @IsString()
+  @IsOptional()
+  specialization?: string | null;
+
+  @ApiProperty({ description: 'Years of experience', example: 5, required: false })
+  @IsNumber()
+  @IsOptional()
+  yearsOfExperience?: number | null;
+
+  @ApiProperty({
+    description: 'Certifications and qualifications',
+    example: 'CPR, NASM Certified Personal Trainer',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  certifications?: string | null;
+
+  @ApiProperty({ description: 'Short professional biography', required: false })
+  @IsString()
+  @IsOptional()
+  bio?: string | null;
+
+  @ApiProperty({
+    description: 'Whether this coach is currently selected for the trainee in context',
+    example: false,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isSelected?: boolean;
+}
+
 export class CreateCoachProfileDto {
   @ApiProperty({ description: 'User ID (COACH role)', example: 'uuid' })
   @IsString()

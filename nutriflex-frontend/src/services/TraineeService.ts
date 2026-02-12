@@ -17,6 +17,8 @@ import type {
     TraineePlanDetails,
     PlanMealsResponse,
     PlanStatusData,
+    ApiListCoachesResponse,
+    SelectCoachResult,
 } from '@/@types/api'
 
 // New API endpoints for trainee dashboard
@@ -166,5 +168,24 @@ export async function apiGetTraineePlanStatus(planId: string) {
     >({
         url: `/plans/trainee/${planId}/status`,
         method: 'get',
+    })
+}
+
+// Coach selection APIs (trainee-facing)
+export async function apiGetAvailableCoaches(params?: { trainee_id?: string }) {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<ApiListCoachesResponse>
+    >({
+        url: '/coaches/available',
+        method: 'get',
+        params,
+    })
+}
+
+export async function apiSelectCoach(data: { coach_id: string }) {
+    return ApiService.fetchDataWithAxios<ApiResponse<SelectCoachResult>>({
+        url: '/coaches/select',
+        method: 'post',
+        data,
     })
 }

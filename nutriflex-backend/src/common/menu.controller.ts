@@ -182,6 +182,14 @@ export class MenuController {
             roles: ['ADMIN', 'TRAINEE'],
           },
           {
+            id: 'trainee-choose-coach',
+            label: 'Coaches',
+            labelAr: 'المدربون',
+            path: '/trainee/choose-coach',
+            icon: 'users',
+            roles: ['ADMIN', 'TRAINEE'],
+          },
+          {
             id: 'progress',
             label: 'Progress',
             labelAr: 'التقدم',
