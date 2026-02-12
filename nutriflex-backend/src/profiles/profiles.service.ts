@@ -23,6 +23,7 @@ export interface CreateTraineeProfileDto {
   weight_kg?: number | null;
   fitness_goal?: string | null;
   activity_level?: string | null;
+  dietary_preference?: string | null;
   medical_notes?: string | null;
 }
 
@@ -60,6 +61,7 @@ export class ProfilesService {
       weight_kg: dto.weight_kg ?? null,
       fitness_goal: dto.fitness_goal ?? null,
       activity_level: dto.activity_level ?? null,
+      dietary_preference: dto.dietary_preference ?? null,
       medical_notes: dto.medical_notes ?? null,
     });
     return this.traineeProfileRepo.save(profile);

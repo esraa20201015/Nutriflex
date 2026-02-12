@@ -48,13 +48,15 @@ export type CoachProfile = {
 }
 
 export type TraineeProfile = {
-    age: number
     gender: 'male' | 'female'
-    height: number
-    weight: number
-    fitnessGoals: string
-    medicalConditions?: string
-    dietaryPreferences?: string
+    dateOfBirth: string
+    fullName?: string
+    heightCm?: number | null
+    weightKg?: number | null
+    fitnessGoal?: string | null
+    activityLevel?: string | null
+    medicalNotes?: string | null
+    dietaryPreference?: string | null
     /** Base64 or data URL for avatar (sign-up). */
     avatarBase64?: string
 }

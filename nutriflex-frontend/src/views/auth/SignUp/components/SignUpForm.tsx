@@ -78,28 +78,29 @@ const coachProfileSchema = z.object({
     certificationDocumentBase64: z.string().optional(),
 })
 
-// Trainee profile schema
+// Trainee profile schema (matches backend TraineeProfileDto)
 const traineeProfileSchema = z.object({
-    age: z
-        .number({ required_error: 'Age is required' })
-        .min(1, { message: 'Age must be at least 1' })
-        .max(120, { message: 'Age must be at most 120' }),
+    fullName: z.string().optional(),
     gender: z.enum(['male', 'female'], {
         required_error: 'Gender is required',
     }),
-    height: z
-        .number({ required_error: 'Height is required' })
+    dateOfBirth: z
+        .string({ required_error: 'Date of birth is required' })
+        .min(1, { message: 'Date of birth is required' }),
+    heightCm: z
+        .number()
         .min(0, { message: 'Height must be at least 0' })
-        .max(300, { message: 'Height must be at most 300 cm' }),
-    weight: z
-        .number({ required_error: 'Weight is required' })
+        .max(300, { message: 'Height must be at most 300 cm' })
+        .optional(),
+    weightKg: z
+        .number()
         .min(0, { message: 'Weight must be at least 0' })
-        .max(500, { message: 'Weight must be at most 500 kg' }),
-    fitnessGoals: z
-        .string({ required_error: 'Fitness goals are required' })
-        .min(1, { message: 'Fitness goals are required' }),
-    medicalConditions: z.string().optional(),
-    dietaryPreferences: z.string().optional(),
+        .max(500, { message: 'Weight must be at most 500 kg' })
+        .optional(),
+    fitnessGoal: z.string().optional(),
+    activityLevel: z.string().optional(),
+    medicalNotes: z.string().optional(),
+    dietaryPreference: z.string().optional(),
     avatarBase64: z.string().optional(),
 })
 
@@ -128,13 +129,20 @@ const validationSchema: ZodType<SignUpCredential> = baseSchema
     .refine(
         (data) => {
             if (data.role === 'TRAINEE') {
-                return !!data.traineeProfile
+                const tp = data.traineeProfile
+                return (
+                    !!tp &&
+                    !!tp.gender &&
+                    !!tp.dateOfBirth &&
+                    tp.dateOfBirth.trim().length > 0
+                )
             }
             return true
         },
         {
-            message: 'Trainee profile is required for TRAINEE sign-up',
-            path: ['traineeProfile'],
+            message:
+                'Trainee profile with gender and date of birth is required for TRAINEE sign-up',
+            path: ['traineeProfile', 'dateOfBirth'],
         },
     )
 
@@ -706,27 +714,23 @@ const SignUpForm = (props: SignUpFormProps) => {
 
                                 <FormItem
                                     className="mb-2"
-                                    label="Age"
-                                    invalid={Boolean(errors.traineeProfile?.age)}
-                                    errorMessage={errors.traineeProfile?.age?.message}
+                                    label="Date of birth"
+                                    invalid={Boolean(
+                                        errors.traineeProfile?.dateOfBirth,
+                                    )}
+                                    errorMessage={
+                                        errors.traineeProfile?.dateOfBirth?.message
+                                    }
                                 >
                                     <Controller
-                                        name="traineeProfile.age"
+                                        name="traineeProfile.dateOfBirth"
                                         control={control}
                                         render={({ field }) => (
                                             <Input
-                                                type="number"
-                                                placeholder="Age"
+                                                type="date"
+                                                placeholder="YYYY-MM-DD"
                                                 autoComplete="off"
                                                 {...field}
-                                                onChange={(e) =>
-                                                    field.onChange(
-                                                        e.target.value
-                                                            ? parseInt(e.target.value, 10)
-                                                            : undefined,
-                                                    )
-                                                }
-                                                value={field.value || ''}
                                             />
                                         )}
                                     />
@@ -760,11 +764,15 @@ const SignUpForm = (props: SignUpFormProps) => {
                                     <FormItem
                                         className="mb-0"
                                         label="Height (cm)"
-                                        invalid={Boolean(errors.traineeProfile?.height)}
-                                        errorMessage={errors.traineeProfile?.height?.message}
+                                        invalid={Boolean(
+                                            errors.traineeProfile?.heightCm,
+                                        )}
+                                        errorMessage={
+                                            errors.traineeProfile?.heightCm?.message
+                                        }
                                     >
                                         <Controller
-                                            name="traineeProfile.height"
+                                            name="traineeProfile.heightCm"
                                             control={control}
                                             render={({ field }) => (
                                                 <Input
@@ -789,11 +797,15 @@ const SignUpForm = (props: SignUpFormProps) => {
                                     <FormItem
                                         className="mb-0"
                                         label="Weight (kg)"
-                                        invalid={Boolean(errors.traineeProfile?.weight)}
-                                        errorMessage={errors.traineeProfile?.weight?.message}
+                                        invalid={Boolean(
+                                            errors.traineeProfile?.weightKg,
+                                        )}
+                                        errorMessage={
+                                            errors.traineeProfile?.weightKg?.message
+                                        }
                                     >
                                         <Controller
-                                            name="traineeProfile.weight"
+                                            name="traineeProfile.weightKg"
                                             control={control}
                                             render={({ field }) => (
                                                 <Input
@@ -821,14 +833,14 @@ const SignUpForm = (props: SignUpFormProps) => {
                                     label="Fitness Goals"
                                     layout="horizontal"
                                     invalid={Boolean(
-                                        errors.traineeProfile?.fitnessGoals,
+                                        errors.traineeProfile?.fitnessGoal,
                                     )}
                                     errorMessage={
-                                        errors.traineeProfile?.fitnessGoals?.message
+                                        errors.traineeProfile?.fitnessGoal?.message
                                     }
                                 >
                                     <Controller
-                                        name="traineeProfile.fitnessGoals"
+                                        name="traineeProfile.fitnessGoal"
                                         control={control}
                                         render={({ field }) => (
                                             <Radio.Group
@@ -844,16 +856,16 @@ const SignUpForm = (props: SignUpFormProps) => {
 
                                 <FormItem
                                     className="mb-2"
-                                    label="Medical Conditions"
+                                    label="Medical notes"
                                     invalid={Boolean(
-                                        errors.traineeProfile?.medicalConditions,
+                                        errors.traineeProfile?.medicalNotes,
                                     )}
                                     errorMessage={
-                                        errors.traineeProfile?.medicalConditions?.message
+                                        errors.traineeProfile?.medicalNotes?.message
                                     }
                                 >
                                     <Controller
-                                        name="traineeProfile.medicalConditions"
+                                        name="traineeProfile.medicalNotes"
                                         control={control}
                                         render={({ field }) => (
                                             <Input
@@ -868,18 +880,18 @@ const SignUpForm = (props: SignUpFormProps) => {
 
                                 <FormItem
                                     className="mb-3 flex flex-nowrap items-center gap-x-2"
-                                    label="Dietary Preferences"
+                                    label="Dietary preference"
                                     layout="inline"
                                     invalid={Boolean(
-                                        errors.traineeProfile?.dietaryPreferences,
+                                        errors.traineeProfile?.dietaryPreference,
                                     )}
                                     errorMessage={
-                                        errors.traineeProfile?.dietaryPreferences
+                                        errors.traineeProfile?.dietaryPreference
                                             ?.message
                                     }
                                 >
                                     <Controller
-                                        name="traineeProfile.dietaryPreferences"
+                                        name="traineeProfile.dietaryPreference"
                                         control={control}
                                         render={({ field }) => (
                                             <Radio.Group
@@ -889,6 +901,41 @@ const SignUpForm = (props: SignUpFormProps) => {
                                             >
                                                 <Radio value="normal">Normal</Radio>
                                                 <Radio value="vegetarian">Vegetarian</Radio>
+                                            </Radio.Group>
+                                        )}
+                                    />
+                                </FormItem>
+
+                                <FormItem
+                                    className="mb-3 flex flex-nowrap items-center gap-x-2"
+                                    label="Activity level"
+                                    layout="inline"
+                                    invalid={Boolean(
+                                        errors.traineeProfile?.activityLevel,
+                                    )}
+                                    errorMessage={
+                                        errors.traineeProfile?.activityLevel
+                                            ?.message
+                                    }
+                                >
+                                    <Controller
+                                        name="traineeProfile.activityLevel"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Radio.Group
+                                                value={field.value || ''}
+                                                onChange={(value) => field.onChange(value)}
+                                                className="inline-flex flex-nowrap items-center gap-2"
+                                            >
+                                                <Radio value="sedentary">
+                                                    Sedentary
+                                                </Radio>
+                                                <Radio value="lightly_active">
+                                                    Lightly active
+                                                </Radio>
+                                                <Radio value="very_active">
+                                                    Very active
+                                                </Radio>
                                             </Radio.Group>
                                         )}
                                     />

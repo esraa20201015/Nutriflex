@@ -105,6 +105,11 @@ export class TraineeProfileDto {
   @IsOptional()
   activityLevel?: string | null;
 
+  @ApiProperty({ example: 'normal', description: 'Dietary preference', required: false })
+  @IsString()
+  @IsOptional()
+  dietaryPreference?: string | null;
+
   @ApiProperty({ required: false })
   @IsString()
   @IsOptional()

@@ -155,6 +155,7 @@ export class AuthService {
         weight_kg: tp.weightKg ?? null,
         fitness_goal: tp.fitnessGoal ?? null,
         activity_level: tp.activityLevel ?? null,
+        dietary_preference: tp.dietaryPreference ?? null,
         medical_notes: tp.medicalNotes ?? null,
       });
       if (tp.avatarBase64) {

@@ -5,6 +5,8 @@ import { useSessionUser, useToken } from '@/store/authStore'
 import { apiSignIn, apiSignOut, apiSignUp } from '@/services/AuthService'
 import { REDIRECT_URL_KEY } from '@/constants/app.constant'
 import { useNavigate } from 'react-router'
+import toast from '@/components/ui/toast'
+import Notification from '@/components/ui/Notification'
 import type {
     SignInCredential,
     SignUpCredential,
@@ -154,7 +156,7 @@ function AuthProvider({ children }: AuthProviderProps) {
             // Handle validation errors (array) or single error messages
             const errorData = errors?.response?.data
             let errorMessage = 'Unable to sign up'
-            
+
             if (errorData) {
                 if (Array.isArray(errorData.message)) {
                     errorMessage = errorData.message.join(', ')
@@ -165,8 +167,25 @@ function AuthProvider({ children }: AuthProviderProps) {
                 } else if (errorData.messageAr) {
                     errorMessage = errorData.messageAr
                 }
+
+                // Show a persistent toast for email conflict (409)
+                if (errorData.statusCode === 409) {
+                    toast.push(
+                        <Notification
+                            type="danger"
+                            title="Sign up error"
+                            closable
+                            duration={0}
+                        >
+                            {errorMessage}
+                        </Notification>,
+                        {
+                            placement: 'top-center',
+                        },
+                    )
+                }
             }
-            
+
             return {
                 status: 'failed',
                 message: errorMessage,
