@@ -47,37 +47,47 @@ export const protectedRoutes: Routes = [
         component: lazy(() => import('@/views/admin/Roles')),
         authority: [ADMIN],
     },
-    // Coach routes
-    {
-        key: 'coach-dashboard',
-        path: '/coach/dashboard',
-        component: lazy(() => import('@/views/coach/CoachDashboard')),
-        authority: [ADMIN, COACH],
-    },
-    {
-        key: 'my-trainees',
-        path: '/coach/trainees',
-        component: lazy(() => import('@/views/coach/MyTrainees')),
-        authority: [ADMIN, COACH],
-    },
-    {
-        key: 'coach-plans',
-        path: '/coach/plans',
-        component: lazy(() => import('@/views/coach/Plans')),
-        authority: [ADMIN, COACH],
-    },
-    {
-        key: 'coach-create-plan',
-        path: '/coach/plans/new',
-        component: lazy(() => import('@/views/coach/CreatePlan')),
-        authority: [ADMIN, COACH],
-    },
-    {
-        key: 'coach-edit-plan',
-        path: '/coach/plans/:id',
-        component: lazy(() => import('@/views/coach/CreatePlan')),
-        authority: [ADMIN, COACH],
-    },
+   /* =========================
+   Coach Routes (FIXED)
+========================= */
+
+{
+    key: 'coach-dashboard',
+    path: '/coach/dashboard',
+    component: lazy(() => import('@/views/coach/CoachDashboard')),
+    authority: [COACH],
+},
+{
+    key: 'coach-trainees',
+    path: '/coach/trainees',
+    component: lazy(() => import('@/views/coach/MyTrainees')),
+    authority: [COACH],
+},
+{
+    key: 'coach-plans',
+    path: '/coach/plans',
+    component: lazy(() => import('@/views/coach/Plans')),
+    authority: [COACH],
+},
+{
+    key: 'coach-create-plan',
+    path: '/coach/plans/new',
+    component: lazy(() => import('@/views/coach/CreatePlan')),
+    authority: [COACH],
+},
+{
+    key: 'coach-view-plan',
+    path: '/coach/plans/:id/view',
+    component: lazy(() => import('@/views/coach/ViewPlanPage')),
+    authority: [COACH],
+},
+{
+    key: 'coach-edit-plan',
+    path: '/coach/plans/:id/edit',
+    component: lazy(() => import('@/views/coach/EditPlanPage')),
+    authority: [COACH],
+},
+
     // Trainee routes
     {
         key: 'trainee-dashboard',
