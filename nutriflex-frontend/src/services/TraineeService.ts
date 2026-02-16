@@ -19,6 +19,8 @@ import type {
     PlanStatusData,
     ApiListCoachesResponse,
     SelectCoachResult,
+    CreateCoachTraineeDto,
+    CoachTrainee,
 } from '@/@types/api'
 
 // New API endpoints for trainee dashboard
@@ -182,9 +184,9 @@ export async function apiGetAvailableCoaches(params?: { trainee_id?: string }) {
     })
 }
 
-export async function apiSelectCoach(data: { coach_id: string }) {
-    return ApiService.fetchDataWithAxios<ApiResponse<SelectCoachResult>>({
-        url: '/coaches/select',
+export async function apiSelectCoach(data: CreateCoachTraineeDto) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachTrainee>>({
+        url: '/coach-trainee',
         method: 'post',
         data,
     })

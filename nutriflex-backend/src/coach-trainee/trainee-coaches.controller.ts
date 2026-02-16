@@ -9,7 +9,14 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RolesGuard } from '../auth/roles.guard';
@@ -23,6 +30,7 @@ import { Request } from 'express';
 
 class SelectCoachDto {
   coach_id: string;
+  trainee_id?: string; // optional for Admin
 }
 
 @ApiTags('Trainee Coaches')
@@ -41,7 +49,7 @@ export class TraineeCoachesController {
    * List eligible coaches for a trainee (or for admin inspecting a trainee).
    *
    * - TRAINEE: uses req.user.id as trainee_id.
-   * - ADMIN: can provide ?trainee_id=<uuid> to mark which coach is currently selected.
+   * - ADMIN: can provide ?trainee_id=<uuid>
    */
   @Get('coaches/available')
   @Roles('TRAINEE', 'ADMIN')
@@ -52,17 +60,13 @@ export class TraineeCoachesController {
     @Query('trainee_id') traineeIdQuery?: string,
   ) {
     const user = req.user;
-
     const isAdmin = user?.role === 'ADMIN';
     const traineeId = isAdmin && traineeIdQuery ? traineeIdQuery : user?.id;
 
     // Load all active coach profiles
-    const coaches = await this.coachProfileRepo.find({
-      where: { status: true },
-    });
+    const coaches = await this.coachProfileRepo.find({ where: { status: true } });
 
     let selectedCoachId: string | null = null;
-
     if (traineeId) {
       const existing = await this.coachTraineeRepo.findOne({
         where: { trainee_id: traineeId, status: CoachTraineeStatus.ACTIVE },
@@ -90,26 +94,31 @@ export class TraineeCoachesController {
   }
 
   /**
-   * Trainee selects a coach. Enforces one ACTIVE coach per trainee by
-   * completing any existing active relationship before creating/updating the new one.
+   * Trainee selects a coach OR Admin assigns a coach to a trainee.
+   *
+   * - TRAINEE: body { coach_id }
+   * - ADMIN: body { coach_id, trainee_id }
    */
   @Post('coaches/select')
-  @Roles('TRAINEE')
-  @ApiOperation({ summary: 'Select a coach for the authenticated trainee' })
+  @Roles('TRAINEE', 'ADMIN')
+  @ApiOperation({ summary: 'Select or assign a coach for a trainee' })
   @ApiBody({ type: SelectCoachDto })
-  async selectCoach(
+  async selectOrAssignCoach(
     @Req() req: Request & { user?: RequestUser },
     @Body() body: SelectCoachDto,
   ) {
     const user = req.user;
-    const traineeId = user?.id;
+    const isAdmin = user?.role === 'ADMIN';
+
+    // Determine traineeId
+    const traineeId = isAdmin ? body.trainee_id : user?.id;
     const coachId = body.coach_id;
 
     if (!traineeId || !coachId) {
       return {
         status: HttpStatus.BAD_REQUEST,
-        messageEn: 'coach_id and authenticated trainee are required',
-        messageAr: 'coach_id والمستخدم المتدرب مطلوبان',
+        messageEn: 'coach_id and trainee_id are required',
+        messageAr: 'coach_id و trainee_id مطلوبان',
         data: null,
       };
     }
@@ -127,28 +136,25 @@ export class TraineeCoachesController {
       };
     }
 
-    // Deactivate any existing active relationship for this trainee
+    // Deactivate any existing ACTIVE relationship for this trainee
     const existing = await this.coachTraineeRepo.findOne({
       where: { trainee_id: traineeId, status: CoachTraineeStatus.ACTIVE },
     });
-
     if (existing && existing.coach_id !== coachId) {
       existing.status = CoachTraineeStatus.COMPLETED;
       existing.end_date = new Date();
       await this.coachTraineeRepo.save(existing);
     }
 
-    // Either update existing row (same coach) or create a new one
+    // Create or update relation
     let relation = await this.coachTraineeRepo.findOne({
       where: { trainee_id: traineeId, coach_id: coachId },
     });
-
     if (!relation) {
       relation = this.coachTraineeRepo.create({
         coach_id: coachId,
         trainee_id: traineeId,
         start_date: new Date(),
-        end_date: null,
         status: CoachTraineeStatus.ACTIVE,
       });
     } else {
@@ -160,86 +166,8 @@ export class TraineeCoachesController {
 
     return {
       status: HttpStatus.OK,
-      messageEn: 'Coach selected successfully',
-      messageAr: 'تم اختيار المدرب بنجاح',
-      data: {
-        coach_id: coachId,
-        trainee_id: traineeId,
-        status: relation.status,
-      },
-    };
-  }
-
-  /**
-   * Admin assigns or changes a coach for a specific trainee.
-   *
-   * Route: POST /admin/trainees/:traineeId/coach
-   */
-  @Post('admin/trainees/:traineeId/coach')
-  @Roles('ADMIN')
-  @ApiOperation({ summary: 'Assign or change a coach for a trainee (admin)' })
-  @ApiParam({ name: 'traineeId', type: String, format: 'uuid' })
-  @ApiBody({ type: SelectCoachDto })
-  async adminAssignCoach(
-    @Param('traineeId') traineeId: string,
-    @Body() body: SelectCoachDto,
-  ) {
-    const coachId = body.coach_id;
-
-    if (!traineeId || !coachId) {
-      return {
-        status: HttpStatus.BAD_REQUEST,
-        messageEn: 'traineeId and coach_id are required',
-        messageAr: 'traineeId و coach_id مطلوبان',
-        data: null,
-      };
-    }
-
-    const coachProfile = await this.coachProfileRepo.findOne({
-      where: { user_id: coachId, status: true },
-    });
-    if (!coachProfile) {
-      return {
-        status: HttpStatus.BAD_REQUEST,
-        messageEn: 'Selected coach is not available',
-        messageAr: 'المدرب المحدد غير متاح',
-        data: null,
-      };
-    }
-
-    const existing = await this.coachTraineeRepo.findOne({
-      where: { trainee_id: traineeId, status: CoachTraineeStatus.ACTIVE },
-    });
-
-    if (existing && existing.coach_id !== coachId) {
-      existing.status = CoachTraineeStatus.COMPLETED;
-      existing.end_date = new Date();
-      await this.coachTraineeRepo.save(existing);
-    }
-
-    let relation = await this.coachTraineeRepo.findOne({
-      where: { trainee_id: traineeId, coach_id: coachId },
-    });
-
-    if (!relation) {
-      relation = this.coachTraineeRepo.create({
-        coach_id: coachId,
-        trainee_id: traineeId,
-        start_date: new Date(),
-        end_date: null,
-        status: CoachTraineeStatus.ACTIVE,
-      });
-    } else {
-      relation.status = CoachTraineeStatus.ACTIVE;
-      relation.end_date = null;
-    }
-
-    await this.coachTraineeRepo.save(relation);
-
-    return {
-      status: HttpStatus.OK,
-      messageEn: 'Coach assigned to trainee successfully',
-      messageAr: 'تم تعيين المدرب للمتدرب بنجاح',
+      messageEn: 'Coach selected/assigned successfully',
+      messageAr: 'تم اختيار/تعيين المدرب بنجاح',
       data: {
         coach_id: coachId,
         trainee_id: traineeId,
@@ -248,4 +176,3 @@ export class TraineeCoachesController {
     };
   }
 }
-

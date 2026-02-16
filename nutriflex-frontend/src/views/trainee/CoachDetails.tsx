@@ -5,6 +5,7 @@ import Spinner from '@/components/ui/Spinner'
 import Button from '@/components/ui/Button'
 import Avatar from '@/components/ui/Avatar'
 import { apiGetAvailableCoaches, apiSelectCoach } from '@/services/TraineeService'
+import { useSessionUser } from '@/store/authStore'
 import type { PublicCoachProfile } from '@/@types/api'
 import toast from '@/components/ui/toast'
 import Notification from '@/components/ui/Notification'
@@ -12,6 +13,7 @@ import Notification from '@/components/ui/Notification'
 const CoachDetails = () => {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
+    const { user } = useSessionUser()
     const [coach, setCoach] = useState<PublicCoachProfile | null>(null)
     const [loading, setLoading] = useState(true)
     const [selecting, setSelecting] = useState(false)
@@ -47,10 +49,20 @@ const CoachDetails = () => {
     }, [id])
 
     const handleSelect = async () => {
-        if (!coach) return
+        if (!coach || !user?.id) {
+            toast.push(
+                <Notification type="danger" title="Error">
+                    Unable to select coach. Please sign in again.
+                </Notification>,
+            )
+            return
+        }
         try {
             setSelecting(true)
-            await apiSelectCoach({ coach_id: coach.id })
+            await apiSelectCoach({
+                coach_id: coach.id,
+                trainee_id: user.id,
+            })
             toast.push(
                 <Notification type="success" title="Coach selected">
                     Your coach has been updated successfully.

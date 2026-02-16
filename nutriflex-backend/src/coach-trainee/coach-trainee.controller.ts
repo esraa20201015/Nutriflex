@@ -34,7 +34,7 @@ import {
 @ApiBearerAuth('access-token')
 @Controller('coach-trainee')
 @UseGuards(RolesGuard)
-@Roles('ADMIN', 'COACH')
+@Roles('ADMIN', 'COACH', 'TRAINEE')
 export class CoachTraineeController {
   constructor(private readonly coachTraineeService: CoachTraineeService) {}
 
@@ -102,5 +102,13 @@ export class CoachTraineeController {
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   async delete(@Param('id', ParseUUIDPipe) id: string) {
     return this.coachTraineeService.delete(id);
+  }
+
+  // ======= New endpoint: Get all trainees for a coach =======
+  @Get('my-trainees/:coach_id')
+  @ApiOperation({ summary: 'Get all active trainees of a specific coach' })
+  @ApiParam({ name: 'coach_id', type: String, format: 'uuid' })
+  async getTraineesByCoach(@Param('coach_id', ParseUUIDPipe) coach_id: string) {
+    return this.coachTraineeService.getTraineesByCoach(coach_id);
   }
 }

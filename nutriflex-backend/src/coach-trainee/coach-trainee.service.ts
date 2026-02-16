@@ -7,6 +7,7 @@ import {
   PaginationDto,
   SearchCoachTraineeDto,
 } from './dto/coach-trainee.dto';
+import { CoachTraineeStatus } from './enums/coach-trainee-status.enum';
 
 @Injectable()
 export class CoachTraineeService {
@@ -16,7 +17,7 @@ export class CoachTraineeService {
     const payload: Partial<CoachTrainee> = {
       coach_id: dto.coach_id,
       trainee_id: dto.trainee_id,
-      start_date: new Date(dto.start_date),
+      start_date: dto.start_date ? new Date(dto.start_date) : new Date(),
       end_date: dto.end_date ? new Date(dto.end_date) : null,
       status: dto.status,
     };
@@ -49,5 +50,10 @@ export class CoachTraineeService {
 
   toggleStatus(id: string) {
     return this.repo.toggleStatus(id);
+  }
+
+  // ======= New method to get all trainees for a coach =======
+  getTraineesByCoach(coach_id: string) {
+    return this.repo.getTraineesByCoach(coach_id);
   }
 }

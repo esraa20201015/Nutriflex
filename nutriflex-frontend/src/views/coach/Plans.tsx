@@ -4,6 +4,7 @@ import {
     apiGetCoachPlans,
     apiTogglePlanStatus,
     apiDeletePlan,
+    apiGetCoachTraineesProgress,
 } from '@/services/CoachService'
 import { useSessionUser } from '@/store/authStore'
 import Card from '@/components/ui/Card'
@@ -38,21 +39,21 @@ const Plans = () => {
     useEffect(() => {
         const loadPlans = async () => {
             if (!user.id) return
-
+    
             try {
                 setLoading(true)
                 setError(null)
-                const params: {
-                    coach_id: string
-                    status?: string
-                } = {
+    
+                const params: { coach_id: string; status?: string } = {
                     coach_id: user.id,
                 }
+    
                 if (statusFilter !== 'all') {
                     params.status = statusFilter
                 }
+    
                 const response = await apiGetCoachPlans(params)
-                setPlans(response.data.plans || [])
+                setPlans(response.data as CoachNutritionPlan[])
             } catch (err) {
                 setError(
                     err instanceof Error
@@ -63,7 +64,7 @@ const Plans = () => {
                 setLoading(false)
             }
         }
-
+    
         loadPlans()
     }, [user.id, statusFilter])
 
@@ -86,7 +87,7 @@ const Plans = () => {
                 params.status = statusFilter
             }
             const response = await apiGetCoachPlans(params)
-            setPlans(response.data.plans || [])
+            setPlans(response.data as CoachNutritionPlan[])
         } catch (err) {
             const message =
                 err instanceof Error ? err.message : 'Failed to update plan status'
@@ -121,7 +122,8 @@ const Plans = () => {
                 params.status = statusFilter
             }
             const response = await apiGetCoachPlans(params)
-            setPlans(response.data.plans || [])
+            setPlans(response.data as CoachNutritionPlan[])
+            console.log(response.data)
         } catch (err) {
             const message =
                 err instanceof Error ? err.message : 'Failed to delete plan'

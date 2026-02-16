@@ -11,13 +11,15 @@ export const typeOrmConfig: TypeOrmModuleOptions = {
   schema: process.env.DB_SCHEMA, 
   entities: [__dirname + '/../**/*.entity.{js,ts}'],
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
-  // logging: true,
-  synchronize: true,
+  logging: true, 
+  synchronize: process.env.NODE_ENV !== 'production',
   extra: {
-    max: Number(process.env.POOL_SIZE),
+    max: Number(process.env.POOL_SIZE) || 10,
   },
   ssl: {
     rejectUnauthorized: false, 
   },
+
+  
 };
  

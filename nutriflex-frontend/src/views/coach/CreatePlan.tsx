@@ -106,19 +106,21 @@ const CreatePlan = () => {
         },
     })
 
-    // Load trainees for dropdown
     useEffect(() => {
         const loadTrainees = async () => {
             if (!user.id) return
-
+    
             try {
                 setLoadingTrainees(true)
+    
                 const response = await apiGetCoachTrainees({
                     coach_id: user.id,
                 })
-                setTrainees(response.data.coachTrainees || [])
-            } catch (err) {
-                console.error('Failed to load trainees:', err)
+    
+                setTrainees(response.data as CoachTrainee[])
+            } catch (error) {
+                console.error('Failed to load trainees', error)
+    
                 toast.push(
                     <Notification type="danger" title="Error">
                         Failed to load trainees
@@ -128,10 +130,10 @@ const CreatePlan = () => {
                 setLoadingTrainees(false)
             }
         }
-
+    
         loadTrainees()
     }, [user.id])
-
+    
     // Load plan data if editing
     useEffect(() => {
         const loadPlan = async () => {
@@ -143,12 +145,12 @@ const CreatePlan = () => {
                 const plan = response.data
 
                 reset({
-                    trainee_id: plan.traineeId || '',
-                    title: (plan as any).title || (plan as any).name || '',
-                    description: plan.description || '',
+                    trainee_id: (plan as any).trainee_id ?? (plan as any).traineeId ?? '',
+                    title: (plan as any).title ?? (plan as any).name ?? '',
+                    description: (plan as any).description ?? '',
                     daily_calories:
-                        (plan as any).daily_calories ||
-                        (plan as any).dailyCalories ||
+                        (plan as any).daily_calories ??
+                        (plan as any).dailyCalories ??
                         null,
                     start_date: (plan as any).start_date
                         ? new Date((plan as any).start_date)
@@ -253,10 +255,13 @@ const CreatePlan = () => {
         )
     }
 
-    const traineeOptions = trainees.map((trainee) => ({
-        value: trainee.traineeId,
-        label: trainee.trainee?.fullName || 'Unknown Trainee',
-    }))
+    const traineeOptions = trainees
+        .filter((ct) => ct.trainee) // ensure ct.trainee is defined
+        .map((ct) => ({
+            value: ct.trainee!.id,
+            label: ct.trainee!.fullName || 'Unknown Trainee',
+        }));
+
 
     const stepTitles = ['Plan Info', 'Exercises', 'Meals']
 
@@ -271,11 +276,13 @@ const CreatePlan = () => {
             ])
             if (!isValid) return
         }
-        setCurrentStep((prev) => Math.min((prev + 1) as WizardStep, 2))
+        setCurrentStep((prev: WizardStep) => Math.min((prev + 1), 2) as WizardStep)
     }
 
     const goToPreviousStep = () => {
-        setCurrentStep((prev) => Math.max((prev - 1) as WizardStep, 0))
+        setCurrentStep((prev: WizardStep) =>
+            Math.max(prev - 1, 0) as WizardStep
+        )
     }
 
     const totalMealCalories = meals.reduce((planSum, meal) => {
@@ -339,34 +346,28 @@ const CreatePlan = () => {
                     <div className="p-6 space-y-6">
                         {currentStep === 0 && (
                             <>
-                                {/* Trainee Selection */}
-                                <FormItem
-                                    label="Trainee"
-                                    invalid={!!errors.trainee_id}
-                                    errorMessage={errors.trainee_id?.message}
-                                >
-                                    <Controller
-                                        name="trainee_id"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <Select
-                                                options={traineeOptions}
-                                                value={traineeOptions.find(
-                                                    (opt) =>
-                                                        opt.value === field.value,
-                                                )}
-                                                onChange={(option) =>
-                                                    field.onChange(
-                                                        option ? option.value : '',
-                                                    )
-                                                }
-                                                placeholder="Select a trainee"
-                                                isDisabled={isEditMode}
-                                            />
-                                        )}
-                                    />
+                               {/* Trainee Selection */}
+                <FormItem
+                    label="Trainee"
+                    invalid={!!errors.trainee_id}
+                    errorMessage={errors.trainee_id?.message}
+                >
+                            <Controller
+                                name="trainee_id"
+                                control={control}
+                                rules={{ required: 'Please select a trainee' }}
+                                render={({ field }) => (
+                                    <Select
+                                    options={traineeOptions}
+                                    value={traineeOptions.find(opt => opt.value === field.value) || null}
+                                    onChange={(option) => field.onChange(option ? option.value : '')}
+                                    placeholder={loading ? 'Loading trainees...' : 'Select a trainee'}
+                                    isDisabled={isEditMode || loading}
+                                    isLoading={loading}
+                            />
+                        )}
+                    />
                                 </FormItem>
-
                                 {/* Title */}
                                 <FormItem
                                     label="Plan Title"
@@ -801,7 +802,7 @@ const CreatePlan = () => {
                                                             <Button
                                                                 type="button"
                                                                 size="sm"
-                                                                variant="twoTone"
+                                                                variant="solid"
                                                                 onClick={() => {
                                                                     setMeals(
                                                                         (prev) => [

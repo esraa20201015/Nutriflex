@@ -257,6 +257,11 @@ export type CoachTraineesListResponse = {
     take?: number
 }
 
+export interface CreateCoachTraineeDto {
+    coach_id: string
+    trainee_id: string
+}
+
 // Coach selection types
 export interface PublicCoachProfile {
     id: string

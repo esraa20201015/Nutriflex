@@ -20,14 +20,14 @@ export class CreateCoachTraineeDto {
   @IsNotEmpty()
   trainee_id: string;
 
-  @ApiProperty({ description: 'Start date of the relationship', example: '2026-02-03T00:00:00.000Z' })
+  @ApiProperty({ description: 'Start date of the relationship(optional)', example: '2026-02-03T00:00:00.000Z', required: false })
+  @IsOptional()
   @IsDateString()
-  @IsNotEmpty()
-  start_date: string;
+  start_date?: string | null;
 
   @ApiProperty({ description: 'End date of the relationship (optional)', example: '2026-12-31T00:00:00.000Z', required: false })
-  @IsDateString()
   @IsOptional()
+  @IsDateString()
   end_date?: string | null;
 
   @ApiProperty({ description: 'Relationship status', example: CoachTraineeStatus.ACTIVE, enum: CoachTraineeStatus, required: false })

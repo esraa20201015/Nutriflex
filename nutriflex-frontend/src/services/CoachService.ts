@@ -18,6 +18,7 @@ import type {
     UpdateMealDto,
     TraineePlanStatusListResponse,
     CreatePlanWithDetailsDto,
+    CoachTrainee,
 } from '@/@types/api'
 
 export async function apiGetCoachDashboard() {
@@ -70,13 +71,14 @@ export async function apiGetCoachTrainees(params?: {
     coach_id?: string
 }) {
     return ApiService.fetchDataWithAxios<
-        ApiResponse<CoachTraineesListResponse>
+        ApiResponse<CoachTrainee[]> // <- array, not object
     >({
         url: '/coach-trainee',
         method: 'get',
         params,
     })
 }
+
 
 export async function apiGetCoachPlans(params?: {
     skip?: number
@@ -85,7 +87,7 @@ export async function apiGetCoachPlans(params?: {
     coach_id?: string
 }) {
     return ApiService.fetchDataWithAxios<
-        ApiResponse<PlansListResponse>
+        ApiResponse<CoachNutritionPlan[]>
     >({
         url: '/nutrition-plan',
         method: 'get',
@@ -128,7 +130,7 @@ export async function apiCreatePlanWithDetails(data: CreatePlanWithDetailsDto) {
     return ApiService.fetchDataWithAxios<ApiResponse<CoachNutritionPlan>>({
         url: '/nutrition-plan/coach-with-details',
         method: 'post',
-        data,
+        data: { ...data },
     })
 }
 
