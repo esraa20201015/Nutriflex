@@ -164,10 +164,19 @@ export type BodyMeasurementItem = {
     chest: number | null
 }
 
+export type TraineeProfileSummary = {
+    height_cm: number | null
+    weight_kg: number | null
+    fitness_goal: string | null
+    activity_level: string | null
+}
+
 export type TraineeProgressData = {
+    profile: TraineeProfileSummary
     weightHistory: WeightHistoryItem[]
     bodyMeasurements: BodyMeasurementItem[]
 }
+
 
 export type TraineeTodayData = {
     todayWorkout: string | null

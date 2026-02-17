@@ -7,6 +7,8 @@ import { HealthMetric } from '../health-metric/entities/health-metric.entity';
 import { BodyMeasurement } from '../body-measurement/entities/body-measurement.entity';
 import { NutritionPlan } from '../nutrition-plan/entities/nutrition-plan.entity';
 import { TraineePlanStatus } from '../trainee-plan-status/entities/trainee-plan-status.entity';
+import { TraineeProfile } from '../profiles/entities/trainee-profile.entity';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { TraineePlanStatus } from '../trainee-plan-status/entities/trainee-plan-
       BodyMeasurement,
       NutritionPlan,
       TraineePlanStatus,
+      TraineeProfile,
+      User,
     ]),
     forwardRef(() => AuthModule),
   ],

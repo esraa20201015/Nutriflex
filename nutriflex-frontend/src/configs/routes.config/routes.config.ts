@@ -92,7 +92,7 @@ export const protectedRoutes: Routes = [
     {
         key: 'trainee-dashboard',
         path: '/trainee/dashboard',
-        component: lazy(() => import('@/views/trainee/TraineeDashboard')),
+        component: lazy(() => import('@/views/trainee/traineeDashboard/TraineeDashboard')),
         authority: [ADMIN, TRAINEE],
     },
     {

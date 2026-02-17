@@ -38,16 +38,12 @@ const Progress = () => {
         loadProgress()
     }, [])
 
-    // Prepare weight chart data
+    // ----------------------------
+    // Weight Chart Data
+    // ----------------------------
     const weightChartData = useMemo(() => {
-        if (
-            !progressData?.weightHistory ||
-            progressData.weightHistory.length === 0
-        ) {
-            return {
-                series: [{ name: 'Weight', data: [] }],
-                categories: [],
-            }
+        if (!progressData?.weightHistory || progressData.weightHistory.length === 0) {
+            return { series: [{ name: 'Weight', data: [] }], categories: [] }
         }
 
         const sorted = [...progressData.weightHistory].sort(
@@ -56,48 +52,55 @@ const Progress = () => {
 
         return {
             series: [
-                {
-                    name: 'Weight (kg)',
-                    data: sorted.map((item) => item.value),
-                },
+                { name: 'Weight (kg)', data: sorted.map((item) => item.value) },
             ],
-            categories: sorted.map((item) => {
-                const date = new Date(item.date)
-                return date.toLocaleDateString('en-US', {
+            categories: sorted.map((item) =>
+                new Date(item.date).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
-                })
-            }),
+                }),
+            ),
         }
     }, [progressData?.weightHistory])
 
-    // Prepare body measurements chart data
-    const bodyMeasurementsChartData = useMemo(() => {
-        if (
-            !progressData?.bodyMeasurements ||
-            progressData.bodyMeasurements.length === 0
-        ) {
-            return {
-                series: [],
-                categories: [],
-            }
+    // ----------------------------
+    // Body Measurement Stats (NEW LOGIC)
+    // ----------------------------
+    const bodyMeasurementStats = useMemo(() => {
+        const records = progressData?.bodyMeasurements || []
+
+        if (records.length === 0) {
+            return { hasAnyRecords: false, hasValidMeasurements: false, totalRecords: 0 }
         }
 
-        const sorted = [...progressData.bodyMeasurements].sort(
-            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-        )
-
-        // Filter out entries where both waist and chest are null
-        const validEntries = sorted.filter(
+        const hasValidMeasurements = records.some(
             (item) => item.waist !== null || item.chest !== null,
         )
 
-        if (validEntries.length === 0) {
-            return {
-                series: [],
-                categories: [],
-            }
+        return {
+            hasAnyRecords: true,
+            hasValidMeasurements,
+            totalRecords: records.length,
         }
+    }, [progressData?.bodyMeasurements])
+
+    const hasBodyMeasurementsData = bodyMeasurementStats.hasValidMeasurements
+
+    // ----------------------------
+    // Body Measurements Chart Data
+    // ----------------------------
+    const bodyMeasurementsChartData = useMemo(() => {
+        if (!hasBodyMeasurementsData) {
+            return { series: [], categories: [] }
+        }
+
+        const sorted = [...(progressData?.bodyMeasurements || [])].sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        )
+
+        const validEntries = sorted.filter(
+            (item) => item.waist !== null || item.chest !== null,
+        )
 
         const waistData: (number | null)[] = []
         const chestData: (number | null)[] = []
@@ -116,38 +119,30 @@ const Progress = () => {
 
         const series = []
         if (waistData.some((val) => val !== null)) {
-            series.push({
-                name: 'Waist (cm)',
-                data: waistData,
-            })
+            series.push({ name: 'Waist (cm)', data: waistData })
         }
         if (chestData.some((val) => val !== null)) {
-            series.push({
-                name: 'Chest (cm)',
-                data: chestData,
-            })
+            series.push({ name: 'Chest (cm)', data: chestData })
         }
 
-        return {
-            series,
-            categories,
-        }
-    }, [progressData?.bodyMeasurements])
+        return { series, categories }
+    }, [progressData?.bodyMeasurements, hasBodyMeasurementsData])
 
-    // Calculate weight change
+    // ----------------------------
+    // Weight Change
+    // ----------------------------
     const weightChange = useMemo(() => {
-        if (
-            !progressData?.weightHistory ||
-            progressData.weightHistory.length < 2
-        ) {
+        if (!progressData?.weightHistory || progressData.weightHistory.length < 2) {
             return null
         }
 
         const sorted = [...progressData.weightHistory].sort(
             (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
         )
+
         const first = sorted[0].value
         const last = sorted[sorted.length - 1].value
+
         return {
             change: last - first,
             firstDate: sorted[0].date,
@@ -175,13 +170,10 @@ const Progress = () => {
     }
 
     const hasWeightData = weightChartData.categories.length > 0
-    const hasBodyMeasurementsData =
-        bodyMeasurementsChartData.categories.length > 0
     const hasNoData = !hasWeightData && !hasBodyMeasurementsData
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div>
                 <h2 className="text-2xl font-bold">Progress</h2>
                 <p className="text-gray-600 dark:text-gray-400">
@@ -189,69 +181,63 @@ const Progress = () => {
                 </p>
             </div>
 
-            {/* Weight Change Summary */}
+            {/* ---------------- Weight Change Summary ---------------- */}
             {weightChange && (
                 <Card>
-                    <div className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">
-                                    Overall Weight Change
-                                </h3>
-                                <div className="flex items-baseline gap-2">
-                                    {weightChange.change !== 0 ? (
-                                        <>
-                                            {weightChange.change < 0 ? (
-                                                <PiTrendDownDuotone className="w-5 h-5 text-green-500" />
-                                            ) : (
-                                                <PiTrendUpDuotone className="w-5 h-5 text-red-500" />
-                                            )}
-                                            <span
-                                                className={`text-2xl font-bold ${
-                                                    weightChange.change < 0
-                                                        ? 'text-green-600 dark:text-green-400'
-                                                        : 'text-red-600 dark:text-red-400'
-                                                }`}
-                                            >
-                                                {weightChange.change > 0 ? '+' : ''}
-                                                {weightChange.change.toFixed(1)} kg
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <span className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                                            No change
+                    <div className="p-6 flex justify-between items-center">
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                                Overall Weight Change
+                            </h3>
+                            <div className="flex items-baseline gap-2">
+                                {weightChange.change !== 0 ? (
+                                    <>
+                                        {weightChange.change < 0 ? (
+                                            <PiTrendDownDuotone className="w-5 h-5 text-green-500" />
+                                        ) : (
+                                            <PiTrendUpDuotone className="w-5 h-5 text-red-500" />
+                                        )}
+                                        <span
+                                            className={`text-2xl font-bold ${
+                                                weightChange.change < 0
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : 'text-red-600 dark:text-red-400'
+                                            }`}
+                                        >
+                                            {weightChange.change > 0 ? '+' : ''}
+                                            {weightChange.change.toFixed(1)} kg
                                         </span>
-                                    )}
-                                </div>
+                                    </>
+                                ) : (
+                                    <span className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+                                        No change
+                                    </span>
+                                )}
                             </div>
-                            <div className="text-right text-sm text-gray-500 dark:text-gray-400">
-                                <div>
-                                    From:{' '}
-                                    {new Date(
-                                        weightChange.firstDate,
-                                    ).toLocaleDateString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                    })}
-                                </div>
-                                <div>
-                                    To:{' '}
-                                    {new Date(
-                                        weightChange.lastDate,
-                                    ).toLocaleDateString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                    })}
-                                </div>
+                        </div>
+                        <div className="text-right text-sm text-gray-500 dark:text-gray-400">
+                            <div>
+                                From:{' '}
+                                {new Date(weightChange.firstDate).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                })}
+                            </div>
+                            <div>
+                                To:{' '}
+                                {new Date(weightChange.lastDate).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                })}
                             </div>
                         </div>
                     </div>
                 </Card>
             )}
 
-            {/* Weight Progress Chart */}
+            {/* ---------------- Weight Progress Chart ---------------- */}
             {hasWeightData ? (
                 <Card>
                     <div className="p-6">
@@ -266,31 +252,16 @@ const Progress = () => {
                             height={350}
                             customOptions={{
                                 colors: ['#3b82f6'],
-                                stroke: {
-                                    curve: 'smooth',
-                                    width: 3,
-                                },
-                                markers: {
-                                    size: 5,
-                                    hover: {
-                                        size: 7,
-                                    },
-                                },
-                                yaxis: {
-                                    title: {
-                                        text: 'Weight (kg)',
-                                    },
-                                },
+                                stroke: { curve: 'smooth', width: 3 },
+                                markers: { size: 5, hover: { size: 7 } },
+                                yaxis: { title: { text: 'Weight (kg)' } },
                                 tooltip: {
-                                    y: {
-                                        formatter: (val: number) => `${val} kg`,
-                                    },
+                                    y: { formatter: (val: number) => `${val} kg` },
                                 },
                             }}
                         />
                         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-                            Showing {progressData?.weightHistory.length || 0}{' '}
-                            weight measurements
+                            Showing {progressData?.weightHistory.length || 0} weight measurements
                         </div>
                     </div>
                 </Card>
@@ -302,14 +273,13 @@ const Progress = () => {
                             No Weight Data
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400">
-                            Start tracking your weight to see your progress over
-                            time
+                            Start tracking your weight to see your progress over time
                         </p>
                     </div>
                 </Card>
             )}
 
-            {/* Body Measurements Chart */}
+            {/* ---------------- Body Measurements Chart ---------------- */}
             {hasBodyMeasurementsData ? (
                 <Card>
                     <div className="p-6">
@@ -322,35 +292,9 @@ const Progress = () => {
                             series={bodyMeasurementsChartData.series}
                             xAxis={bodyMeasurementsChartData.categories}
                             height={350}
-                            customOptions={{
-                                colors: ['#8b5cf6', '#ec4899'],
-                                stroke: {
-                                    curve: 'smooth',
-                                    width: 3,
-                                },
-                                markers: {
-                                    size: 5,
-                                    hover: {
-                                        size: 7,
-                                    },
-                                },
-                                yaxis: {
-                                    title: {
-                                        text: 'Measurement (cm)',
-                                    },
-                                },
-                                tooltip: {
-                                    y: {
-                                        formatter: (val: number | null) =>
-                                            val !== null ? `${val} cm` : 'N/A',
-                                    },
-                                },
-                            }}
                         />
                         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-                            Showing{' '}
-                            {progressData?.bodyMeasurements.length || 0} body
-                            measurement records
+                            Showing {bodyMeasurementStats.totalRecords} body measurement records
                         </div>
                     </div>
                 </Card>
@@ -359,17 +303,25 @@ const Progress = () => {
                     <div className="p-12 text-center">
                         <PiRulerDuotone className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                            No Body Measurement Data
+                            {!bodyMeasurementStats.hasAnyRecords
+                                ? 'No Body Measurement Records Yet'
+                                : 'No Valid Body Measurements'}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400">
-                            Start tracking your body measurements (waist, chest)
-                            to see your progress
+                            {!bodyMeasurementStats.hasAnyRecords
+                                ? 'You have not added any body measurement entries yet.'
+                                : 'Entries exist, but waist and chest values are missing.'}
                         </p>
+                        {bodyMeasurementStats.hasAnyRecords && (
+                            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                                Total records found: {bodyMeasurementStats.totalRecords}
+                            </p>
+                        )}
                     </div>
                 </Card>
             )}
 
-            {/* Empty State - No Data at All */}
+            {/* ---------------- Empty State ---------------- */}
             {hasNoData && (
                 <Card>
                     <div className="p-12 text-center">
@@ -378,8 +330,7 @@ const Progress = () => {
                             No Progress Data Yet
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400">
-                            Start tracking your weight and body measurements to
-                            see your progress over time
+                            Start tracking your weight and body measurements to see your progress over time
                         </p>
                     </div>
                 </Card>

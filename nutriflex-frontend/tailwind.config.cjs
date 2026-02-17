@@ -2,102 +2,113 @@
 /* eslint-disable no-undef */
 /** @type {import('tailwindcss').Config} */
 
+const typography = require('@tailwindcss/typography');
+
 module.exports = {
-	content:  [
-		"./index.html",
-    	"./src/**/*.{js,ts,jsx,tsx}", 
-		'./safelist.txt'
-	],
-	darkMode: 'class',
-		theme: {
-			fontFamily: {
-				sans: [
-					'Inter',
-					'ui-sans-serif',
-					'system-ui',
-					'-apple-system',
-					'BlinkMacSystemFont',
-					'"Segoe UI"',
-					'Roboto',
-					'"Helvetica Neue"',
-					'Arial',
-					'"Noto Sans"',
-					'sans-serif',
-					'"Apple Color Emoji"',
-					'"Segoe UI Emoji"',
-					'"Segoe UI Symbol"',
-					'"Noto Color Emoji"',
-				],
-				serif: [
-					'ui-serif',
-					'Georgia',
-					'Cambria',
-					'"Times New Roman"',
-					'Times',
-					'serif',
-				],
-				mono: [
-					'ui-monospace',
-					'SFMono-Regular',
-					'Menlo',
-					'Monaco',
-					'Consolas',
-					'"Liberation Mono"',
-					'"Courier New"',
-					'monospace',
-				],
-			},
-			screens: {
-				xs: '576px',
-				sm: '640px',
-				md: '768px',
-				lg: '1024px',
-				xl: '1280px',
-				'2xl': '1536px',
-			},
-			extend: {
-				colors: {
-					'primary': 'var(--primary)',
-					'primary-deep': 'var(--primary-deep)',
-					'primary-mild': 'var(--primary-mild)',
-					'primary-subtle': 'var(--primary-subtle)',
-					'error': 'var(--error)',
-					'error-subtle': 'var(--error-subtle)',
-					'success': 'var(--success)',
-					'success-subtle': 'var(--success-subtle)',
-					'info': 'var(--info)',
-					'info-subtle': 'var(--info-subtle)',
-					'warning': 'var(--warning)',
-					'warning-subtle': 'var(--warning-subtle)',
-					'neutral': 'var(--neutral)',
-					'gray-50': 'var(--gray-50)',
-					'gray-100': 'var(--gray-100)',
-					'gray-200': 'var(--gray-200)',
-					'gray-300': 'var(--gray-300)',
-					'gray-400': 'var(--gray-400)',
-					'gray-500': 'var(--gray-500)',
-					'gray-600': 'var(--gray-600)',
-					'gray-700': 'var(--gray-700)',
-					'gray-800': 'var(--gray-800)',
-					'gray-900': 'var(--gray-900)',
-					'gray-950': 'var(--gray-950)',
-				},
-				typography: (theme) => ({
-					DEFAULT: {
-						css: {
-							color: theme('colors.gray.500'),
-							maxWidth: '65ch',
-						},
-					},
-					invert: {
-						css: {
-							color: theme('colors.gray.400'),
-						},
-					},
-				}),
-			},
-		},
-	plugins: [
-        require('@tailwindcss/typography'),
-	],
+  darkMode: 'class',
+  content: [
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}',
+    './pages/**/*.{js,ts,jsx,tsx}',
+    './components/**/*.{js,ts,jsx,tsx}',
+    './safelist.txt',
+  ],
+  theme: {
+    fontFamily: {
+      sans: [
+        'Inter',
+        'ui-sans-serif',
+        'system-ui',
+        '-apple-system',
+        'BlinkMacSystemFont',
+        '"Segoe UI"',
+        'Roboto',
+        '"Helvetica Neue"',
+        'Arial',
+        '"Noto Sans"',
+        'sans-serif',
+        '"Apple Color Emoji"',
+        '"Segoe UI Emoji"',
+        '"Segoe UI Symbol"',
+        '"Noto Color Emoji"',
+      ],
+      serif: [
+        'ui-serif',
+        'Georgia',
+        'Cambria',
+        '"Times New Roman"',
+        'Times',
+        'serif',
+      ],
+      mono: [
+        'ui-monospace',
+        'SFMono-Regular',
+        'Menlo',
+        'Monaco',
+        'Consolas',
+        '"Liberation Mono"',
+        '"Courier New"',
+        'monospace',
+      ],
+    },
+    screens: {
+      xs: '576px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+    },
+    extend: {
+      colors: {
+        // Light mode colors
+        light: {
+          primary: '#0d1229', // main dark blue for light mode
+          gray: {
+            50: '#f9f9f9',
+            100: '#f5f5f5',
+            200: '#e5e5e5',
+            300: '#d4d4d4',
+            400: '#a3a3a3',
+            500: '#737373',
+            600: '#525252',
+            700: '#404040',
+            800: '#262626',
+            900: '#171717',
+          },
+        },
+        // Dark mode colors
+        dark: {
+          primary: '#fb64b6', // pink for dark mode
+          gray: {
+            50: '#f5f5f5',
+            100: '#e5e5e5',
+            200: '#d4d4d4',
+            300: '#a3a3a3',
+            400: '#737373',
+            500: '#525252',
+            600: '#404040',
+            700: '#2c2c2c',
+            800: '#1c1c1c',
+            900: '#0d0d0d',
+          },
+        },
+      },
+      typography: (theme) => ({
+        DEFAULT: {
+          css: {
+            color: theme('colors.light.gray.500'),
+            a: { color: theme('colors.light.primary') },
+          },
+        },
+        dark: {
+          css: {
+            color: theme('colors.dark.gray.400'),
+            a: { color: theme('colors.dark.primary') },
+          },
+        },
+      }),
+    },
+  },
+  plugins: [typography],
 };
