@@ -125,7 +125,7 @@ export async function apiCreatePlanWithDetails(data: CreatePlanWithDetailsDto) {
     return ApiService.fetchDataWithAxios<ApiResponse<CoachNutritionPlan>>({
         url: '/nutrition-plan/coach-with-details',
         method: 'post',
-        data,
+        data: data as unknown as Record<string, unknown>,
     })
 }
 
