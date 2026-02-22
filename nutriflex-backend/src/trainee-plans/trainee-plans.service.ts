@@ -161,6 +161,7 @@ export class TraineePlansService {
         id: ex.id,
         name: ex.name,
         exercise_type: ex.exercise_type,
+        sub_category: ex.sub_category ?? null,
         day_index: ex.day_index,
         sets: ex.sets,
         reps: ex.reps,

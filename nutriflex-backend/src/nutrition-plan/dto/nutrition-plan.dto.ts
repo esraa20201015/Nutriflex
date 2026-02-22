@@ -156,6 +156,16 @@ export class PlanExerciseDto {
   @IsEnum(ExerciseType)
   exercise_type!: ExerciseType;
 
+  @ApiProperty({
+    description: 'Subcategory (e.g. Upper, Core, Lower)',
+    example: 'Upper',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  sub_category?: string | null;
+
   @ApiProperty({ description: 'Day index within the plan (1-based)', example: 1, required: false })
   @IsNumber()
   @IsOptional()

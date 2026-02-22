@@ -325,6 +325,11 @@ const PlanDetails = () => {
                                             </h4>
                                             <p className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-3">
                                                 {ex.exercise_type}
+                                                {ex.sub_category && (
+                                                    <span className="ml-2">
+                                                        · {ex.sub_category}
+                                                    </span>
+                                                )}
                                                 {ex.sets != null && ex.reps != null && (
                                                     <span className="ml-2">
                                                         · {ex.sets} sets × {ex.reps} reps

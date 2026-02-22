@@ -419,10 +419,13 @@ export type ExerciseType = 'cardio' | 'strength' | 'calisthenics' | 'flexibility
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
+export type ExerciseSubCategory = 'Upper' | 'Core' | 'Lower'
+
 export interface PlanExerciseDto {
     exercise_id?: string
     name: string
     exercise_type: ExerciseType
+    sub_category?: ExerciseSubCategory | string | null
     day_index?: number
     sets?: number | null
     reps?: number | null
@@ -525,6 +528,7 @@ export type TraineePlanExercise = {
     id: string
     name: string
     exercise_type: string
+    sub_category: string | null
     day_index: number
     sets: number | null
     reps: number | null

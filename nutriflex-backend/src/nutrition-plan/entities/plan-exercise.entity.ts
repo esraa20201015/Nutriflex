@@ -44,6 +44,10 @@ export class PlanExercise extends ActionTracked {
   @Column({ name: 'exercise_type', type: 'varchar', length: 20 })
   exercise_type: ExerciseType;
 
+  /** Subcategory for this exercise (e.g. Upper, Core, Lower). */
+  @Column({ name: 'sub_category', type: 'varchar', length: 20, nullable: true })
+  sub_category: string | null;
+
   /** Optional day index within the plan (e.g., 1 = Day 1). */
   @Column({ name: 'day_index', type: 'int', default: 1 })
   day_index: number;

@@ -74,6 +74,7 @@ export class NutritionPlanService {
           exercise_id: ex.exercise_id ?? null,
           name: ex.name,
           exercise_type: ex.exercise_type,
+          sub_category: ex.sub_category ?? null,
           day_index: ex.day_index ?? 1,
           sets: ex.sets ?? null,
           reps: ex.reps ?? null,

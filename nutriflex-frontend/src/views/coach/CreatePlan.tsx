@@ -33,6 +33,7 @@ import Notification from '@/components/ui/Notification'
 import type {
     CoachTrainee,
     CreatePlanWithDetailsDto,
+    ExerciseSubCategory,
     MealIngredientInputDto,
     PlanExerciseDto,
     PlanMealDto,
@@ -71,12 +72,16 @@ const planSchema = z.object({
 
 type PlanFormData = z.infer<typeof planSchema>
 
-type ExerciseSubCategory = 'Upper' | 'Core' | 'Lower'
-
 type WizardExercise = PlanExerciseDto & {
     id: string
     subCategory: ExerciseSubCategory
 }
+
+const SUB_CATEGORY_OPTIONS: { value: ExerciseSubCategory; label: string }[] = [
+    { value: 'Upper', label: 'Upper' },
+    { value: 'Core', label: 'Core' },
+    { value: 'Lower', label: 'Lower' },
+]
 
 type WizardMeal = PlanMealDto & {
     id: string
@@ -208,6 +213,7 @@ const CreatePlan = () => {
                     exercise_id: ex.exercise_id,
                     name: ex.name,
                     exercise_type: ex.exercise_type,
+                    sub_category: ex.subCategory ?? null,
                     day_index: ex.day_index ?? 1,
                     sets: ex.sets ?? null,
                     reps: ex.reps ?? null,
@@ -580,7 +586,7 @@ const CreatePlan = () => {
                                     {exercises.map((ex, index) => (
                                         <div
                                             key={ex.id}
-                                            className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3"
+                                            className="grid grid-cols-1 md:grid-cols-7 gap-3 items-end bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3"
                                         >
                                             <div className="md:col-span-2">
                                                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
@@ -642,6 +648,32 @@ const CreatePlan = () => {
                                                                           ...row,
                                                                           exercise_type:
                                                                               option.value as PlanExerciseDto['exercise_type'],
+                                                                      }
+                                                                    : row,
+                                                            ),
+                                                        )
+                                                    }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                                    Subcategory
+                                                </label>
+                                                <Select
+                                                    options={SUB_CATEGORY_OPTIONS}
+                                                    value={{
+                                                        value: ex.subCategory,
+                                                        label: ex.subCategory,
+                                                    }}
+                                                    onChange={(option) => {
+                                                        if (!option) return
+                                                        setExercises((prev) =>
+                                                            prev.map((row) =>
+                                                                row.id === ex.id
+                                                                    ? {
+                                                                          ...row,
+                                                                          subCategory:
+                                                                              option.value as ExerciseSubCategory,
                                                                       }
                                                                     : row,
                                                             ),
