@@ -8,7 +8,7 @@ import Tooltip from '@/components/ui/Tooltip'
 import Spinner from '@/components/ui/Spinner'
 import Tag from '@/components/ui/Tag'
 import Avatar from '@/components/ui/Avatar'
-import { PiUserDuotone } from 'react-icons/pi'
+import { PiUserDuotone, PiShieldCheckDuotone, PiUsersThreeDuotone } from 'react-icons/pi'
 import toast from '@/components/ui/toast'
 import Notification from '@/components/ui/Notification'
 import type { Role, User } from '@/@types/api'
@@ -111,6 +111,38 @@ const Roles = () => {
     const isRoleActive = (status?: string) =>
         status?.toLowerCase() === 'active'
 
+    /** Role card theme: soft, eye-friendly colors for light and dark mode */
+    const getRoleCardTheme = (roleName: string) => {
+        const name = roleName?.toLowerCase() ?? ''
+        if (name === 'admin')
+            return {
+                headerClass:
+                    'bg-primary-subtle text-primary dark:bg-primary/15 dark:text-primary-mild',
+                iconBg: 'bg-primary/20 dark:bg-primary/25',
+                icon: PiShieldCheckDuotone,
+            }
+        if (name === 'coach')
+            return {
+                headerClass:
+                    'bg-success-subtle text-emerald-700 dark:bg-success/15 dark:text-emerald-300',
+                iconBg: 'bg-emerald-500/20 dark:bg-emerald-400/25',
+                icon: PiUsersThreeDuotone,
+            }
+        if (name === 'trainee')
+            return {
+                headerClass:
+                    'bg-info-subtle text-[#c43d82] dark:bg-info/15 dark:text-info',
+                iconBg: 'bg-info/20 dark:bg-info/25',
+                icon: PiUserDuotone,
+            }
+        return {
+            headerClass:
+                'bg-gray-200 text-gray-700 dark:bg-gray-600/30 dark:text-gray-300',
+            iconBg: 'bg-gray-400/20 dark:bg-gray-400/25',
+            icon: PiUserDuotone,
+        }
+    }
+
     if (loading) {
         return <CustomIndicator />
     }
@@ -139,13 +171,24 @@ const Roles = () => {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {roles.map((role) => {
+                        const theme = getRoleCardTheme(role.name)
+                        const RoleIcon = theme.icon
                         const cardHeader = (
-                            <div className="rounded-tl-lg rounded-tr-lg overflow-hidden bg-gray-100 dark:bg-gray-700 px-4 py-3">
-                                <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                    {role.name}
-                                </h4>
+                            <div
+                                className={`rounded-tl-lg rounded-tr-lg overflow-hidden px-4 py-4 ${theme.headerClass}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span
+                                        className={`flex items-center justify-center w-10 h-10 rounded-lg ${theme.iconBg ?? 'bg-gray-400/20'}`}
+                                    >
+                                        <RoleIcon className="text-xl opacity-90" />
+                                    </span>
+                                    <h4 className="font-semibold truncate">
+                                        {role.name}
+                                    </h4>
+                                </div>
                             </div>
                         )
                         const userCount = getUserCountForRole(role.name)
@@ -199,7 +242,7 @@ const Roles = () => {
                         return (
                             <Card
                                 key={role.id}
-                                className="hover:shadow-lg transition duration-150 ease-in-out dark:border dark:border-gray-600 dark:border-solid"
+                                className="overflow-hidden rounded-xl border-0 shadow-md hover:shadow-xl transition-all duration-200 ease-out bg-white dark:bg-gray-800 dark:shadow-gray-900/20"
                                 header={{
                                     content: cardHeader,
                                     bordered: false,
@@ -208,17 +251,18 @@ const Roles = () => {
                                 footer={{
                                     content: cardFooter,
                                     bordered: true,
+                                    className: 'bg-gray-50/80 dark:bg-gray-800/80',
                                 }}
                             >
-                                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-3">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4">
                                     {role.description || 'No description'}
                                 </p>
                                 {role.status ? (
                                     <Tag
                                         className={
                                             isRoleActive(role.status)
-                                                ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-100 border-0 rounded'
-                                                : 'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-200 border-0 rounded'
+                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-100 border-0 rounded-full px-3'
+                                                : 'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-200 border-0 rounded-full px-3'
                                         }
                                     >
                                         {role.status}
