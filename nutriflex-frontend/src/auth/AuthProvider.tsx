@@ -20,6 +20,24 @@ import type { NavigateFunction } from 'react-router'
 
 type AuthProviderProps = { children: ReactNode }
 
+/** Role-based dashboard path for post-login redirect. Case-insensitive so backend can return "Admin", "ADMIN", etc. */
+function getDashboardPathForRole(role: string | undefined): string {
+    const r = role?.toUpperCase()
+    if (r === 'ADMIN') return '/admin/dashboard'
+    if (r === 'COACH') return '/coach/dashboard'
+    if (r === 'TRAINEE') return '/trainee/dashboard'
+    return appConfig.authenticatedEntryPath
+}
+
+/** Normalize role from backend (string or object with name). */
+function normalizeRole(role: unknown): string | undefined {
+    if (typeof role === 'string' && role) return role
+    if (role && typeof role === 'object' && 'name' in role && typeof (role as { name: string }).name === 'string') {
+        return (role as { name: string }).name
+    }
+    return undefined
+}
+
 export type IsolatedNavigatorRef = {
     navigate: NavigateFunction
 }
@@ -80,15 +98,20 @@ function AuthProvider({ children }: AuthProviderProps) {
         try {
             const resp = await apiSignIn(values)
             if (resp && resp.data) {
+                const role = normalizeRole(resp.data.user.role)
                 const user: User = {
                     id: resp.data.user.id,
                     fullName: resp.data.user.fullName,
                     email: resp.data.user.email,
-                    role: resp.data.user.role,
-                    authority: resp.data.user.role ? [resp.data.user.role] : [],
+                    role: role ?? resp.data.user.role,
+                    authority: role ? [role] : [],
                 }
                 handleSignIn({ accessToken: resp.data.access_token }, user)
-                redirect()
+                const search = window.location.search
+                const params = new URLSearchParams(search)
+                const redirectUrl = params.get(REDIRECT_URL_KEY)
+                const targetPath = redirectUrl || getDashboardPathForRole(role)
+                navigatorRef.current?.navigate(targetPath)
                 return {
                     status: 'success',
                     message: '',
@@ -102,8 +125,11 @@ function AuthProvider({ children }: AuthProviderProps) {
         } catch (errors: any) {
             const errorData = errors?.response?.data
             let errorMessage = 'Unable to sign in'
-            
-            if (errorData) {
+
+            if (errors?.code === 'ERR_NETWORK' || errors?.message === 'Network Error') {
+                errorMessage =
+                    'Cannot reach the server. Make sure the backend is running (e.g. on http://localhost:3000) and the dev proxy is used.'
+            } else if (errorData) {
                 if (Array.isArray(errorData.message)) {
                     errorMessage = errorData.message.join(', ')
                 } else if (errorData.messageEn) {
@@ -113,10 +139,10 @@ function AuthProvider({ children }: AuthProviderProps) {
                 } else if (errorData.messageAr) {
                     errorMessage = errorData.messageAr
                 }
-            } else {
-                errorMessage = errors.toString()
+            } else if (errors?.message) {
+                errorMessage = errors.message
             }
-            
+
             return {
                 status: 'failed',
                 message: errorMessage,

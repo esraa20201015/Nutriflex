@@ -7,6 +7,7 @@ import {
 import cookiesStorage from '@/utils/cookiesStorage'
 import type { InternalAxiosRequestConfig } from 'axios'
 
+/** Attaches stored access token as Authorization: Bearer <token> so backend can identify user and scope dashboard data by role/userId. */
 const AxiosRequestIntrceptorConfigCallback = (
     config: InternalAxiosRequestConfig,
 ) => {
