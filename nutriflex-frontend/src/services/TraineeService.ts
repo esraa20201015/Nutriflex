@@ -184,6 +184,18 @@ export async function apiGetAvailableCoaches(params?: { trainee_id?: string }) {
     })
 }
 
+/** Trainee selects a coach (POST /coaches/select). Uses req.user.id for trainee; enforces one active coach per trainee. */
+export async function apiSelectCoachForTrainee(data: { coach_id: string }) {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<{ coach_id: string; trainee_id: string; status: string }>
+    >({
+        url: '/coaches/select',
+        method: 'post',
+        data,
+    })
+}
+
+/** Generic create coach-trainee (POST /coach-trainee). Used by admin or when explicit trainee_id is needed. */
 export async function apiSelectCoach(data: CreateCoachTraineeDto) {
     return ApiService.fetchDataWithAxios<ApiResponse<CoachTrainee>>({
         url: '/coach-trainee',

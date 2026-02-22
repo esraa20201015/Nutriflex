@@ -129,7 +129,7 @@ const MyPlans = () => {
                     onClick={() => setStatusFilter('all')}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
                         statusFilter === 'all'
-                            ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                            ? 'text-primary border-b-2 border-primary'
                             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                     }`}
                 >
@@ -139,7 +139,7 @@ const MyPlans = () => {
                     onClick={() => setStatusFilter('active')}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
                         statusFilter === 'active'
-                            ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                            ? 'text-primary border-b-2 border-primary'
                             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                     }`}
                 >
@@ -149,7 +149,7 @@ const MyPlans = () => {
                     onClick={() => setStatusFilter('archived')}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
                         statusFilter === 'archived'
-                            ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                            ? 'text-primary border-b-2 border-primary'
                             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                     }`}
                 >

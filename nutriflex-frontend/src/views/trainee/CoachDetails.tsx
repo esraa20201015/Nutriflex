@@ -4,8 +4,7 @@ import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Avatar from '@/components/ui/Avatar'
-import { apiGetAvailableCoaches, apiSelectCoach } from '@/services/TraineeService'
-import { useSessionUser } from '@/store/authStore'
+import { apiGetAvailableCoaches, apiSelectCoachForTrainee } from '@/services/TraineeService'
 import type { PublicCoachProfile } from '@/@types/api'
 import toast from '@/components/ui/toast'
 import Notification from '@/components/ui/Notification'
@@ -13,7 +12,6 @@ import Notification from '@/components/ui/Notification'
 const CoachDetails = () => {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
-    const { user } = useSessionUser()
     const [coach, setCoach] = useState<PublicCoachProfile | null>(null)
     const [loading, setLoading] = useState(true)
     const [selecting, setSelecting] = useState(false)
@@ -49,20 +47,17 @@ const CoachDetails = () => {
     }, [id])
 
     const handleSelect = async () => {
-        if (!coach || !user?.id) {
+        if (!coach) {
             toast.push(
                 <Notification type="danger" title="Error">
-                    Unable to select coach. Please sign in again.
+                    Unable to select coach.
                 </Notification>,
             )
             return
         }
         try {
             setSelecting(true)
-            await apiSelectCoach({
-                coach_id: coach.id,
-                trainee_id: user.id,
-            })
+            await apiSelectCoachForTrainee({ coach_id: coach.id })
             toast.push(
                 <Notification type="success" title="Coach selected">
                     Your coach has been updated successfully.

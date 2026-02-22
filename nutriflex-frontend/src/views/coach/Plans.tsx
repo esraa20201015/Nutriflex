@@ -22,8 +22,25 @@ import toast from '@/components/ui/toast'
 import Notification from '@/components/ui/Notification'
 import type { CoachNutritionPlan } from '@/@types/api'
 
+const TAB_STATUSES = ['all', 'draft', 'active', 'archived'] as const
+
+function computeCountsByStatus(planList: CoachNutritionPlan[]): Record<string, number> {
+    return {
+        all: planList.length,
+        draft: planList.filter((p) => p.status === 'draft').length,
+        active: planList.filter((p) => p.status === 'active').length,
+        archived: planList.filter((p) => p.status === 'archived').length,
+    }
+}
+
 const Plans = () => {
     const [plans, setPlans] = useState<CoachNutritionPlan[]>([])
+    const [countsByStatus, setCountsByStatus] = useState<Record<string, number>>({
+        all: 0,
+        draft: 0,
+        active: 0,
+        archived: 0,
+    })
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -31,7 +48,7 @@ const Plans = () => {
     const user = useSessionUser((state) => state.user)
     const navigate = useNavigate()
 
-    // Load plans
+    // Load plans for the current tab; when loading "all", also refresh counts so each tab has a fixed count
     useEffect(() => {
         const loadPlans = async () => {
             if (!user.id) return
@@ -41,7 +58,11 @@ const Plans = () => {
                 const params: { coach_id: string; status?: string } = { coach_id: user.id }
                 if (statusFilter !== 'all') params.status = statusFilter
                 const response = await apiGetCoachPlans(params)
-                setPlans(response.data)
+                const data = response.data ?? []
+                setPlans(data)
+                if (statusFilter === 'all') {
+                    setCountsByStatus(computeCountsByStatus(data))
+                }
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load plans')
             } finally {
@@ -63,11 +84,17 @@ const Plans = () => {
                     Plan deleted successfully
                 </Notification>
             )
-            // Reload plans
+            // Reload plans (and refresh counts if on "all" so tab counts stay correct)
             const params: { coach_id: string; status?: string } = { coach_id: user.id! }
             if (statusFilter !== 'all') params.status = statusFilter
             const response = await apiGetCoachPlans(params)
-            setPlans(response.data)
+            const data = response.data ?? []
+            setPlans(data)
+            if (statusFilter === 'all') {
+                setCountsByStatus(computeCountsByStatus(data))
+            } else {
+                setCountsByStatus((prev) => ({ ...prev, [statusFilter]: data.length }))
+            }
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to delete plan'
             toast.push(
@@ -135,19 +162,19 @@ const Plans = () => {
                 </Button>
             </div>
 
-            {/* Filter Tabs */}
+            {/* Filter Tabs: each tab shows its own count from countsByStatus; switching tabs only changes the list */}
             <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
-                {['all', 'draft', 'active', 'archived'].map((status) => (
+                {TAB_STATUSES.map((status) => (
                     <button
                         key={status}
                         onClick={() => setStatusFilter(status)}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${
                             statusFilter === status
-                                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                                ? 'text-primary border-b-2 border-primary'
                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                         }`}
                     >
-                        {status.charAt(0).toUpperCase() + status.slice(1)} {status === 'all' ? `(${plans.length})` : ''}
+                        {status.charAt(0).toUpperCase() + status.slice(1)} ({countsByStatus[status] ?? 0})
                     </button>
                 ))}
             </div>

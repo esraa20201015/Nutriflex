@@ -259,8 +259,8 @@ const Profile = () => {
                             onClick={() => setActiveTab('overview')}
                             className={`pb-2 -mb-px border-b-2 ${
                                 activeTab === 'overview'
-                                    ? 'border-primary text-primary dark:border-[#fb64b6] dark:text-[#fb64b6] font-semibold'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    ? 'border-primary text-primary font-semibold'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                         >
                             Overview
@@ -270,8 +270,8 @@ const Profile = () => {
                             onClick={() => setActiveTab('settings')}
                             className={`pb-2 -mb-px border-b-2 ${
                                 activeTab === 'settings'
-                                    ? 'border-primary text-primary dark:border-[#fb64b6] dark:text-[#fb64b6] font-semibold'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    ? 'border-primary text-primary font-semibold'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                         >
                             Settings

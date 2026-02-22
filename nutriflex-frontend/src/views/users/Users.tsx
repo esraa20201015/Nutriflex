@@ -412,7 +412,7 @@ const Users = () => {
                                 handleSearch()
                             }
                         }}
-                        className="bg-gray-100 dark:bg-gray-700 border-0 focus:ring-2 focus:ring-indigo-500/20 rounded-lg"
+                        className="bg-gray-100 dark:bg-gray-700 border-0 focus:ring-2 focus:ring-primary/20 rounded-lg"
                         suffix={
                             <HiOutlineSearch
                                 className="cursor-pointer text-gray-500 dark:text-gray-400 text-lg"
@@ -440,7 +440,7 @@ const Users = () => {
                         }}
                         className={
                             statusFilter === 'ALL'
-                                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+                                ? 'bg-primary-subtle text-primary'
                                 : ''
                         }
                     >
@@ -454,7 +454,7 @@ const Users = () => {
                         }}
                         className={
                             statusFilter === 'ACTIVE'
-                                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+                                ? 'bg-primary-subtle text-primary'
                                 : ''
                         }
                     >
@@ -468,7 +468,7 @@ const Users = () => {
                         }}
                         className={
                             statusFilter === 'INACTIVE'
-                                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+                                ? 'bg-primary-subtle text-primary'
                                 : ''
                         }
                     >
@@ -482,7 +482,7 @@ const Users = () => {
                         }}
                         className={
                             statusFilter === 'SUSPENDED'
-                                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+                                ? 'bg-primary-subtle text-primary'
                                 : ''
                         }
                     >
