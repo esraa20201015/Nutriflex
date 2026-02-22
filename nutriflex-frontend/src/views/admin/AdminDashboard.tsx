@@ -9,6 +9,7 @@ import Chart from '@/components/shared/Chart'
 import Segment from '@/components/ui/Segment'
 import Badge from '@/components/ui/Badge'
 import Calendar from '@/components/ui/Calendar'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import {
     PiUsersThreeDuotone,
     PiClipboardTextDuotone,
@@ -76,11 +77,7 @@ const AdminDashboard = () => {
     }, [accountsStatus?.recentlyApproved, roleFilter])
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-lg">Loading dashboard...</div>
-            </div>
-        )
+        return <CustomIndicator />
     }
 
     if (error) {

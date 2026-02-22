@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
-import Spinner from '@/components/ui/Spinner'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -76,12 +76,7 @@ const EditPlanPage = () => {
     }
   }
 
-  if (loading)
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Spinner size={40} />
-      </div>
-    )
+  if (loading) return <CustomIndicator />
 
   if (error) return <div className="text-center text-red-500">{error}</div>
   if (!plan) return <div className="text-center">Plan not found</div>

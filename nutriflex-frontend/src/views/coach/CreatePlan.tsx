@@ -10,8 +10,8 @@ import {
     apiGetPlanMeals,
 } from '@/services/CoachService'
 import { useSessionUser } from '@/store/authStore'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
-import Spinner from '@/components/ui/Spinner'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { FormItem, Form } from '@/components/ui/Form'
@@ -248,11 +248,7 @@ const CreatePlan = () => {
     }
 
     if (loading || loadingTrainees) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <Spinner size={40} />
-            </div>
-        )
+        return <CustomIndicator />
     }
 
     const traineeOptions = trainees

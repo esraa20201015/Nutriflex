@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
-import Spinner from '@/components/ui/Spinner'
 import Button from '@/components/ui/Button'
 import Avatar from '@/components/ui/Avatar'
 import { apiGetAvailableCoaches, apiSelectCoach } from '@/services/TraineeService'
@@ -83,11 +83,7 @@ const CoachDetails = () => {
     }
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <Spinner size={40} />
-            </div>
-        )
+        return <CustomIndicator />
     }
 
     if (error || !coach) {

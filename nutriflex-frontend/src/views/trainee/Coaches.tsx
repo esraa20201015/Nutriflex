@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
-import Spinner from '@/components/ui/Spinner'
 import Button from '@/components/ui/Button'
 import Avatar from '@/components/ui/Avatar'
 import { HiOutlineEye } from 'react-icons/hi'
@@ -34,11 +34,7 @@ const Coaches = () => {
     }, [])
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <Spinner size={40} />
-            </div>
-        )
+        return <CustomIndicator />
     }
 
     if (error) {

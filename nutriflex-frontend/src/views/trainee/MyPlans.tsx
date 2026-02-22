@@ -4,8 +4,8 @@ import {
     apiGetTraineeMyPlans,
     apiGetTraineePlanStatus,
 } from '@/services/TraineeService'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
-import Spinner from '@/components/ui/Spinner'
 import Tag from '@/components/ui/Tag'
 import Button from '@/components/ui/Button'
 import {
@@ -99,11 +99,7 @@ const MyPlans = () => {
     }
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <Spinner size={40} />
-            </div>
-        )
+        return <CustomIndicator />
     }
 
     if (error) {

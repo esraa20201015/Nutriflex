@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { apiGetTraineeDashboardProgress } from '@/services/TraineeService'
 import Chart from '@/components/shared/Chart'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
-import Spinner from '@/components/ui/Spinner'
 import {
     PiChartBarDuotone,
     PiRulerDuotone,
@@ -151,11 +151,7 @@ const Progress = () => {
     }, [progressData?.weightHistory])
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <Spinner size={40} />
-            </div>
-        )
+        return <CustomIndicator />
     }
 
     if (error) {

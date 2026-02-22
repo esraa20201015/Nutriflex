@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
-import Spinner from '@/components/ui/Spinner'
 import Tag from '@/components/ui/Tag'
 import {
     PiArrowLeftDuotone,
@@ -59,11 +59,7 @@ const ViewPlanPage = () => {
     }
 
     if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <Spinner size={40} />
-            </div>
-        )
+        return <CustomIndicator />
     }
 
     if (error) {

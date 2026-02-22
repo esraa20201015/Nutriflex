@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { apiGetAvailableCoaches, apiSelectCoach } from '@/services/TraineeService';
-import type { PublicCoachProfile } from '@/@types/api';
-import CoachCard from './CoachCard';
+import { useEffect, useState } from 'react'
+import { apiGetAvailableCoaches, apiSelectCoach } from '@/services/TraineeService'
+import type { PublicCoachProfile } from '@/@types/api'
+import CustomIndicator from '@/components/shared/CustomIndicator'
+import CoachCard from './CoachCard'
 
 interface Props {
   traineeId: string;
@@ -24,13 +25,7 @@ export default function CoachSelector({ traineeId }: Props) {
     alert('Coach selected!');
   };
 
-  if (loading)
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-12 h-12 border-4 border-light-gray-300 dark:border-dark-gray-600 border-t-4 border-t-ecmePink rounded-full animate-spin"></div>
-        <span className="sr-only">Loading coaches...</span>
-      </div>
-    );
+  if (loading) return <CustomIndicator />
 
   if (coaches.length === 0)
     return (

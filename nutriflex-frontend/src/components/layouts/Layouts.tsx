@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import Loading from '@/components/shared/Loading'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import type { CommonProps } from '@/@types/common'
 import { useAuth } from '@/auth'
 import { useThemeStore } from '@/store/themeStore'
@@ -14,8 +14,8 @@ const Layout = ({ children }: CommonProps) => {
     return (
         <Suspense
             fallback={
-                <div className="flex flex-auto flex-col h-[100vh]">
-                    <Loading loading={true} />
+                <div className="flex flex-auto flex-col h-[100vh] items-center justify-center">
+                    <CustomIndicator />
                 </div>
             }
         >

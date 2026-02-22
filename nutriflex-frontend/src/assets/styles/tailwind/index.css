@@ -2,10 +2,21 @@
 
 @config '../../../../tailwind.config.cjs';
 
-/* Theme colors for Tailwind v4 utilities (bg-primary-subtle, text-primary, etc.) */
+/* Theme colors for Tailwind v4 utilities (text-error, bg-primary-subtle, etc.) */
 @theme {
+	--color-neutral: #ffffff;
 	--color-primary: #1d293d;
 	--color-primary-subtle: #1d293d1a;
+	--color-primary-deep: #111827;
+	--color-primary-mild: #334155;
+	--color-error: #ff6a55;
+	--color-error-subtle: #ff6a551a;
+	--color-success: #10b981;
+	--color-success-subtle: #05eb7624;
+	--color-info: #fb64b6;
+	--color-info-subtle: #fb64b61a;
+	--color-warning: #f59e0b;
+	--color-warning-subtle: #ffd40045;
 }
 
 @layer theme {

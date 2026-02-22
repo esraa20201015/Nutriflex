@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { apiGetRoles, apiToggleRoleStatus, apiGetUsers } from '@/services/AdminService'
 import { FiEye, FiEdit2 } from 'react-icons/fi'
 import { TbToggleRight, TbToggleLeft } from 'react-icons/tb'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
 import Tooltip from '@/components/ui/Tooltip'
 import Spinner from '@/components/ui/Spinner'
@@ -111,11 +112,7 @@ const Roles = () => {
         status?.toLowerCase() === 'active'
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-lg">Loading roles...</div>
-            </div>
-        )
+        return <CustomIndicator />
     }
 
     if (error) {
