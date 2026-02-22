@@ -185,6 +185,16 @@ export class PlanExerciseDto {
   @IsOptional()
   notes?: string | null;
 
+  @ApiProperty({ description: 'Optional guide image as Base64 for trainee reference', required: false })
+  @IsString()
+  @IsOptional()
+  guide_image_base64?: string | null;
+
+  @ApiProperty({ description: 'Optional guide video as Base64 for trainee reference', required: false })
+  @IsString()
+  @IsOptional()
+  guide_video_base64?: string | null;
+
   @ApiProperty({ description: 'Display order within the plan', example: 0, required: false })
   @IsNumber()
   @IsOptional()

@@ -79,6 +79,8 @@ export class NutritionPlanService {
           reps: ex.reps ?? null,
           duration_minutes: ex.duration_minutes ?? null,
           notes: ex.notes ?? null,
+          guide_image_base64: ex.guide_image_base64 ?? null,
+          guide_video_base64: ex.guide_video_base64 ?? null,
           order_index: ex.order_index ?? index,
         }),
       );

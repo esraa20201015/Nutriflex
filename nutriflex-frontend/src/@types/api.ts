@@ -428,6 +428,8 @@ export interface PlanExerciseDto {
     reps?: number | null
     duration_minutes?: number | null
     notes?: string | null
+    guide_image_base64?: string | null
+    guide_video_base64?: string | null
     order_index?: number
 }
 
@@ -518,8 +520,24 @@ export type Meal = {
     order_index: number
 }
 
+/** Exercise as returned for trainee plan details (includes guide media). */
+export type TraineePlanExercise = {
+    id: string
+    name: string
+    exercise_type: string
+    day_index: number
+    sets: number | null
+    reps: number | null
+    duration_minutes: number | null
+    notes: string | null
+    order_index: number
+    guide_image_base64: string | null
+    guide_video_base64: string | null
+}
+
 export type TraineePlanDetails = TraineeNutritionPlan & {
     meals: Meal[]
+    planExercises?: TraineePlanExercise[]
 }
 
 export type PlanMealsResponse = {

@@ -18,6 +18,7 @@ import {
     PiClockDuotone,
     PiPlayCircleDuotone,
     PiFireDuotone,
+    PiBarbellDuotone,
 } from 'react-icons/pi'
 import type { TraineePlanDetails, PlanStatusData } from '@/@types/api'
 
@@ -301,6 +302,82 @@ const PlanDetails = () => {
                     </div>
                 </div>
             </Card>
+
+            {/* Exercises Section (with guide media) */}
+            {plan.planExercises && plan.planExercises.length > 0 && (
+                <Card>
+                    <div className="p-6">
+                        <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                            <PiBarbellDuotone className="w-5 h-5" />
+                            Exercises ({plan.planExercises.length})
+                        </h3>
+                        <div className="space-y-6">
+                            {plan.planExercises
+                                .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+                                .map((ex) => (
+                                    <Card
+                                        key={ex.id}
+                                        className="bg-gray-50 dark:bg-gray-700/50 overflow-hidden"
+                                    >
+                                        <div className="p-4">
+                                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                                {ex.name}
+                                            </h4>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-3">
+                                                {ex.exercise_type}
+                                                {ex.sets != null && ex.reps != null && (
+                                                    <span className="ml-2">
+                                                        · {ex.sets} sets × {ex.reps} reps
+                                                    </span>
+                                                )}
+                                                {ex.duration_minutes != null && (
+                                                    <span className="ml-2">
+                                                        · {ex.duration_minutes} min
+                                                    </span>
+                                                )}
+                                            </p>
+                                            {ex.notes && (
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                                    {ex.notes}
+                                                </p>
+                                            )}
+                                            {/* Guide media: image and/or video (data URL from backend) */}
+                                            <div className="flex flex-col gap-4 mt-4">
+                                                {ex.guide_image_base64 && (
+                                                    <div>
+                                                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                                            How to perform (image)
+                                                        </p>
+                                                        <img
+                                                            src={ex.guide_image_base64}
+                                                            alt={`Guide for ${ex.name}`}
+                                                            className="max-w-full rounded-lg border border-gray-200 dark:border-gray-600 max-h-80 object-contain"
+                                                        />
+                                                    </div>
+                                                )}
+                                                {ex.guide_video_base64 && (
+                                                    <div>
+                                                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                                            How to perform (video)
+                                                        </p>
+                                                        <video
+                                                            src={ex.guide_video_base64}
+                                                            controls
+                                                            className="max-w-full rounded-lg border border-gray-200 dark:border-gray-600 max-h-80"
+                                                            playsInline
+                                                        >
+                                                            Your browser does not support the video tag.
+                                                        </video>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </Card>
+                                ))}
+                        </div>
+                    </div>
+                </Card>
+            )}
 
             {/* Meals Section */}
             <Card>

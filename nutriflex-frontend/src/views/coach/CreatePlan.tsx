@@ -38,6 +38,18 @@ import type {
     PlanMealDto,
 } from '@/@types/api'
 
+/** Convert a file to Base64 data URL for sending to backend. Rejects if read fails. */
+function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Failed to read file'))
+        reader.readAsDataURL(file)
+    })
+}
+
+/** Use full data URL so backend can store and trainee can use as img/video src. */
+
 // Validation schema
 const planSchema = z.object({
     trainee_id: z.string().min(1, 'Trainee is required'),
@@ -201,6 +213,8 @@ const CreatePlan = () => {
                     reps: ex.reps ?? null,
                     duration_minutes: ex.duration_minutes ?? null,
                     notes: ex.notes ?? null,
+                    guide_image_base64: ex.guide_image_base64 ?? null,
+                    guide_video_base64: ex.guide_video_base64 ?? null,
                     order_index: ex.order_index ?? idx + 1,
                 })),
                 meals: meals.map((meal, idx) => ({
@@ -553,6 +567,8 @@ const CreatePlan = () => {
                                                 reps: null,
                                                 duration_minutes: null,
                                                 notes: null,
+                                                guide_image_base64: null,
+                                                guide_video_base64: null,
                                                 order_index: prev.length + 1,
                                             },
                                         ])
@@ -748,6 +764,89 @@ const CreatePlan = () => {
                                                 >
                                                     Remove
                                                 </Button>
+                                            </div>
+                                            {/* Guide media: shown only when exercise row exists (after Add Exercise) */}
+                                            <div className="md:col-span-6 flex flex-wrap items-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                                    Guide for trainee:
+                                                </span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    id={`guide-image-${ex.id}`}
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0]
+                                                        if (!file) return
+                                                        try {
+                                                            const dataUrl = await fileToBase64(file)
+                                                            setExercises((prev) =>
+                                                                prev.map((row) =>
+                                                                    row.id === ex.id
+                                                                        ? { ...row, guide_image_base64: dataUrl }
+                                                                        : row,
+                                                                ),
+                                                            )
+                                                        } catch {
+                                                            toast.push(
+                                                                <Notification type="danger" title="Upload failed">
+                                                                    Could not read image file.
+                                                                </Notification>,
+                                                            )
+                                                        }
+                                                        e.target.value = ''
+                                                    }}
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="default"
+                                                    size="sm"
+                                                    onClick={() => document.getElementById(`guide-image-${ex.id}`)?.click()}
+                                                >
+                                                    {ex.guide_image_base64 ? 'Change Image' : 'Upload Image'}
+                                                </Button>
+                                                <input
+                                                    type="file"
+                                                    accept="video/*"
+                                                    className="hidden"
+                                                    id={`guide-video-${ex.id}`}
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0]
+                                                        if (!file) return
+                                                        try {
+                                                            const dataUrl = await fileToBase64(file)
+                                                            setExercises((prev) =>
+                                                                prev.map((row) =>
+                                                                    row.id === ex.id
+                                                                        ? { ...row, guide_video_base64: dataUrl }
+                                                                        : row,
+                                                                ),
+                                                            )
+                                                        } catch {
+                                                            toast.push(
+                                                                <Notification type="danger" title="Upload failed">
+                                                                    Could not read video file.
+                                                                </Notification>,
+                                                            )
+                                                        }
+                                                        e.target.value = ''
+                                                    }}
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="default"
+                                                    size="sm"
+                                                    onClick={() => document.getElementById(`guide-video-${ex.id}`)?.click()}
+                                                >
+                                                    {ex.guide_video_base64 ? 'Change Video' : 'Upload Video'}
+                                                </Button>
+                                                {(ex.guide_image_base64 || ex.guide_video_base64) && (
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {ex.guide_image_base64 && 'Image attached'}
+                                                        {ex.guide_image_base64 && ex.guide_video_base64 && ' · '}
+                                                        {ex.guide_video_base64 && 'Video attached'}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

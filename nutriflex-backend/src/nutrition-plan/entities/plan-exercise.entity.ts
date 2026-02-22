@@ -60,6 +60,14 @@ export class PlanExercise extends ActionTracked {
   @Column({ name: 'notes', type: 'text', nullable: true })
   notes: string | null;
 
+  /** Optional guide image (Base64) for trainee reference. */
+  @Column({ name: 'guide_image_base64', type: 'text', nullable: true })
+  guide_image_base64: string | null;
+
+  /** Optional guide video (Base64) for trainee reference. */
+  @Column({ name: 'guide_video_base64', type: 'text', nullable: true })
+  guide_video_base64: string | null;
+
   @Column({ name: 'order_index', type: 'int', default: 0 })
   order_index: number;
 }

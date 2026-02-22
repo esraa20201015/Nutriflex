@@ -127,10 +127,10 @@ export class TraineePlansService {
 
   async getPlanDetails(traineeId: string, planId: string) {
     try {
-      // Verify plan belongs to trainee
+      // Verify plan belongs to trainee and load exercises (with guide media)
       const plan = await this.nutritionPlanRepo.findOne({
         where: { id: planId, trainee_id: traineeId },
-        relations: ['coach', 'trainee'],
+        relations: ['coach', 'trainee', 'planExercises'],
       });
 
       if (!plan) {
@@ -156,6 +156,21 @@ export class TraineePlansService {
         },
       });
 
+      // Map plan exercises for trainee (include guide image/video for display)
+      const planExercises = (plan.planExercises ?? []).map((ex) => ({
+        id: ex.id,
+        name: ex.name,
+        exercise_type: ex.exercise_type,
+        day_index: ex.day_index,
+        sets: ex.sets,
+        reps: ex.reps,
+        duration_minutes: ex.duration_minutes,
+        notes: ex.notes,
+        order_index: ex.order_index,
+        guide_image_base64: ex.guide_image_base64 ?? null,
+        guide_video_base64: ex.guide_video_base64 ?? null,
+      }));
+
       return {
         status: HttpStatus.OK,
         messageEn: 'Nutrition plan retrieved successfully',
@@ -176,6 +191,7 @@ export class TraineePlansService {
               }
             : null,
           meals,
+          planExercises,
           completionStatus: completionStatus
             ? {
                 completion_percentage: completionStatus.completion_percentage,
