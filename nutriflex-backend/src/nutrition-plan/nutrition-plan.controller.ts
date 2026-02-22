@@ -84,6 +84,24 @@ export class NutritionPlanController {
     return this.nutritionPlanService.search(searchDto, pagination);
   }
 
+  @Get(':id/coach-details')
+  @ApiOperation({ summary: 'Get plan with exercises and meals (coach view/edit)' })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  async getCoachPlanDetails(@Param('id', ParseUUIDPipe) id: string) {
+    return this.nutritionPlanService.getCoachPlanDetails(id);
+  }
+
+  @Put(':id/coach-details')
+  @ApiOperation({ summary: 'Update plan with exercises and meals (full coach edit)' })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiBody({ type: CreatePlanWithDetailsDto })
+  async updateWithDetails(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreatePlanWithDetailsDto,
+  ) {
+    return this.nutritionPlanService.updateWithDetails(id, dto);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Find nutrition plan by ID' })
   @ApiParam({ name: 'id', type: String, format: 'uuid' })

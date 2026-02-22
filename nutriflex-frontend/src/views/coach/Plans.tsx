@@ -9,6 +9,7 @@ import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
 import Tag from '@/components/ui/Tag'
 import Button from '@/components/ui/Button'
+import Tooltip from '@/components/ui/Tooltip'
 import {
     PiClipboardTextDuotone,
     PiCalendarCheckDuotone,
@@ -20,6 +21,7 @@ import {
 } from 'react-icons/pi'
 import toast from '@/components/ui/toast'
 import Notification from '@/components/ui/Notification'
+import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import type { CoachNutritionPlan } from '@/@types/api'
 
 const TAB_STATUSES = ['all', 'draft', 'active', 'archived'] as const
@@ -45,6 +47,7 @@ const Plans = () => {
     const [error, setError] = useState<string | null>(null)
     const [statusFilter, setStatusFilter] = useState<string>('all')
     const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null)
+    const [planIdToDelete, setPlanIdToDelete] = useState<string | null>(null)
     const user = useSessionUser((state) => state.user)
     const navigate = useNavigate()
 
@@ -72,10 +75,11 @@ const Plans = () => {
         loadPlans()
     }, [user.id, statusFilter])
 
-    // Delete plan
-    const handleDelete = async (planId: string) => {
-        if (deletingPlanId || !confirm('Are you sure you want to delete this plan? This will also delete all associated meals.')) return
-
+    // Delete plan (called after user confirms in dialog)
+    const handleDeleteConfirm = async () => {
+        const planId = planIdToDelete
+        if (!planId || deletingPlanId) return
+        setPlanIdToDelete(null)
         try {
             setDeletingPlanId(planId)
             await apiDeletePlan(planId)
@@ -244,37 +248,55 @@ const Plans = () => {
                                 {/* Right side: Actions */}
                                 <div className="flex items-center gap-2">
                                     {/* View page */}
-                                    <Button
-                                        size="sm"
-                                        variant="plain"
-                                        icon={<PiUserCircleDuotone />}
-                                        onClick={() => navigate(`/coach/plans/${plan.id}/view`)}
-                                        title="View"
-                                    />
+                                    <Tooltip title="View">
+                                        <Button
+                                            size="sm"
+                                            variant="plain"
+                                            icon={<PiUserCircleDuotone />}
+                                            onClick={() => navigate(`/coach/plans/${plan.id}/view`)}
+                                        />
+                                    </Tooltip>
                                     {/* Edit page */}
-                                    <Button
-                                        size="sm"
-                                        variant="plain"
-                                        icon={<PiPencilDuotone />}
-                                        onClick={() => navigate(`/coach/plans/${plan.id}/edit`)}
-                                        title="Edit"
-                                    />
+                                    <Tooltip title="Edit">
+                                        <Button
+                                            size="sm"
+                                            variant="plain"
+                                            icon={<PiPencilDuotone />}
+                                            onClick={() => navigate(`/coach/plans/${plan.id}/edit`)}
+                                        />
+                                    </Tooltip>
                                     {/* Delete */}
-                                    <Button
-                                        size="sm"
-                                        variant="plain"
-                                        icon={<PiTrashDuotone />}
-                                        onClick={() => handleDelete(plan.id)}
-                                        disabled={deletingPlanId === plan.id}
-                                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                        title="Delete"
-                                    />
+                                    <Tooltip title="Delete">
+                                        <Button
+                                            size="sm"
+                                            variant="plain"
+                                            icon={<PiTrashDuotone />}
+                                            onClick={() => setPlanIdToDelete(plan.id)}
+                                            disabled={deletingPlanId === plan.id}
+                                            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                        />
+                                    </Tooltip>
                                 </div>
                             </div>
                         </Card>
                     ))}
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={planIdToDelete !== null}
+                type="danger"
+                title="Delete plan"
+                onClose={() => setPlanIdToDelete(null)}
+                onConfirm={handleDeleteConfirm}
+                confirmText="Delete"
+                cancelText="Cancel"
+            >
+                <p className="text-gray-600 dark:text-gray-400">
+                    Are you sure you want to delete this plan? This will also
+                    delete all associated meals.
+                </p>
+            </ConfirmDialog>
         </div>
     )
 }

@@ -78,6 +78,14 @@ export class MealService {
     return this.repo.findAll(pagination);
   }
 
+  /** All meals for a given nutrition plan (for coach plan details). */
+  async findByNutritionPlanId(nutritionPlanId: string) {
+    return this.repo.findAll({
+      nutrition_plan_id: nutritionPlanId,
+      take: 500,
+    });
+  }
+
   findById(id: string) {
     return this.repo.findById(id);
   }
@@ -104,6 +112,11 @@ export class MealService {
 
   delete(id: string) {
     return this.repo.deleteEntity(id);
+  }
+
+  /** Delete all meals for a nutrition plan (used when replacing plan details). */
+  async deleteByNutritionPlanId(nutritionPlanId: string): Promise<void> {
+    await this.repo.delete({ nutrition_plan_id: nutritionPlanId });
   }
 
   search(searchDto: SearchMealDto, pagination: PaginationDto) {

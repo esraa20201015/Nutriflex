@@ -10,6 +10,7 @@ import type {
     PlansListResponse,
     NutritionPlan,
     CoachNutritionPlan,
+    CoachPlanDetails,
     CoachMeal,
     MealsListResponse,
     CreatePlanDto,
@@ -92,6 +93,25 @@ export async function apiGetPlan(id: string) {
     return ApiService.fetchDataWithAxios<ApiResponse<NutritionPlan>>({
         url: `/nutrition-plan/${id}`,
         method: 'get',
+    })
+}
+
+/** Plan with exercises and meals for coach view/edit. */
+export async function apiGetPlanCoachDetails(planId: string) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachPlanDetails>>({
+        url: `/nutrition-plan/${planId}/coach-details`,
+        method: 'get',
+    })
+}
+
+export async function apiUpdatePlanWithDetails(
+    planId: string,
+    data: CreatePlanWithDetailsDto,
+) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachPlanDetails>>({
+        url: `/nutrition-plan/${planId}/coach-details`,
+        method: 'put',
+        data: data as unknown as Record<string, unknown>,
     })
 }
 

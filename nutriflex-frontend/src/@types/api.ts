@@ -348,6 +348,12 @@ export type PlansListResponse = {
     }
 }
 
+/** Plan with exercises and meals (coach view/edit). */
+export type CoachPlanDetails = CoachNutritionPlan & {
+    planExercises: TraineePlanExercise[]
+    meals: Meal[]
+}
+
 // Meal Types (Coach API Structure)
 export type CoachMeal = {
     id: string

@@ -84,7 +84,7 @@ export const protectedRoutes: Routes = [
 {
     key: 'coach-edit-plan',
     path: '/coach/plans/:id/edit',
-    component: lazy(() => import('@/views/coach/EditPlanPage')),
+    component: lazy(() => import('@/views/coach/CreatePlan')),
     authority: [COACH, ADMIN],
 },
 

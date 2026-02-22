@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
     apiCreatePlanWithDetails,
-    apiGetPlan,
+    apiUpdatePlanWithDetails,
+    apiGetPlanCoachDetails,
     apiGetCoachTrainees,
     apiGetPlanMeals,
 } from '@/services/CoachService'
@@ -151,34 +152,92 @@ const CreatePlan = () => {
         loadTrainees()
     }, [user.id])
     
-    // Load plan data if editing
+    // Load plan with exercises and meals if editing
     useEffect(() => {
         const loadPlan = async () => {
             if (!id || !isEditMode) return
 
             try {
                 setLoading(true)
-                const response = await apiGetPlan(id)
-                const plan = response.data
+                const response = await apiGetPlanCoachDetails(id)
+                const plan = response.data as {
+                    trainee_id?: string
+                    title?: string
+                    name?: string
+                    description?: string
+                    daily_calories?: number | null
+                    start_date?: string
+                    end_date?: string | null
+                    status?: string
+                    planExercises?: Array<{
+                        id: string
+                        name: string
+                        exercise_type: string
+                        sub_category?: string | null
+                        day_index?: number
+                        sets?: number | null
+                        reps?: number | null
+                        duration_minutes?: number | null
+                        notes?: string | null
+                        guide_image_base64?: string | null
+                        guide_video_base64?: string | null
+                        order_index?: number
+                    }>
+                    meals?: Array<{
+                        id: string
+                        name: string
+                        meal_type: string
+                        calories?: number | null
+                        instructions?: string | null
+                        order_index?: number
+                        ingredients?: unknown[]
+                    }>
+                }
 
                 reset({
-                    trainee_id: (plan as any).trainee_id ?? (plan as any).traineeId ?? '',
-                    title: (plan as any).title ?? (plan as any).name ?? '',
-                    description: (plan as any).description ?? '',
-                    daily_calories:
-                        (plan as any).daily_calories ??
-                        (plan as any).dailyCalories ??
-                        null,
-                    start_date: (plan as any).start_date
-                        ? new Date((plan as any).start_date)
-                        : new Date(),
-                    end_date: (plan as any).end_date
-                        ? new Date((plan as any).end_date)
-                        : null,
-                    status:
-                        ((plan as any).status as 'draft' | 'active' | 'archived') ||
-                        'draft',
+                    trainee_id: plan.trainee_id ?? '',
+                    title: plan.title ?? plan.name ?? '',
+                    description: plan.description ?? '',
+                    daily_calories: plan.daily_calories ?? null,
+                    start_date: plan.start_date ? new Date(plan.start_date) : new Date(),
+                    end_date: plan.end_date ? new Date(plan.end_date) : null,
+                    status: (plan.status as 'draft' | 'active' | 'archived') || 'draft',
                 })
+
+                const exList = plan.planExercises ?? []
+                setExercises(
+                    exList
+                        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+                        .map((ex) => ({
+                            id: ex.id,
+                            name: ex.name,
+                            exercise_type: ex.exercise_type as PlanExerciseDto['exercise_type'],
+                            subCategory: (ex.sub_category as ExerciseSubCategory) ?? 'Upper',
+                            day_index: ex.day_index ?? 1,
+                            sets: ex.sets ?? null,
+                            reps: ex.reps ?? null,
+                            duration_minutes: ex.duration_minutes ?? null,
+                            notes: ex.notes ?? null,
+                            guide_image_base64: ex.guide_image_base64 ?? null,
+                            guide_video_base64: ex.guide_video_base64 ?? null,
+                            order_index: ex.order_index ?? 0,
+                        })),
+                )
+
+                const mealList = plan.meals ?? []
+                setMeals(
+                    mealList
+                        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+                        .map((m) => ({
+                            id: m.id,
+                            meal_type: m.meal_type as PlanMealDto['meal_type'],
+                            name: m.name,
+                            calories: m.calories ?? null,
+                            instructions: m.instructions ?? null,
+                            order_index: m.order_index ?? 0,
+                            ingredients: m.ingredients ?? [],
+                        })),
+                )
             } catch (err) {
                 toast.push(
                     <Notification type="danger" title="Error">
@@ -238,7 +297,11 @@ const CreatePlan = () => {
                 })),
             }
 
-            await apiCreatePlanWithDetails(base)
+            if (isEditMode && id) {
+                await apiUpdatePlanWithDetails(id, base)
+            } else {
+                await apiCreatePlanWithDetails(base)
+            }
 
             toast.push(
                 <Notification type="success" title="Success">

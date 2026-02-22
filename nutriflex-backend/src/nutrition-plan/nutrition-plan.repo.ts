@@ -128,6 +128,39 @@ export class NutritionPlanRepo extends Repository<NutritionPlan> {
     }
   }
 
+  /** Plan with exercises for coach view/edit (meals loaded separately in service). */
+  async findByIdWithExercises(id: string) {
+    try {
+      const entity = await this.findOne({
+        where: { id },
+        relations: ['coach', 'trainee', 'planExercises'],
+      });
+
+      if (!entity) {
+        return {
+          status: HttpStatus.NOT_FOUND,
+          messageEn: 'Nutrition plan not found',
+          messageAr: 'خطة التغذية غير موجودة',
+          data: null,
+        };
+      }
+
+      return {
+        status: HttpStatus.OK,
+        messageEn: 'Nutrition plan retrieved successfully',
+        messageAr: 'تم استرجاع خطة التغذية بنجاح',
+        data: entity,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        messageEn: 'Error retrieving nutrition plan',
+        messageAr: 'خطأ في استرجاع خطة التغذية',
+        error: (error as Error).message,
+      };
+    }
+  }
+
   async updateEntity(id: string, dto: Partial<NutritionPlan>) {
     try {
       const entity = await this.findOne({ where: { id } });

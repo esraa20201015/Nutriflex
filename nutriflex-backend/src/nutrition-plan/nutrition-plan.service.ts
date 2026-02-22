@@ -127,6 +127,88 @@ export class NutritionPlanService {
     return this.repo.findById(id);
   }
 
+  /** Get plan with exercises and meals for coach view/edit. */
+  async getCoachPlanDetails(id: string) {
+    const planResult = await this.repo.findByIdWithExercises(id);
+    const plan = (planResult as { data?: NutritionPlan & { planExercises?: unknown[] } }).data;
+    if (!plan) return planResult;
+
+    const mealResult = await this.mealService.findByNutritionPlanId(id);
+    const meals = (mealResult as { data?: unknown[] }).data ?? [];
+
+    return {
+      status: (planResult as { status: number }).status,
+      messageEn: (planResult as { messageEn: string }).messageEn,
+      messageAr: (planResult as { messageAr: string }).messageAr,
+      data: {
+        ...plan,
+        planExercises: plan.planExercises ?? [],
+        meals,
+      },
+    };
+  }
+
+  /** Update plan and replace exercises & meals (full coach edit). */
+  async updateWithDetails(id: string, dto: CreatePlanWithDetailsDto) {
+    const existing = await this.repo.findById(id);
+    const planData = (existing as { data?: NutritionPlan }).data;
+    if (!planData) return existing;
+
+    const payload: Partial<NutritionPlan> = {
+      title: dto.title,
+      description: dto.description ?? null,
+      daily_calories: dto.daily_calories ?? null,
+      start_date: new Date(dto.start_date),
+      end_date: dto.end_date ? new Date(dto.end_date) : null,
+      status: dto.status,
+    };
+    await this.repo.updateEntity(id, payload);
+
+    await this.planExerciseRepo.delete({ nutrition_plan_id: id });
+    await this.mealService.deleteByNutritionPlanId(id);
+
+    if (dto.exercises?.length) {
+      const exerciseEntities = dto.exercises.map((ex, index) =>
+        this.planExerciseRepo.create({
+          nutrition_plan_id: id,
+          exercise_id: ex.exercise_id ?? null,
+          name: ex.name,
+          exercise_type: ex.exercise_type,
+          sub_category: ex.sub_category ?? null,
+          day_index: ex.day_index ?? 1,
+          sets: ex.sets ?? null,
+          reps: ex.reps ?? null,
+          duration_minutes: ex.duration_minutes ?? null,
+          notes: ex.notes ?? null,
+          guide_image_base64: ex.guide_image_base64 ?? null,
+          guide_video_base64: ex.guide_video_base64 ?? null,
+          order_index: ex.order_index ?? index,
+        }),
+      );
+      await this.planExerciseRepo.save(exerciseEntities);
+    }
+
+    if (dto.meals?.length) {
+      for (let index = 0; index < dto.meals.length; index++) {
+        const meal = dto.meals[index];
+        const mealDto: CreateMealDto = {
+          nutrition_plan_id: id,
+          name: meal.name,
+          meal_type: meal.meal_type ?? MealType.BREAKFAST,
+          calories: meal.calories ?? null,
+          protein: null,
+          carbs: null,
+          fats: null,
+          instructions: meal.instructions ?? null,
+          order_index: meal.order_index ?? index,
+        };
+        await this.mealService.create(mealDto);
+      }
+    }
+
+    return this.getCoachPlanDetails(id);
+  }
+
   update(id: string, dto: UpdateNutritionPlanDto) {
     const payload: Partial<NutritionPlan> = {};
     if (dto.title !== undefined) payload.title = dto.title;

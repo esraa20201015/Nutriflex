@@ -10,15 +10,16 @@ import {
     PiCalendarCheckDuotone,
     PiUserCircleDuotone,
     PiForkKnifeDuotone,
+    PiBarbellDuotone,
 } from 'react-icons/pi'
-import { apiGetPlan } from '@/services/CoachService'
-import type { CoachNutritionPlan } from '@/@types/api'
+import { apiGetPlanCoachDetails } from '@/services/CoachService'
+import type { CoachPlanDetails } from '@/@types/api'
 
 const ViewPlanPage = () => {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
 
-    const [plan, setPlan] = useState<CoachNutritionPlan | null>(null)
+    const [plan, setPlan] = useState<CoachPlanDetails | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -26,8 +27,8 @@ const ViewPlanPage = () => {
         const loadPlan = async () => {
             try {
                 setLoading(true)
-                const res = await apiGetPlan(id!)
-                setPlan(res.data as unknown as CoachNutritionPlan)
+                const res = await apiGetPlanCoachDetails(id!)
+                setPlan(res.data as CoachPlanDetails)
             } catch (err) {
                 setError(
                     err instanceof Error ? err.message : 'Failed to load plan'
@@ -168,6 +169,72 @@ const ViewPlanPage = () => {
                     </div>
                 </div>
             </Card>
+
+            {/* Exercises */}
+            {plan.planExercises && plan.planExercises.length > 0 && (
+                <Card>
+                    <div className="p-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <PiBarbellDuotone className="w-5 h-5" />
+                            Exercises ({plan.planExercises.length})
+                        </h3>
+                        <div className="space-y-3">
+                            {plan.planExercises
+                                .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+                                .map((ex) => (
+                                    <div
+                                        key={ex.id}
+                                        className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-sm"
+                                    >
+                                        <span className="font-medium">{ex.name}</span>
+                                        <span className="text-gray-500 dark:text-gray-400 ml-2 capitalize">
+                                            {ex.exercise_type}
+                                            {ex.sub_category ? ` · ${ex.sub_category}` : ''}
+                                            {ex.sets != null && ex.reps != null && ` · ${ex.sets}×${ex.reps}`}
+                                            {ex.duration_minutes != null && ` · ${ex.duration_minutes} min`}
+                                        </span>
+                                        {ex.notes && (
+                                            <p className="text-gray-600 dark:text-gray-400 mt-1">{ex.notes}</p>
+                                        )}
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                </Card>
+            )}
+
+            {/* Meals */}
+            {plan.meals && plan.meals.length > 0 && (
+                <Card>
+                    <div className="p-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <PiForkKnifeDuotone className="w-5 h-5" />
+                            Meals ({plan.meals.length})
+                        </h3>
+                        <div className="space-y-3">
+                            {plan.meals
+                                .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+                                .map((meal) => (
+                                    <div
+                                        key={meal.id}
+                                        className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-sm"
+                                    >
+                                        <span className="font-medium capitalize">{meal.meal_type}</span>
+                                        <span className="ml-2">{meal.name}</span>
+                                        {meal.calories != null && (
+                                            <span className="text-gray-500 dark:text-gray-400 ml-2">
+                                                {meal.calories} kcal
+                                            </span>
+                                        )}
+                                        {meal.instructions && (
+                                            <p className="text-gray-600 dark:text-gray-400 mt-1">{meal.instructions}</p>
+                                        )}
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                </Card>
+            )}
         </div>
     )
 }
