@@ -23,7 +23,11 @@ const Logo = (props: LogoProps) => {
 
     return (
         <div
-            className={classNames('logo', className)}
+            className={classNames(
+                'logo',
+                mode === 'light' && 'rounded-lg bg-gray-100 p-1',
+                className,
+            )}
             style={{
                 ...style,
                 width: logoWidth,
