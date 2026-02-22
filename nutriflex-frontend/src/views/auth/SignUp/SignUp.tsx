@@ -26,12 +26,12 @@ export const SignUpBase = ({
 
     return (
         <>
-            <div className="mb-8">
+            <div className="mb-8 flex justify-center">
                 <Logo
-                    type="streamline"
+                    type="full"
                     mode={mode}
-                    imgClass="mx-auto"
-                    logoWidth={60}
+                    imgClass="mx-auto max-h-20 w-full"
+                    logoWidth={180}
                 />
             </div>
             {message && (

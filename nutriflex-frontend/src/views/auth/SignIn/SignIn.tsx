@@ -22,15 +22,10 @@ export const SignInBase = ({
 
     return (
         <>
-            <div className="mb-8">
-                <Logo
-                    type="streamline"
-                    mode={mode}
-                    imgClass="mx-auto"
-                    logoWidth={60}
-                />
+            <div className="mb-2">
+                <Logo type="full" mode={mode} imgClass="max-h-56 w-full" logoWidth={192} />
             </div>
-            <div className="mb-10">
+            <div className="mb-8">
                 <h2 className="mb-2">Welcome back!</h2>
                 <p className="font-semibold heading-text">
                     Please enter your credentials to sign in!

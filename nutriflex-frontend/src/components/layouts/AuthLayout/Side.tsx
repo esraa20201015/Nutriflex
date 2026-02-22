@@ -20,10 +20,10 @@ const Side = ({ children, ...rest }: SideProps) => {
                 </div>
             </div>
             {isSignIn && (
-                <div className="py-6 px-10 lg:flex flex-col flex-1 justify-center hidden rounded-3xl items-center bg-gray-50 dark:bg-gray-900 xl:max-w-[520px] 2xl:max-w-[720px]">
+                <div className="py-6 px-10 lg:flex flex-col flex-1 justify-center hidden rounded-3xl items-center bg-white dark:bg-gray-800 xl:max-w-[520px] 2xl:max-w-[720px]">
                     <img
-                        src="/img/others/fitness.png"
-                        alt="Nutriflex fitness illustration"
+                        src="/img/others/Gemini_Generated_Image.png-removebg-preview.png"
+                        alt="Nutriflex fitness and health tracking"
                         className="max-h-full max-w-full object-contain rounded-3xl"
                     />
                 </div>
