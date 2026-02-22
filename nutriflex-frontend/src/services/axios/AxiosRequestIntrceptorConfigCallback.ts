@@ -22,7 +22,7 @@ const AxiosRequestIntrceptorConfigCallback = (
         // For cookies, we still need to send token in Authorization header
         // Cookies are used for persistence, but JWT tokens need to be in headers
         const cookieToken = cookiesStorage.getItem(TOKEN_NAME_IN_STORAGE)
-        accessToken = cookieToken || ''
+        accessToken = typeof cookieToken === 'string' ? cookieToken : ''
     }
 
     if (accessToken) {
