@@ -545,13 +545,13 @@ const CreatePlan = () => {
 
                         {currentStep === 1 && (
                             <div>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <HiOutlineDocumentSearch className="w-5 h-5 text-primary" />
-                                    <h3 className="text-lg font-semibold">
+                                <div className="flex items-center gap-2 mb-5">
+                                    <HiOutlineDocumentSearch className="w-6 h-6 text-primary" />
+                                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                                         Exercises
                                     </h3>
                                 </div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                <p className="text-base text-gray-600 dark:text-gray-400 mb-5">
                                     Select exercise categories and add exercises
                                     per day, including notes and basic metrics.
                                 </p>
@@ -559,7 +559,8 @@ const CreatePlan = () => {
                                 <Button
                                     type="button"
                                     variant="default"
-                                    className="mb-4"
+                                    size="lg"
+                                    className="mb-5"
                                     onClick={() => {
                                         setExercises((prev) => [
                                             ...prev,
@@ -582,17 +583,19 @@ const CreatePlan = () => {
                                 >
                                     + Add Exercise
                                 </Button>
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {exercises.map((ex, index) => (
                                         <div
                                             key={ex.id}
-                                            className="grid grid-cols-1 md:grid-cols-7 gap-3 items-end bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3"
+                                            className="grid grid-cols-1 md:grid-cols-[1fr_minmax(150px,160px)_minmax(150px,160px)_70px_minmax(200px,1fr)_auto] gap-4 items-end bg-white dark:bg-gray-800/60 rounded-xl p-5 border border-gray-200 dark:border-gray-600/60 shadow-sm"
                                         >
-                                            <div className="md:col-span-2">
-                                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                            <div className="min-w-0">
+                                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                                                     Name
                                                 </label>
                                                 <Input
+                                                    size="lg"
+                                                    className="text-base w-full"
                                                     value={ex.name}
                                                     onChange={(e) => {
                                                         const value = e.target.value
@@ -610,11 +613,20 @@ const CreatePlan = () => {
                                                     placeholder="Exercise name"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                            <div className="min-w-0 w-full">
+                                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                                                     Type
                                                 </label>
                                                 <Select
+                                                    size="lg"
+                                                    className="w-full [&_.select-control]:min-h-12 [&_.select-control]:w-full [&_.select-value-container]:min-w-0 [&_.select-single-value]:text-base [&_.select-single-value]:truncate [&_.select-placeholder]:text-base"
+                                                    menuPortalTarget={
+                                                        typeof document !==
+                                                        'undefined'
+                                                            ? document.body
+                                                            : undefined
+                                                    }
+                                                    menuPosition="fixed"
                                                     options={[
                                                         {
                                                             value: 'cardio',
@@ -655,11 +667,20 @@ const CreatePlan = () => {
                                                     }}
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                            <div className="min-w-0 w-full">
+                                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                                                     Subcategory
                                                 </label>
                                                 <Select
+                                                    size="lg"
+                                                    className="w-full [&_.select-control]:min-h-12 [&_.select-control]:w-full [&_.select-value-container]:min-w-0 [&_.select-single-value]:text-base [&_.select-single-value]:truncate [&_.select-placeholder]:text-base"
+                                                    menuPortalTarget={
+                                                        typeof document !==
+                                                        'undefined'
+                                                            ? document.body
+                                                            : undefined
+                                                    }
+                                                    menuPosition="fixed"
                                                     options={SUB_CATEGORY_OPTIONS}
                                                     value={{
                                                         value: ex.subCategory,
@@ -681,12 +702,14 @@ const CreatePlan = () => {
                                                     }}
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                            <div className="min-w-[70px]">
+                                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                                                     Day
                                                 </label>
                                                 <Input
+                                                    size="lg"
                                                     type="number"
+                                                    className="text-base w-full"
                                                     value={ex.day_index ?? 1}
                                                     onChange={(e) => {
                                                         const value =
@@ -710,13 +733,15 @@ const CreatePlan = () => {
                                                     }}
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
-                                                    Sets x Reps
+                                            <div className="min-w-0">
+                                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                                                    Sets × Reps
                                                 </label>
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-3 flex-1 min-w-[180px]">
                                                     <Input
+                                                        size="lg"
                                                         type="number"
+                                                        className="text-base flex-1 min-w-[72px]"
                                                         placeholder="Sets"
                                                         value={ex.sets ?? ''}
                                                         onChange={(e) => {
@@ -747,7 +772,9 @@ const CreatePlan = () => {
                                                         }}
                                                     />
                                                     <Input
+                                                        size="lg"
                                                         type="number"
+                                                        className="text-base flex-1 min-w-[72px]"
                                                         placeholder="Reps"
                                                         value={ex.reps ?? ''}
                                                         onChange={(e) => {
@@ -779,11 +806,12 @@ const CreatePlan = () => {
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="md:col-span-2 flex gap-2 justify-end">
+                                            <div className="flex items-end pb-1 justify-end">
                                                 <Button
                                                     type="button"
                                                     variant="plain"
-                                                    className="text-xs"
+                                                    size="sm"
+                                                    className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-error dark:hover:text-error"
                                                     onClick={() =>
                                                         setExercises((prev) =>
                                                             prev.filter(
@@ -798,9 +826,9 @@ const CreatePlan = () => {
                                                 </Button>
                                             </div>
                                             {/* Guide media: shown only when exercise row exists (after Add Exercise) */}
-                                            <div className="md:col-span-6 flex flex-wrap items-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-                                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                                    Guide for trainee:
+                                            <div className="col-span-full flex flex-wrap items-center gap-3 pt-4 mt-1 border-t border-gray-200 dark:border-gray-600">
+                                                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                                    Guide for trainee
                                                 </span>
                                                 <input
                                                     type="file"
