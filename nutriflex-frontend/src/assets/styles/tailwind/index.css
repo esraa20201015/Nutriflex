@@ -2,6 +2,12 @@
 
 @config '../../../../tailwind.config.cjs';
 
+/* Theme colors for Tailwind v4 utilities (bg-primary-subtle, text-primary, etc.) */
+@theme {
+	--color-primary: #1d293d;
+	--color-primary-subtle: #1d293d1a;
+}
+
 @layer theme {
 	:root {
 		--neutral: #ffffff;

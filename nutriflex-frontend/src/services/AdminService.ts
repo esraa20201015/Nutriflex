@@ -1,7 +1,7 @@
 import ApiService from './ApiService'
 import type {
     ApiResponse,
-    AdminDashboardData,
+    AdminDashboardStats,
     AdminAccountsStatusData,
     AdminActivityData,
     AdminAlertsData,
@@ -15,7 +15,7 @@ import type {
 
 export async function apiGetAdminDashboard() {
     return ApiService.fetchDataWithAxios<
-        ApiResponse<AdminDashboardData>
+        ApiResponse<AdminDashboardStats>
     >({
         url: '/dashboard/admin',
         method: 'get',
@@ -71,7 +71,7 @@ export async function apiCreateUser(payload: unknown) {
     return ApiService.fetchDataWithAxios<ApiResponse<User>>({
         url: '/users',
         method: 'post',
-        data: payload,
+        data: payload as Record<string, unknown>,
     })
 }
 
@@ -79,7 +79,7 @@ export async function apiUpdateUser(id: string, payload: unknown) {
     return ApiService.fetchDataWithAxios<ApiResponse<User>>({
         url: `/users/${id}`,
         method: 'put',
-        data: payload,
+        data: payload as Record<string, unknown>,
     })
 }
 
@@ -108,7 +108,7 @@ export async function apiCreateRole(payload: unknown) {
     return ApiService.fetchDataWithAxios<ApiResponse<Role>>({
         url: '/roles',
         method: 'post',
-        data: payload,
+        data: payload as Record<string, unknown>,
     })
 }
 
@@ -116,7 +116,7 @@ export async function apiUpdateRole(id: string, payload: unknown) {
     return ApiService.fetchDataWithAxios<ApiResponse<Role>>({
         url: `/roles/${id}`,
         method: 'put',
-        data: payload,
+        data: payload as Record<string, unknown>,
     })
 }
 

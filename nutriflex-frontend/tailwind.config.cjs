@@ -61,6 +61,9 @@ module.exports = {
     },
     extend: {
       colors: {
+        // Semantic theme colors (match CSS variables in assets/styles/tailwind/index.css)
+        primary: '#1d293d',
+        'primary-subtle': '#1d293d1a',
         // Light mode colors
         light: {
           primary: '#0d1229', // main dark blue for light mode

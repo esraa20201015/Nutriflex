@@ -1,53 +1,63 @@
-import type { TraineeTodayData } from '@/@types/api';
+import type { TraineeTodayData } from '@/@types/api'
+import Card from '@/components/ui/Card'
 import {
   PiForkKnifeDuotone,
   PiCheckCircleDuotone,
   PiBarbellDuotone,
-} from 'react-icons/pi';
+} from 'react-icons/pi'
 
 interface Props {
-  data: TraineeTodayData;
+  data: TraineeTodayData
 }
 
 export default function TodayFocus({ data }: Props) {
+  const baseCard = `
+    p-5 rounded-xl border
+    !bg-gray-50
+    border-[#0d1229]
+    text-[#0d1229]
+    dark:!bg-gray-800
+    dark:border-ecmePink
+    dark:text-ecmePink
+    transition-colors
+  `
+
   return (
-    <div className="card p-5 shadow-md rounded-lg bg-light-gray-100 dark:bg-dark-gray-800 transition-colors duration-300">
-      <h2 className="text-xl font-semibold mb-4 text-light-primary dark:text-dark-primary flex items-center">
-        <PiBarbellDuotone className="w-6 h-6 mr-2 text-light-primary dark:text-dark-primary" />
-        Today's Focus
-      </h2>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
-      <ul className="space-y-3 text-gray-700 dark:text-gray-300">
-        {/* Workout */}
-        <li className="flex items-center gap-2">
-          <PiBarbellDuotone className="w-5 h-5 text-ecmePink dark:text-ecmePink" />
-          <span>
-            Workout: <strong>{data.todayWorkout ?? '—'}</strong>
-          </span>
-        </li>
+      {/* Workout */}
+      <Card className={baseCard}>
+        <div className="flex items-center gap-3 mb-2">
+          <PiBarbellDuotone className="w-6 h-6" />
+          <h3 className="font-semibold text-lg">Workout</h3>
+        </div>
+        <p className="opacity-80">
+          {data.todayWorkout ?? '—'}
+        </p>
+      </Card>
 
-        {/* Meals Completed */}
-        <li className="flex items-center gap-2">
-          <PiForkKnifeDuotone className="w-5 h-5 text-ecmePink dark:text-ecmePink" />
-          <span>
-            Meals Completed: <strong>{data.completedMeals}</strong> /{' '}
-            <strong>{data.todayMeals}</strong>
-          </span>
-        </li>
+      {/* Meals Completed */}
+      <Card className={baseCard}>
+        <div className="flex items-center gap-3 mb-2">
+          <PiForkKnifeDuotone className="w-6 h-6" />
+          <h3 className="font-semibold text-lg">Meals</h3>
+        </div>
+        <p className="opacity-80">
+          <strong>{data.completedMeals}</strong> / {data.todayMeals} completed
+        </p>
+      </Card>
 
-        {/* Workout Completed */}
-        <li className="flex items-center gap-2">
-          <PiCheckCircleDuotone
-            className={`w-5 h-5 ${
-              data.completedWorkout ? 'text-green-500' : 'text-red-500'
-            }`}
-          />
-          <span>
-            Workout Completed:{' '}
-            <strong>{data.completedWorkout ? 'Yes' : 'No'}</strong>
-          </span>
-        </li>
-      </ul>
+      {/* Workout Completed */}
+      <Card className={baseCard}>
+        <div className="flex items-center gap-3 mb-2">
+          <PiCheckCircleDuotone className="w-6 h-6" />
+          <h3 className="font-semibold text-lg">Workout Status</h3>
+        </div>
+        <p className="opacity-80">
+          {data.completedWorkout ? 'Completed ✅' : 'Not completed ❌'}
+        </p>
+      </Card>
+
     </div>
-  );
+  )
 }

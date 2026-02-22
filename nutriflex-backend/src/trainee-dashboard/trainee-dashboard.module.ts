@@ -9,6 +9,7 @@ import { NutritionPlan } from '../nutrition-plan/entities/nutrition-plan.entity'
 import { TraineePlanStatus } from '../trainee-plan-status/entities/trainee-plan-status.entity';
 import { TraineeProfile } from '../profiles/entities/trainee-profile.entity';
 import { User } from '../users/entities/user.entity';
+import { CoachTrainee } from '../coach-trainee/entities/coach-trainee.entity';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { User } from '../users/entities/user.entity';
       TraineePlanStatus,
       TraineeProfile,
       User,
+      CoachTrainee,
     ]),
     forwardRef(() => AuthModule),
   ],

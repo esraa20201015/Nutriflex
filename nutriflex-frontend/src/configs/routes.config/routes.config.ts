@@ -55,37 +55,37 @@ export const protectedRoutes: Routes = [
     key: 'coach-dashboard',
     path: '/coach/dashboard',
     component: lazy(() => import('@/views/coach/CoachDashboard')),
-    authority: [COACH],
+    authority: [COACH,ADMIN],
 },
 {
     key: 'coach-trainees',
     path: '/coach/trainees',
     component: lazy(() => import('@/views/coach/MyTrainees')),
-    authority: [COACH],
+    authority: [COACH, ADMIN],
 },
 {
     key: 'coach-plans',
     path: '/coach/plans',
     component: lazy(() => import('@/views/coach/Plans')),
-    authority: [COACH],
+    authority: [COACH, ADMIN],
 },
 {
     key: 'coach-create-plan',
     path: '/coach/plans/new',
     component: lazy(() => import('@/views/coach/CreatePlan')),
-    authority: [COACH],
+    authority: [COACH, ADMIN],
 },
 {
     key: 'coach-view-plan',
     path: '/coach/plans/:id/view',
     component: lazy(() => import('@/views/coach/ViewPlanPage')),
-    authority: [COACH],
+    authority: [COACH, ADMIN],
 },
 {
     key: 'coach-edit-plan',
     path: '/coach/plans/:id/edit',
     component: lazy(() => import('@/views/coach/EditPlanPage')),
-    authority: [COACH],
+    authority: [COACH, ADMIN],
 },
 
     // Trainee routes

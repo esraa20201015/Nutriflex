@@ -8,27 +8,30 @@ export type ApiResponse<T> = {
 }
 
 // Dashboard Types
+// =============================
+// ADMIN DASHBOARD TYPES
+// =============================
+
 export type UsersGrowthData = {
     date: string
     count: number
 }
 
-export type AdminDashboardData = {
-    usersCount?: number
-    plansCount?: number
-    coachesCount?: number
-    traineesCount?: number
-    activeUsers?: number
-    inactiveUsers?: number
-    blockedUsers?: number
-    pendingUsers?: number
-    newUsersThisMonth?: number
-    newUsersToday?: number
-    usersGrowth?: UsersGrowthData[]
-    recentUsers?: User[]
-    [key: string]: unknown
+// 1️⃣ Main statistics (GET /api/dashboard/admin → response.data)
+export type AdminDashboardStats = {
+    totalUsers: number
+    totalAdmins: number
+    totalCoaches: number
+    totalTrainees: number
+    activeUsers: number
+    inactiveUsers: number
+    blockedUsers: number
+    pendingUsers: number
+    newUsersThisMonth: number
+    newUsersToday: number
 }
 
+// 2️⃣ Accounts status endpoint
 export type AdminAccountsStatusData = {
     pendingCoaches: number
     pendingTrainees: number
@@ -41,6 +44,7 @@ export type AdminAccountsStatusData = {
     }>
 }
 
+// 3️⃣ Activity endpoint
 export type AdminActivityData = {
     activePlans: number
     completedPlans: number
@@ -50,12 +54,14 @@ export type AdminActivityData = {
     traineesWithNoActivity30Days: number
 }
 
+// 4️⃣ Alerts endpoint
 export type AdminAlertsData = {
     alerts: Array<{
         type: string
         count: number
     }>
 }
+
 
 export type TraineeProgressOverview = {
     traineeId: string
