@@ -312,12 +312,6 @@ const Profile = () => {
                                         <span>{email}</span>
                                     </div>
                                 )}
-                                {role && (
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">User Type:</span>
-                                        <span>{role}</span>
-                                    </div>
-                                )}
                                 <div className="text-xs text-gray-500 mt-2">
                                     Full access based on your Nutriflex role and
                                     permissions.
@@ -351,16 +345,6 @@ const Profile = () => {
                                             {role || 'Not set'}
                                         </div>
                                     </div>
-                                    {serverRole && (
-                                        <div className="space-y-1">
-                                            <div className="text-gray-500">
-                                                Backend Role
-                                            </div>
-                                            <div className="font-medium">
-                                                {serverRole}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 
