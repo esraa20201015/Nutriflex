@@ -9,7 +9,7 @@ import Card from '@/components/ui/Card'
 
 interface Props {
     data: TraineeOverviewData
-    /** Coach name for the top card (from status API). */
+    /** Coach name – shown as first card in Overview when provided */
     coachName?: string | null
 }
 
@@ -33,7 +33,7 @@ function WeightChangeBadge({ value }: { value: number | null }) {
 
 export default function OverviewCard({ data, coachName }: Props) {
     const cards: Array<{
-        icon: typeof HiClipboardCheck
+        icon: typeof HiClipboardCheck | typeof HiUserCircle | typeof HiScale | typeof HiChartBar
         label: string
         value: string
         iconBg: string
@@ -83,17 +83,17 @@ export default function OverviewCard({ data, coachName }: Props) {
                     key={label}
                     className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-600/60 bg-white dark:bg-gray-800/80 shadow-sm hover:shadow-md transition-shadow duration-200"
                 >
-                    <div className="p-5 flex items-center gap-4">
+                    <div className="p-4 flex items-center gap-3">
                         <span
-                            className={`flex items-center justify-center w-12 h-12 rounded-xl ${iconBg} ${iconColor}`}
+                            className={`flex shrink-0 items-center justify-center w-10 h-10 rounded-lg ${iconBg} ${iconColor}`}
                         >
-                            <Icon className="w-6 h-6" />
+                            <Icon className="w-5 h-5" />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                                 {label}
                             </p>
-                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 break-words mt-0.5 leading-tight">
                                 {value}
                             </p>
                             {weightBadges &&

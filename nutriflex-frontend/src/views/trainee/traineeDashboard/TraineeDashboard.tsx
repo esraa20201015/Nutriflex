@@ -50,7 +50,7 @@ export default function TraineeDashboardPage() {
         </p>
       </div>
 
-      {/* Overview stats – from overview API; coach from status */}
+      {/* Overview – four cards: Coach (first), Current Weight, Active Plan, Plan Completion */}
       {displayOverview && (
         <section>
           <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
