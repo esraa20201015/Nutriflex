@@ -19,6 +19,25 @@ export default function TraineeDashboardPage() {
 
   if (loading) return <CustomIndicator />
 
+  // Fallback: show weight from progress.weightHistory if overview has none (e.g. before backend returns profile fallback)
+  const displayOverview = overview
+    ? (() => {
+        const hasWeight = overview.currentWeight != null
+        const latestFromProgress =
+          progress?.weightHistory?.length &&
+          [...progress.weightHistory].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+          )[0]
+        const fallbackWeight = latestFromProgress
+          ? latestFromProgress.value
+          : null
+        return {
+          ...overview,
+          currentWeight: hasWeight ? overview.currentWeight! : fallbackWeight,
+        }
+      })()
+    : null
+
   return (
     <div className="trainee-dashboard space-y-8 p-4 md:p-6">
       {/* Page header */}
@@ -32,12 +51,12 @@ export default function TraineeDashboardPage() {
       </div>
 
       {/* Overview stats – from overview API; coach from status */}
-      {overview && (
+      {displayOverview && (
         <section>
           <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
             Overview
           </h2>
-          <OverviewCard data={overview} coachName={status?.coachName} />
+          <OverviewCard data={displayOverview} coachName={status?.coachName} />
         </section>
       )}
 

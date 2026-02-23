@@ -3,7 +3,6 @@ import Card from '@/components/ui/Card'
 import {
     PiCalendarCheckDuotone,
     PiFireDuotone,
-    PiUserCircleDuotone,
 } from 'react-icons/pi'
 
 interface Props {
@@ -36,13 +35,6 @@ export default function StatusCard({ data }: Props) {
             value: formatDate(data.lastCheckIn),
             iconBg: 'bg-primary-subtle dark:bg-primary/15',
             iconColor: 'text-primary',
-        },
-        {
-            icon: PiUserCircleDuotone,
-            label: 'Coach',
-            value: data.coachName ?? '—',
-            iconBg: 'bg-info-subtle dark:bg-info/15',
-            iconColor: 'text-info',
         },
     ]
 

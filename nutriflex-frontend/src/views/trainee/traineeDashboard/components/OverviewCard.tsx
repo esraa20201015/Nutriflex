@@ -4,7 +4,6 @@ import {
     HiUserCircle,
     HiClipboardCheck,
     HiChartBar,
-    HiCalendar,
 } from 'react-icons/hi'
 import Card from '@/components/ui/Card'
 
@@ -75,17 +74,10 @@ export default function OverviewCard({ data, coachName }: Props) {
             iconBg: 'bg-success-subtle dark:bg-success/15',
             iconColor: 'text-success',
         },
-        {
-            icon: HiCalendar,
-            label: 'Days Active This Week',
-            value: String(data.daysActiveThisWeek ?? 0),
-            iconBg: 'bg-primary-subtle dark:bg-primary/15',
-            iconColor: 'text-primary',
-        },
     )
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {cards.map(({ icon: Icon, label, value, iconBg, iconColor, weightBadges }) => (
                 <Card
                     key={label}

@@ -101,6 +101,10 @@ export class TraineeDashboardService {
   }
 
   async getOverview(traineeId: string) {
+    const profile = await this.traineeProfileRepo.findOne({
+      where: { user_id: traineeId },
+    });
+
     const latestWeight = await this.healthMetricRepo
       .createQueryBuilder('hm')
       .where('hm.trainee_id = :traineeId', { traineeId })
@@ -108,7 +112,74 @@ export class TraineeDashboardService {
       .orderBy('hm.recorded_date', 'DESC')
       .getOne();
 
-    const currentWeight = latestWeight ? Number(latestWeight.value) : null;
+    let currentWeight: number | null = latestWeight
+      ? Number(latestWeight.value)
+      : null;
+    if (currentWeight === null && profile?.weight_kg != null) {
+      currentWeight = Number(profile.weight_kg);
+    }
+
+    let weightChange7Days: number | null = null;
+    let weightChange30Days: number | null = null;
+    if (latestWeight) {
+      const latestDate = latestWeight.recorded_date;
+      const cutoff7 = new Date(latestDate);
+      cutoff7.setDate(cutoff7.getDate() - 7);
+      const cutoff30 = new Date(latestDate);
+      cutoff30.setDate(cutoff30.getDate() - 30);
+
+      const [oldest7, oldest30] = await Promise.all([
+        this.healthMetricRepo
+          .createQueryBuilder('hm')
+          .where('hm.trainee_id = :traineeId', { traineeId })
+          .andWhere('hm.metric_type = :type', { type: HealthMetricType.WEIGHT })
+          .andWhere('hm.recorded_date BETWEEN :cutoff AND :latest', {
+            cutoff: cutoff7,
+            latest: latestDate,
+          })
+          .orderBy('hm.recorded_date', 'ASC')
+          .getOne(),
+        this.healthMetricRepo
+          .createQueryBuilder('hm')
+          .where('hm.trainee_id = :traineeId', { traineeId })
+          .andWhere('hm.metric_type = :type', { type: HealthMetricType.WEIGHT })
+          .andWhere('hm.recorded_date BETWEEN :cutoff AND :latest', {
+            cutoff: cutoff30,
+            latest: latestDate,
+          })
+          .orderBy('hm.recorded_date', 'ASC')
+          .getOne(),
+      ]);
+
+      if (oldest7) {
+        weightChange7Days =
+          Number(latestWeight.value) - Number(oldest7.value);
+      }
+      if (oldest30) {
+        weightChange30Days =
+          Number(latestWeight.value) - Number(oldest30.value);
+      }
+    }
+
+    const activePlan = await this.nutritionPlanRepo
+      .createQueryBuilder('np')
+      .where('np.trainee_id = :traineeId', { traineeId })
+      .andWhere('np.status = :status', { status: NutritionPlanStatus.ACTIVE })
+      .orderBy('np.start_date', 'DESC')
+      .getOne();
+
+    const activePlanName = activePlan ? activePlan.title : null;
+
+    let planCompletion = 0;
+    if (activePlan) {
+      const planStatus = await this.traineePlanStatusRepo.findOne({
+        where: {
+          trainee_id: traineeId,
+          plan_id: activePlan.id,
+        },
+      });
+      planCompletion = planStatus?.completion_percentage ?? 0;
+    }
 
     return {
       status: HttpStatus.OK,
@@ -116,6 +187,11 @@ export class TraineeDashboardService {
       messageAr: 'تم استرجاع نظرة عامة للمتدرب بنجاح',
       data: {
         currentWeight,
+        weightChange7Days,
+        weightChange30Days,
+        activePlanName,
+        planCompletion,
+        daysActiveThisWeek: 0,
       },
     };
   }
@@ -189,10 +265,13 @@ export class TraineeDashboardService {
   async getToday(traineeId: string) {
     const activePlan = await this.nutritionPlanRepo
       .createQueryBuilder('np')
+      .leftJoinAndSelect('np.meals', 'meals')
       .where('np.trainee_id = :traineeId', { traineeId })
       .andWhere('np.status = :status', { status: NutritionPlanStatus.ACTIVE })
       .orderBy('np.start_date', 'DESC')
       .getOne();
+
+    const todayMeals = activePlan?.meals?.length ?? 0;
 
     return {
       status: HttpStatus.OK,
@@ -200,8 +279,8 @@ export class TraineeDashboardService {
       messageAr: 'تم استرجاع بيانات تركيز اليوم بنجاح',
       data: {
         todayWorkout: activePlan ? activePlan.title : null,
-        todayMeals: 4,
-        completedMeals: 2,
+        todayMeals,
+        completedMeals: 0,
         completedWorkout: false,
       },
     };

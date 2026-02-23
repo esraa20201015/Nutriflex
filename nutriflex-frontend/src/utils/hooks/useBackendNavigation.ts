@@ -10,6 +10,9 @@ import type { MenuCategory } from '@/@types/menu'
 const mapCategoriesToNavigationTree = (
     categories: MenuCategory[],
 ): NavigationTree[] => {
+    const isProgressItem = (item: { path?: string; label?: string }) =>
+        (item.path ?? '').toLowerCase().includes('progress') ||
+        (item.label ?? '').toLowerCase() === 'progress'
     return categories.map((category) => ({
         key: category.id,
         path: '',
@@ -19,16 +22,18 @@ const mapCategoriesToNavigationTree = (
         type: NAV_ITEM_TYPE_TITLE,
         authority: category.roles || [],
         subMenu:
-            category.items?.map((item) => ({
-                key: `${category.id}.${item.id}`,
-                path: item.path,
-                title: item.label,
-                translateKey: '',
-                icon: item.icon,
-                type: NAV_ITEM_TYPE_ITEM,
-                authority: item.roles || [],
-                subMenu: [],
-            })) || [],
+            category.items
+                ?.filter((item) => !isProgressItem(item))
+                ?.map((item) => ({
+                    key: `${category.id}.${item.id}`,
+                    path: item.path,
+                    title: item.label,
+                    translateKey: '',
+                    icon: item.icon,
+                    type: NAV_ITEM_TYPE_ITEM,
+                    authority: item.roles || [],
+                    subMenu: [],
+                })) || [],
     }))
 }
 
