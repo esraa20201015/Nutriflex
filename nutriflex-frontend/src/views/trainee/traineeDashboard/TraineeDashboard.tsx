@@ -1,13 +1,21 @@
 import CustomIndicator from '@/components/shared/CustomIndicator'
 import { useTraineeDashboard } from './hooks/useTraineeDashboard'
 import OverviewCard from './components/OverviewCard'
-import ProgressChart from './components/ProgressChart'
+import ProgressSection from './components/ProgressSection'
 import TodayFocus from './components/TodayFocus'
 import StatusCard from './components/StatusCard'
+import { useEffect } from 'react'
 
 export default function TraineeDashboardPage() {
   const { dashboard, overview, progress, today, status, loading } =
     useTraineeDashboard()
+
+  useEffect(() => {
+    if (window.location.hash === '#progress-section') {
+      const el = document.getElementById('progress-section')
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [progress])
 
   if (loading) return <CustomIndicator />
 
@@ -23,13 +31,13 @@ export default function TraineeDashboardPage() {
         </p>
       </div>
 
-      {/* Overview stats – from overview API */}
+      {/* Overview stats – from overview API; coach from status */}
       {overview && (
         <section>
           <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
             Overview
           </h2>
-          <OverviewCard data={overview} />
+          <OverviewCard data={overview} coachName={status?.coachName} />
         </section>
       )}
 
@@ -43,13 +51,13 @@ export default function TraineeDashboardPage() {
         </section>
       )}
 
-      {/* Progress (weight & measurements) – from progress API */}
+      {/* Progress (weight history + body measurements) – single section, no duplication */}
       {progress && (
         <section>
           <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
             Progress
           </h2>
-          <ProgressChart data={progress} />
+          <ProgressSection data={progress} />
         </section>
       )}
 
