@@ -51,6 +51,11 @@ export type TraineeProfile = {
     gender: 'male' | 'female'
     dateOfBirth: string
     fullName?: string
+    /**
+     * Snapshot fields stored on the profile in the backend.
+     * These are populated from the dedicated bodyMeasurements step
+     * during sign-up and from the Body Measurements section on Profile.
+     */
     heightCm?: number | null
     weightKg?: number | null
     fitnessGoal?: string | null
@@ -59,6 +64,14 @@ export type TraineeProfile = {
     dietaryPreference?: string | null
     /** Base64 or data URL for avatar (sign-up). */
     avatarBase64?: string
+}
+
+export type BodyMeasurementsPayload = {
+    heightCm: number
+    weightKg: number
+    waistCm?: number | null
+    chestCm?: number | null
+    hipsCm?: number | null
 }
 
 export type SignUpCredential = {
@@ -71,6 +84,20 @@ export type SignUpCredential = {
     lastName?: string
     coachProfile?: CoachProfile
     traineeProfile?: TraineeProfile
+    /**
+     * Dedicated body measurements collected in the third step
+     * for trainees during sign-up.
+     */
+    bodyMeasurements?: BodyMeasurementsPayload
+    /**
+     * Optional initial body measurement history row that will be
+     * persisted on the backend when a trainee signs up.
+     */
+    initialBodyMeasurement?: {
+        waistCm?: number | null
+        chestCm?: number | null
+        hipsCm?: number | null
+    }
 }
 
 export type ForgotPassword = {

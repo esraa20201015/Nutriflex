@@ -7,6 +7,7 @@ import {
   ForbiddenException,
   UseGuards,
   Req,
+  Post,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -16,6 +17,7 @@ import { TraineeProfilesRepo } from './trainee-profiles.repo';
 import { RolesGuard } from '../auth/roles.guard';
 import { UsersService } from '../users/users.service';
 import { toDataUrl } from '../common/utils/image.util';
+import { BodyMeasurementService } from '../body-measurement/body-measurement.service';
 
 class UpdateCurrentProfileDto {
   fullName?: string;
@@ -37,6 +39,7 @@ export class CurrentProfileController {
     private readonly coachProfilesRepo: CoachProfilesRepo,
     private readonly traineeProfilesRepo: TraineeProfilesRepo,
     private readonly usersService: UsersService,
+    private readonly bodyMeasurementService: BodyMeasurementService,
   ) {}
 
   @Get('me')
@@ -187,6 +190,87 @@ export class CurrentProfileController {
         profile: null,
         avatarUrl: savedAvatarUrl,
         avatarUpdated,
+      },
+    };
+  }
+
+  @Post('me/body-measurement')
+  @ApiOperation({
+    summary:
+      'Append a new body measurement row for the current trainee and update profile snapshot (height/weight)',
+  })
+  async addMyBodyMeasurement(
+    @Req() req: Request & { user?: RequestUser },
+    @Body()
+    body: {
+      heightCm?: number | null;
+      weightKg?: number | null;
+      waistCm?: number | null;
+      chestCm?: number | null;
+      hipsCm?: number | null;
+    },
+  ) {
+    const user = req.user;
+
+    if (!user || !user.id) {
+      throw new ForbiddenException({
+        messageEn: 'User not authenticated',
+        messageAr: 'المستخدم غير مصادق عليه',
+      });
+    }
+
+    if (user.role !== 'TRAINEE') {
+      throw new ForbiddenException({
+        messageEn: 'Only trainees can update body measurements',
+        messageAr: 'يستطيع المتدربون فقط تحديث قياسات الجسم',
+      });
+    }
+
+    const traineeId = user.id;
+
+    // Create new measurement history row (waist/chest/hips)
+    const nowIso = new Date().toISOString();
+    await this.bodyMeasurementService.create({
+      trainee_id: traineeId,
+      chest_cm: body.chestCm ?? null,
+      waist_cm: body.waistCm ?? null,
+      hips_cm: body.hipsCm ?? null,
+      arm_cm: null,
+      thigh_cm: null,
+      measured_date: nowIso,
+    });
+
+    // Update profile snapshot for height/weight if provided
+    const updateProfilePayload: Partial<{
+      height_cm: number | null;
+      weight_kg: number | null;
+    }> = {};
+    if (body.heightCm !== undefined) {
+      updateProfilePayload.height_cm = body.heightCm ?? null;
+    }
+    if (body.weightKg !== undefined) {
+      updateProfilePayload.weight_kg = body.weightKg ?? null;
+    }
+    if (Object.keys(updateProfilePayload).length > 0) {
+      await this.traineeProfilesRepo.update(
+        { user_id: traineeId },
+        updateProfilePayload,
+      );
+    }
+
+    const updatedProfile = await this.traineeProfilesRepo.findOne({
+      where: { user_id: traineeId },
+      relations: ['user'],
+    });
+
+    return {
+      status: HttpStatus.OK,
+      messageEn: 'Body measurements updated successfully',
+      messageAr: 'تم تحديث قياسات الجسم بنجاح',
+      data: {
+        userId: traineeId,
+        role: user.role || 'TRAINEE',
+        profile: updatedProfile,
       },
     };
   }

@@ -236,14 +236,17 @@ export class TraineeDashboardService {
       .createQueryBuilder('bm')
       .select(['bm.measured_date AS date', 'bm.waist_cm AS waist', 'bm.chest_cm AS chest'])
       .where('bm.trainee_id = :traineeId', { traineeId })
-      .orderBy('bm.measured_date', 'ASC')
+      .orderBy('bm.measured_date', 'DESC')
+      .take(3)
       .getRawMany<{ date: Date; waist: string | number | null; chest: string | number | null }>();
 
-    const bodyMeasurements = bodyRaw.map((row) => ({
-      date: new Date(row.date).toISOString().split('T')[0],
-      waist: row.waist !== null ? Number(row.waist) : null,
-      chest: row.chest !== null ? Number(row.chest) : null,
-    }));
+    const bodyMeasurements = bodyRaw
+      .map((row) => ({
+        date: new Date(row.date).toISOString().split('T')[0],
+        waist: row.waist !== null ? Number(row.waist) : null,
+        chest: row.chest !== null ? Number(row.chest) : null,
+      }))
+      .reverse();
 
     return {
       status: HttpStatus.OK,

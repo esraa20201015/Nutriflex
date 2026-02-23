@@ -12,7 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { ZodType } from 'zod'
 import type { CommonProps } from '@/@types/common'
-import type { SignUpCredential } from '@/@types/auth'
+import type { BodyMeasurementsPayload, SignUpCredential } from '@/@types/auth'
 
 interface SignUpFormProps extends CommonProps {
     disableSubmit?: boolean
@@ -78,7 +78,8 @@ const coachProfileSchema = z.object({
     certificationDocumentBase64: z.string().optional(),
 })
 
-// Trainee profile schema (matches backend TraineeProfileDto)
+// Trainee profile schema (matches backend TraineeProfileDto) - without height/weight,
+// which are collected in the dedicated Body Measurements step.
 const traineeProfileSchema = z.object({
     fullName: z.string().optional(),
     gender: z.enum(['male', 'female'], {
@@ -87,16 +88,6 @@ const traineeProfileSchema = z.object({
     dateOfBirth: z
         .string({ required_error: 'Date of birth is required' })
         .min(1, { message: 'Date of birth is required' }),
-    heightCm: z
-        .number()
-        .min(0, { message: 'Height must be at least 0' })
-        .max(300, { message: 'Height must be at most 300 cm' })
-        .optional(),
-    weightKg: z
-        .number()
-        .min(0, { message: 'Weight must be at least 0' })
-        .max(500, { message: 'Weight must be at most 500 kg' })
-        .optional(),
     fitnessGoal: z.string().optional(),
     activityLevel: z.string().optional(),
     medicalNotes: z.string().optional(),
@@ -104,11 +95,42 @@ const traineeProfileSchema = z.object({
     avatarBase64: z.string().optional(),
 })
 
+// Body measurements schema used in the dedicated third step for trainees
+const bodyMeasurementsSchema: z.ZodType<BodyMeasurementsPayload> = z.object({
+    heightCm: z
+        .number({ required_error: 'Height is required' })
+        .min(0, { message: 'Height must be at least 0' })
+        .max(300, { message: 'Height must be at most 300 cm' }),
+    weightKg: z
+        .number({ required_error: 'Weight is required' })
+        .min(0, { message: 'Weight must be at least 0' })
+        .max(500, { message: 'Weight must be at most 500 kg' }),
+    waistCm: z
+        .number()
+        .min(0, { message: 'Waist must be at least 0' })
+        .max(500, { message: 'Waist must be at most 500 cm' })
+        .optional()
+        .nullable(),
+    chestCm: z
+        .number()
+        .min(0, { message: 'Chest must be at least 0' })
+        .max(500, { message: 'Chest must be at most 500 cm' })
+        .optional()
+        .nullable(),
+    hipsCm: z
+        .number()
+        .min(0, { message: 'Hips must be at least 0' })
+        .max(500, { message: 'Hips must be at most 500 cm' })
+        .optional()
+        .nullable(),
+})
+
 // Combined schema with conditional validation
 const validationSchema: ZodType<SignUpCredential> = baseSchema
     .extend({
         coachProfile: coachProfileSchema.optional(),
         traineeProfile: traineeProfileSchema.optional(),
+        bodyMeasurements: bodyMeasurementsSchema.optional(),
     })
     .refine((data) => data.password === data.confirmPassword, {
         message: 'Password and confirm password do not match',
@@ -193,7 +215,7 @@ const SignUpForm = (props: SignUpFormProps) => {
         })
 
     const onNext = async () => {
-        // Validate step 1 fields before proceeding
+        // Step 0 -> Step 1: validate account information fields before proceeding
         const isValid = await trigger([
             'firstName',
             'lastName',
@@ -207,7 +229,21 @@ const SignUpForm = (props: SignUpFormProps) => {
     }
 
     const onPrevious = () => {
-        setStep(0)
+        setStep((prev) => Math.max(prev - 1, 0))
+    }
+
+    const onNextFromProfileForTrainee = async () => {
+        // Validate core trainee profile fields before moving to Body Measurements step
+        const isValid = await trigger([
+            'traineeProfile.gender',
+            'traineeProfile.dateOfBirth',
+            'traineeProfile.fitnessGoal',
+            'traineeProfile.activityLevel',
+            'traineeProfile.dietaryPreference',
+        ])
+        if (isValid) {
+            setStep(2)
+        }
     }
 
     const onSignUp = async (values: SignUpCredential) => {
@@ -233,7 +269,25 @@ const SignUpForm = (props: SignUpFormProps) => {
                     fullName: values.coachProfile.fullName || submitData.fullName,
                 }
             } else if (values.role === 'TRAINEE' && values.traineeProfile) {
-                submitData.traineeProfile = values.traineeProfile
+                // Map body measurements into the trainee profile snapshot if present
+                const bm = values.bodyMeasurements
+                submitData.traineeProfile = {
+                    ...values.traineeProfile,
+                    ...(bm && {
+                        heightCm: bm.heightCm,
+                        weightKg: bm.weightKg,
+                    }),
+                }
+
+                // Also prepare an initial body measurement history payload for the backend
+                if (bm) {
+                    submitData.bodyMeasurements = bm
+                    submitData.initialBodyMeasurement = {
+                        waistCm: bm.waistCm ?? null,
+                        chestCm: bm.chestCm ?? null,
+                        hipsCm: bm.hipsCm ?? null,
+                    }
+                }
             }
 
             const result = await signUp(submitData)
@@ -257,13 +311,16 @@ const SignUpForm = (props: SignUpFormProps) => {
     const stepTitles =
         selectedRole === 'COACH'
             ? ['Account Information', 'Coach Profile']
-            : ['Account Information', 'Trainee Profile']
+            : ['Account Information', 'Trainee Profile', 'Body Measurements']
 
     return (
         <div className={`${className ?? ''} [&_.form-label]:whitespace-nowrap`}>
             <Steps current={step} className="mb-5">
                 <Steps.Item title={stepTitles[0]} />
                 <Steps.Item title={stepTitles[1]} />
+                {selectedRole === 'TRAINEE' && (
+                    <Steps.Item title={stepTitles[2]} />
+                )}
             </Steps>
 
             <Form onSubmit={handleSubmit(onSignUp)}>
@@ -397,7 +454,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                     </div>
                 )}
 
-                {/* Step 2: Profile Information - same vertical formatting */}
+                {/* Step 1: Profile Information - same vertical formatting */}
                 {step === 1 && (
                     <div className="flex flex-col">
                         {/* Coach Profile Fields */}
@@ -942,6 +999,203 @@ const SignUpForm = (props: SignUpFormProps) => {
                                 </FormItem>
                             </>
                         )}
+
+                        <div className="mt-2 flex justify-between items-center gap-4">
+                            <Button
+                                variant="default"
+                                type="button"
+                                onClick={onPrevious}
+                                size="md"
+                                className="min-w-[120px] !bg-primary-mild !text-white border-0 hover:!bg-primary"
+                            >
+                                Previous
+                            </Button>
+                            {selectedRole === 'COACH' ? (
+                                <Button
+                                    variant="solid"
+                                    type="submit"
+                                    loading={isSubmitting}
+                                    disabled={!selectedRole}
+                                    size="md"
+                                    className="min-w-[120px]"
+                                >
+                                    {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="solid"
+                                    type="button"
+                                    onClick={onNextFromProfileForTrainee}
+                                    disabled={!selectedRole}
+                                    size="md"
+                                    className="min-w-[120px]"
+                                >
+                                    Next
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Step 2: Body Measurements (TRAINEE only) */}
+                {step === 2 && selectedRole === 'TRAINEE' && (
+                    <div className="flex flex-col">
+                        <div className="mb-2">
+                            <h4 className="text-lg font-semibold">Body Measurements</h4>
+                            <p className="text-xs text-gray-500 mt-1">
+                                These measurements help Nutriflex track your progress over time.
+                                Height and weight are required; other fields are optional.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2 mb-1">
+                            <FormItem
+                                className="mb-0"
+                                label="Height (cm)"
+                                invalid={Boolean(errors.bodyMeasurements?.heightCm)}
+                                errorMessage={errors.bodyMeasurements?.heightCm?.message}
+                            >
+                                <Controller
+                                    name="bodyMeasurements.heightCm"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="number"
+                                            placeholder="165.5"
+                                            autoComplete="off"
+                                            step="0.1"
+                                            {...field}
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : undefined,
+                                                )
+                                            }
+                                            value={field.value ?? ''}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+
+                            <FormItem
+                                className="mb-0"
+                                label="Weight (kg)"
+                                invalid={Boolean(errors.bodyMeasurements?.weightKg)}
+                                errorMessage={errors.bodyMeasurements?.weightKg?.message}
+                            >
+                                <Controller
+                                    name="bodyMeasurements.weightKg"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="number"
+                                            placeholder="60.5"
+                                            autoComplete="off"
+                                            step="0.1"
+                                            {...field}
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : undefined,
+                                                )
+                                            }
+                                            value={field.value ?? ''}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-3 mb-3">
+                            <FormItem
+                                className="mb-0"
+                                label="Waist (cm)"
+                                invalid={Boolean(errors.bodyMeasurements?.waistCm)}
+                                errorMessage={errors.bodyMeasurements?.waistCm?.message}
+                            >
+                                <Controller
+                                    name="bodyMeasurements.waistCm"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="number"
+                                            placeholder="80"
+                                            autoComplete="off"
+                                            step="0.1"
+                                            {...field}
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : undefined,
+                                                )
+                                            }
+                                            value={field.value ?? ''}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+
+                            <FormItem
+                                className="mb-0"
+                                label="Chest (cm)"
+                                invalid={Boolean(errors.bodyMeasurements?.chestCm)}
+                                errorMessage={errors.bodyMeasurements?.chestCm?.message}
+                            >
+                                <Controller
+                                    name="bodyMeasurements.chestCm"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="number"
+                                            placeholder="95"
+                                            autoComplete="off"
+                                            step="0.1"
+                                            {...field}
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : undefined,
+                                                )
+                                            }
+                                            value={field.value ?? ''}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+
+                            <FormItem
+                                className="mb-0"
+                                label="Hips (cm)"
+                                invalid={Boolean(errors.bodyMeasurements?.hipsCm)}
+                                errorMessage={errors.bodyMeasurements?.hipsCm?.message}
+                            >
+                                <Controller
+                                    name="bodyMeasurements.hipsCm"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="number"
+                                            placeholder="95"
+                                            autoComplete="off"
+                                            step="0.1"
+                                            {...field}
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : undefined,
+                                                )
+                                            }
+                                            value={field.value ?? ''}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+                        </div>
 
                         <div className="mt-2 flex justify-between items-center gap-4">
                             <Button

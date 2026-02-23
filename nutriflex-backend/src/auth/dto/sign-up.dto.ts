@@ -121,6 +121,41 @@ export class TraineeProfileDto {
   avatarBase64?: string | null;
 }
 
+export class InitialBodyMeasurementDto {
+  @ApiProperty({
+    example: 100.5,
+    description: 'Initial chest circumference (cm)',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(500)
+  chestCm?: number | null;
+
+  @ApiProperty({
+    example: 80.0,
+    description: 'Initial waist circumference (cm)',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(500)
+  waistCm?: number | null;
+
+  @ApiProperty({
+    example: 95.0,
+    description: 'Initial hips circumference (cm)',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(500)
+  hipsCm?: number | null;
+}
+
 export class SignUpDto {
   @ApiProperty({ example: 'John Doe' })
   @IsString()
@@ -178,4 +213,16 @@ export class SignUpDto {
   @Type(() => TraineeProfileDto)
   @IsOptional()
   traineeProfile?: TraineeProfileDto;
+
+  @ApiProperty({
+    type: InitialBodyMeasurementDto,
+    required: false,
+    description:
+      'Optional initial body measurements (waist/chest/hips) to create the first measurement history entry for trainees',
+  })
+  @ValidateIf((o) => o.role === 'TRAINEE')
+  @ValidateNested()
+  @Type(() => InitialBodyMeasurementDto)
+  @IsOptional()
+  initialBodyMeasurement?: InitialBodyMeasurementDto;
 }

@@ -27,9 +27,9 @@ const Profile = () => {
         useState<TraineeDashboardData | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [activeTab, setActiveTab] = useState<'overview' | 'settings'>(
-        'overview',
-    )
+    const [activeTab, setActiveTab] = useState<
+        'overview' | 'settings' | 'bodyMeasurements'
+    >('overview')
 
     // Settings tab state
     const [accountName, setAccountName] = useState(fullName || '')
@@ -43,6 +43,15 @@ const Profile = () => {
     const [passwordSaving, setPasswordSaving] = useState(false)
     const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+    // Body measurements tab state (for trainees)
+    const [bmHeightCm, setBmHeightCm] = useState<string>('')
+    const [bmWeightKg, setBmWeightKg] = useState<string>('')
+    const [bmWaistCm, setBmWaistCm] = useState<string>('')
+    const [bmChestCm, setBmChestCm] = useState<string>('')
+    const [bmHipsCm, setBmHipsCm] = useState<string>('')
+    const [bmSaving, setBmSaving] = useState(false)
+    const [bmMessage, setBmMessage] = useState<string | null>(null)
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -61,6 +70,20 @@ const Profile = () => {
                 const avatar = res.data.avatarUrl || ''
                 setAvatarUrl(avatar)
                 setUser({ avatar: avatar || undefined })
+
+                // Seed body measurements tab for trainees from profile snapshot if available
+                if (res.data.role === 'TRAINEE' && res.data.profile) {
+                    const p = res.data.profile as {
+                        height_cm?: number | null
+                        weight_kg?: number | null
+                    }
+                    if (typeof p.height_cm === 'number') {
+                        setBmHeightCm(String(p.height_cm))
+                    }
+                    if (typeof p.weight_kg === 'number') {
+                        setBmWeightKg(String(p.weight_kg))
+                    }
+                }
 
                 if (res.data.role === 'TRAINEE') {
                     const traineeRes =
@@ -246,6 +269,85 @@ const Profile = () => {
         }
     }
 
+    const handleBodyMeasurementsSave = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (serverRole !== 'TRAINEE') return
+
+        setBmSaving(true)
+        setBmMessage(null)
+
+        try {
+            const payload: {
+                heightCm?: number | null
+                weightKg?: number | null
+                waistCm?: number | null
+                chestCm?: number | null
+                hipsCm?: number | null
+            } = {}
+
+            if (bmHeightCm !== '') {
+                payload.heightCm = Number(bmHeightCm)
+            }
+            if (bmWeightKg !== '') {
+                payload.weightKg = Number(bmWeightKg)
+            }
+            if (bmWaistCm !== '') {
+                payload.waistCm = Number(bmWaistCm)
+            }
+            if (bmChestCm !== '') {
+                payload.chestCm = Number(bmChestCm)
+            }
+            if (bmHipsCm !== '') {
+                payload.hipsCm = Number(bmHipsCm)
+            }
+
+            const res =
+                await ApiService.fetchDataWithAxios<MeProfileResponse>({
+                    url: '/profile/me/body-measurement',
+                    method: 'post',
+                    data: payload,
+                })
+
+            setBmMessage(
+                res.messageEn || 'Body measurements updated successfully.',
+            )
+
+            // Update local snapshot if height/weight came back in profile
+            if (res.data.profile) {
+                setProfile(res.data.profile)
+                const p = res.data.profile as {
+                    height_cm?: number | null
+                    weight_kg?: number | null
+                }
+                if (typeof p.height_cm === 'number') {
+                    setBmHeightCm(String(p.height_cm))
+                }
+                if (typeof p.weight_kg === 'number') {
+                    setBmWeightKg(String(p.weight_kg))
+                }
+            }
+
+            toast.push(
+                <Notification type="success" title="Success">
+                    {res.messageEn || 'Body measurements updated successfully.'}
+                </Notification>,
+            )
+        } catch (err: unknown) {
+            const errorMessage =
+                (err as { response?: { data?: { messageEn?: string } } })
+                    ?.response?.data?.messageEn ||
+                'Unable to update body measurements.'
+            setBmMessage(errorMessage)
+            toast.push(
+                <Notification type="danger" title="Failed">
+                    {errorMessage}
+                </Notification>,
+            )
+        } finally {
+            setBmSaving(false)
+        }
+    }
+
     return (
         <div className="px-6 py-4">
             <div className="max-w-6xl mx-auto">
@@ -276,6 +378,19 @@ const Profile = () => {
                         >
                             Settings
                         </button>
+                        {serverRole === 'TRAINEE' && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('bodyMeasurements')}
+                                className={`pb-2 -mb-px border-b-2 ${
+                                    activeTab === 'bodyMeasurements'
+                                        ? 'border-primary text-primary font-semibold'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                }`}
+                            >
+                                Body Measurements
+                            </button>
+                        )}
                     </nav>
                 </div>
 
@@ -581,6 +696,121 @@ const Profile = () => {
                                     </button>
                                 </form>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'bodyMeasurements' && serverRole === 'TRAINEE' && (
+                    <div className="space-y-4">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 max-w-3xl">
+                            <h2 className="text-sm font-semibold mb-1">
+                                Body Measurements
+                            </h2>
+                            <p className="text-xs text-gray-500 mb-4">
+                                Keep your height, weight, and key measurements up to date so Nutriflex
+                                can track your progress accurately.
+                            </p>
+
+                            <form
+                                className="space-y-4 text-sm"
+                                onSubmit={handleBodyMeasurementsSave}
+                            >
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Height (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="165.5"
+                                            value={bmHeightCm}
+                                            onChange={(e) =>
+                                                setBmHeightCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Weight (kg)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="60.5"
+                                            value={bmWeightKg}
+                                            onChange={(e) =>
+                                                setBmWeightKg(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-3">
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Waist (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="80"
+                                            value={bmWaistCm}
+                                            onChange={(e) =>
+                                                setBmWaistCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Chest (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="95"
+                                            value={bmChestCm}
+                                            onChange={(e) =>
+                                                setBmChestCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Hips (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="95"
+                                            value={bmHipsCm}
+                                            onChange={(e) =>
+                                                setBmHipsCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                {bmMessage && (
+                                    <div className="text-xs text-gray-500">
+                                        {bmMessage}
+                                    </div>
+                                )}
+
+                                <div className="mt-2 flex items-center justify-between">
+                                    <span className="text-[11px] text-gray-500">
+                                        Saving will update your profile snapshot and add a new
+                                        body measurement entry.
+                                    </span>
+                                    <button
+                                        type="submit"
+                                        className="inline-flex items-center px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-mild dark:bg-[#fb64b6] dark:hover:bg-[#fb64b6] disabled:opacity-60"
+                                        disabled={bmSaving}
+                                    >
+                                        {bmSaving ? 'Saving...' : 'Save changes'}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 )}

@@ -19,6 +19,8 @@ import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { toDataUrl } from '../common/utils/image.util';
+import { BodyMeasurementService } from '../body-measurement/body-measurement.service';
+import { CreateBodyMeasurementDto } from '../body-measurement/dto/body-measurement.dto';
 
 @Injectable()
 export class AuthService {
@@ -29,6 +31,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly bodyMeasurementService: BodyMeasurementService,
   ) {}
 
   async signUp(dto: SignUpDto) {
@@ -162,6 +165,21 @@ export class AuthService {
         await this.usersService.update(createdUser.id, {
           avatarUrl: toDataUrl(tp.avatarBase64),
         });
+      }
+
+      // Create the initial body measurement history row if provided
+      if (dto.initialBodyMeasurement) {
+        const nowIso = new Date().toISOString();
+        const payload: CreateBodyMeasurementDto = {
+          trainee_id: createdUser.id,
+          chest_cm: dto.initialBodyMeasurement.chestCm ?? null,
+          waist_cm: dto.initialBodyMeasurement.waistCm ?? null,
+          hips_cm: dto.initialBodyMeasurement.hipsCm ?? null,
+          arm_cm: null,
+          thigh_cm: null,
+          measured_date: nowIso,
+        };
+        await this.bodyMeasurementService.create(payload);
       }
     }
 
