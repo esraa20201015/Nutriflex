@@ -234,17 +234,34 @@ export class TraineeDashboardService {
 
     const bodyRaw = await this.bodyMeasurementRepo
       .createQueryBuilder('bm')
-      .select(['bm.measured_date AS date', 'bm.waist_cm AS waist', 'bm.chest_cm AS chest'])
+      .select([
+        'bm.measured_date AS date',
+        'bm.waist_cm AS waist',
+        'bm.chest_cm AS chest',
+        'bm.hips_cm AS hips',
+        'bm.arm_cm AS arm',
+        'bm.thigh_cm AS thigh',
+      ])
       .where('bm.trainee_id = :traineeId', { traineeId })
       .orderBy('bm.measured_date', 'DESC')
       .take(3)
-      .getRawMany<{ date: Date; waist: string | number | null; chest: string | number | null }>();
+      .getRawMany<{
+        date: Date;
+        waist: string | number | null;
+        chest: string | number | null;
+        hips: string | number | null;
+        arm: string | number | null;
+        thigh: string | number | null;
+      }>();
 
     const bodyMeasurements = bodyRaw
       .map((row) => ({
         date: new Date(row.date).toISOString().split('T')[0],
         waist: row.waist !== null ? Number(row.waist) : null,
         chest: row.chest !== null ? Number(row.chest) : null,
+        hips: row.hips !== null ? Number(row.hips) : null,
+        arm: row.arm !== null ? Number(row.arm) : null,
+        thigh: row.thigh !== null ? Number(row.thigh) : null,
       }))
       .reverse();
 

@@ -168,6 +168,9 @@ export type BodyMeasurementItem = {
     date: string
     waist: number | null
     chest: number | null
+    hips: number | null
+    arm: number | null
+    thigh: number | null
 }
 
 export type TraineeProfileSummary = {

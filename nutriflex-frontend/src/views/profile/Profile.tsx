@@ -50,6 +50,8 @@ const Profile = () => {
     const [bmWaistCm, setBmWaistCm] = useState<string>('')
     const [bmChestCm, setBmChestCm] = useState<string>('')
     const [bmHipsCm, setBmHipsCm] = useState<string>('')
+    const [bmArmCm, setBmArmCm] = useState<string>('')
+    const [bmThighCm, setBmThighCm] = useState<string>('')
     const [bmSaving, setBmSaving] = useState(false)
     const [bmMessage, setBmMessage] = useState<string | null>(null)
 
@@ -283,6 +285,8 @@ const Profile = () => {
                 waistCm?: number | null
                 chestCm?: number | null
                 hipsCm?: number | null
+                armCm?: number | null
+                thighCm?: number | null
             } = {}
 
             if (bmHeightCm !== '') {
@@ -299,6 +303,12 @@ const Profile = () => {
             }
             if (bmHipsCm !== '') {
                 payload.hipsCm = Number(bmHipsCm)
+            }
+            if (bmArmCm !== '') {
+                payload.armCm = Number(bmArmCm)
+            }
+            if (bmThighCm !== '') {
+                payload.thighCm = Number(bmThighCm)
             }
 
             const res =
@@ -786,6 +796,37 @@ const Profile = () => {
                                             value={bmHipsCm}
                                             onChange={(e) =>
                                                 setBmHipsCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Arm (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="30"
+                                            value={bmArmCm}
+                                            onChange={(e) =>
+                                                setBmArmCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Thigh (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="50"
+                                            value={bmThighCm}
+                                            onChange={(e) =>
+                                                setBmThighCm(e.target.value)
                                             }
                                         />
                                     </div>

@@ -208,6 +208,8 @@ export class CurrentProfileController {
       waistCm?: number | null;
       chestCm?: number | null;
       hipsCm?: number | null;
+      armCm?: number | null;
+      thighCm?: number | null;
     },
   ) {
     const user = req.user;
@@ -228,15 +230,15 @@ export class CurrentProfileController {
 
     const traineeId = user.id;
 
-    // Create new measurement history row (waist/chest/hips)
+    // Create new measurement history row (waist/chest/hips/arm/thigh)
     const nowIso = new Date().toISOString();
     await this.bodyMeasurementService.create({
       trainee_id: traineeId,
       chest_cm: body.chestCm ?? null,
       waist_cm: body.waistCm ?? null,
       hips_cm: body.hipsCm ?? null,
-      arm_cm: null,
-      thigh_cm: null,
+      arm_cm: body.armCm ?? null,
+      thigh_cm: body.thighCm ?? null,
       measured_date: nowIso,
     });
 
