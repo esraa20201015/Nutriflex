@@ -233,10 +233,11 @@ export class AuthService {
         roleName = userWithRole?.role?.name ?? 'USER';
       } catch (error) {
         console.error('Error loading user role:', error);
-        // Use default role if loading fails
         roleName = 'USER';
       }
     }
+    // Normalize to uppercase so frontend role-based redirect always matches (ADMIN, COACH, TRAINEE, USER)
+    roleName = (roleName && String(roleName).toUpperCase()) || 'USER';
 
     const payload = { sub: user.id, role: roleName };
     let access_token: string;

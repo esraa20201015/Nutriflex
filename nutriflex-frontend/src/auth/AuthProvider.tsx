@@ -1,4 +1,4 @@
-import { useRef, useImperativeHandle, useState } from 'react'
+import { forwardRef, useRef, useImperativeHandle, useState } from 'react'
 import AuthContext from './AuthContext'
 import appConfig from '@/configs/app.config'
 import { useSessionUser, useToken } from '@/store/authStore'
@@ -21,7 +21,7 @@ import type { NavigateFunction } from 'react-router'
 type AuthProviderProps = { children: ReactNode }
 
 /** Role-based dashboard path for post-login redirect. Case-insensitive so backend can return "Admin", "ADMIN", etc. */
-function getDashboardPathForRole(role: string | undefined): string {
+export function getDashboardPathForRole(role: string | undefined): string {
     const r = role?.toUpperCase()
     if (r === 'ADMIN') return '/admin/dashboard'
     if (r === 'COACH') return '/coach/dashboard'
@@ -42,17 +42,21 @@ export type IsolatedNavigatorRef = {
     navigate: NavigateFunction
 }
 
-const IsolatedNavigator = ({ ref }: { ref: Ref<IsolatedNavigatorRef> }) => {
-    const navigate = useNavigate()
+const IsolatedNavigator = forwardRef<IsolatedNavigatorRef, Record<string, never>>(
+    function IsolatedNavigator(_, ref) {
+        const navigate = useNavigate()
 
-    useImperativeHandle(ref, () => {
-        return {
-            navigate,
-        }
-    }, [navigate])
+        useImperativeHandle(
+            ref,
+            () => ({
+                navigate,
+            }),
+            [navigate],
+        )
 
-    return <></>
-}
+        return null
+    },
+)
 
 function AuthProvider({ children }: AuthProviderProps) {
     const signedIn = useSessionUser((state) => state.session.signedIn)
@@ -98,29 +102,60 @@ function AuthProvider({ children }: AuthProviderProps) {
         try {
             const resp = await apiSignIn(values)
             if (resp && resp.data) {
-                const role = normalizeRole(resp.data.user.role)
+                // Support both shapes: resp.data.user (standard) or resp.data.data.user (double-wrapped)
+                const payload = resp.data as {
+                    access_token?: string
+                    user?: { id?: string; fullName?: string; email?: string; role?: unknown }
+                } & { data?: { user?: { id?: string; fullName?: string; email?: string; role?: unknown } } }
+                const inner = payload.data?.user ? payload.data : payload
+                const apiUser = inner.user ?? payload.user
+                const accessToken = (inner as { access_token?: string }).access_token ?? payload.access_token
+                if (!apiUser || !accessToken) {
+                    return { status: 'failed', message: 'Unable to sign in' }
+                }
+                const role = normalizeRole(apiUser.role)
                 const user: User = {
-                    id: resp.data.user.id,
-                    fullName: resp.data.user.fullName,
-                    email: resp.data.user.email,
-                    role: role ?? resp.data.user.role,
+                    id: apiUser.id,
+                    fullName: apiUser.fullName,
+                    email: apiUser.email,
+                    role: role ?? (typeof apiUser.role === 'string' ? apiUser.role : undefined),
                     authority: role ? [role] : [],
                 }
-                handleSignIn({ accessToken: resp.data.access_token }, user)
+                handleSignIn({ accessToken }, user)
                 const search = window.location.search
                 const params = new URLSearchParams(search)
                 const redirectUrl = params.get(REDIRECT_URL_KEY)
-                const targetPath = redirectUrl || getDashboardPathForRole(role)
-                navigatorRef.current?.navigate(targetPath)
-                return {
-                    status: 'success',
-                    message: '',
-                }
+                // Decide final redirect:
+                // - Prefer a deep-link redirect *only* when it is inside the section allowed for this role
+                // - Otherwise, always go to the dashboard path for the role
+                const dashboardPath = getDashboardPathForRole(role)
+
+                const normalizedRedirect =
+                    redirectUrl && redirectUrl.startsWith('/') ? redirectUrl : null
+
+                // Role-based root segments we allow for redirects
+                const roleRoot =
+                    role?.toUpperCase() === 'ADMIN'
+                        ? '/admin'
+                        : role?.toUpperCase() === 'COACH'
+                        ? '/coach'
+                        : role?.toUpperCase() === 'TRAINEE'
+                        ? '/trainee'
+                        : null
+
+                const isAllowedRedirect =
+                    normalizedRedirect && roleRoot
+                        ? normalizedRedirect === roleRoot ||
+                          normalizedRedirect.startsWith(`${roleRoot}/`)
+                        : false
+
+                const targetPath = isAllowedRedirect
+                    ? normalizedRedirect!
+                    : dashboardPath
+                navigatorRef.current?.navigate(targetPath, { replace: true })
+                return { status: 'success', message: '' }
             }
-            return {
-                status: 'failed',
-                message: 'Unable to sign in',
-            }
+            return { status: 'failed', message: 'Unable to sign in' }
             // eslint-disable-next-line  @typescript-eslint/no-explicit-any
         } catch (errors: any) {
             const errorData = errors?.response?.data
