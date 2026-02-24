@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Req, UseGuards, ForbiddenException, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, UseGuards, ForbiddenException, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
@@ -89,5 +89,23 @@ export class TraineePlansController {
     }
     // Security: user.id comes from verified JWT token - ensures trainee only sees their own plans
     return this.traineePlansService.getPlanDetails(user.id, planId);
+  }
+
+  @Post(':id/start')
+  @ApiOperation({ summary: 'Start an active nutrition plan for the authenticated trainee' })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  async startPlan(
+    @Req() req: Request & { user?: RequestUser },
+    @Param('id', ParseUUIDPipe) planId: string,
+  ) {
+    const user = req.user;
+    if (!user || !user.id) {
+      throw new ForbiddenException({
+        messageEn: 'User not authenticated',
+        messageAr: 'المستخدم غير مصادق عليه',
+      });
+    }
+    // Security: user.id comes from verified JWT token - ensures trainee only starts their own plans
+    return this.traineePlansService.startPlan(user.id, planId);
   }
 }

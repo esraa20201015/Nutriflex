@@ -1,9 +1,10 @@
-import { Injectable, HttpStatus, NotFoundException } from '@nestjs/common';
+import { Injectable, HttpStatus, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NutritionPlan } from '../nutrition-plan/entities/nutrition-plan.entity';
 import { NutritionPlanStatus } from '../nutrition-plan/enums/nutrition-plan-status.enum';
 import { TraineePlanStatus } from '../trainee-plan-status/entities/trainee-plan-status.entity';
+import { TraineePlanStatusEnum } from '../trainee-plan-status/enums/trainee-plan-status.enum';
 import { Meal } from '../meal/entities/meal.entity';
 import { MealType } from '../meal/enums/meal-type.enum';
 
@@ -357,5 +358,91 @@ export class TraineePlansService {
         error: (error as Error).message,
       };
     }
+  }
+
+  /**
+   * Start a nutrition plan for the authenticated trainee.
+   * - Only allowed when the underlying plan is active.
+   * - Creates or updates a TraineePlanStatus row to in_progress with 0% completion.
+   */
+  async startPlan(traineeId: string, planId: string) {
+    // Verify plan belongs to trainee and is active
+    const plan = await this.nutritionPlanRepo.findOne({
+      where: { id: planId, trainee_id: traineeId },
+      select: ['id', 'title', 'status', 'start_date', 'end_date'],
+    });
+
+    if (!plan) {
+      throw new NotFoundException({
+        status: HttpStatus.NOT_FOUND,
+        messageEn: 'Nutrition plan not found',
+        messageAr: 'خطة التغذية غير موجودة',
+        data: null,
+      });
+    }
+
+    if (plan.status !== NutritionPlanStatus.ACTIVE) {
+      throw new BadRequestException({
+        status: HttpStatus.BAD_REQUEST,
+        messageEn: 'Only active plans can be started',
+        messageAr: 'يمكن فقط بدء الخطط النشطة',
+        data: null,
+      });
+    }
+
+    // Find existing status (if any)
+    let completionStatus = await this.traineePlanStatusRepo.findOne({
+      where: {
+        trainee_id: traineeId,
+        plan_id: planId,
+      },
+    });
+
+    // If already completed, do not restart (simple rule)
+    if (completionStatus && completionStatus.status === TraineePlanStatusEnum.COMPLETED) {
+      throw new BadRequestException({
+        status: HttpStatus.BAD_REQUEST,
+        messageEn: 'Plan has already been completed',
+        messageAr: 'تم إكمال الخطة بالفعل',
+        data: null,
+      });
+    }
+
+    const now = new Date();
+
+    if (!completionStatus) {
+      // Create new status row
+      completionStatus = this.traineePlanStatusRepo.create({
+        trainee_id: traineeId,
+        plan_id: planId,
+        completion_percentage: 0,
+        status: TraineePlanStatusEnum.IN_PROGRESS,
+        last_updated: now,
+      });
+      await this.traineePlanStatusRepo.save(completionStatus);
+    } else {
+      // Move existing row to in_progress and reset completion if it was not_started
+      completionStatus.status = TraineePlanStatusEnum.IN_PROGRESS;
+      if (completionStatus.completion_percentage < 0) {
+        completionStatus.completion_percentage = 0;
+      }
+      completionStatus.last_updated = now;
+      await this.traineePlanStatusRepo.save(completionStatus);
+    }
+
+    return {
+      status: HttpStatus.OK,
+      messageEn: 'Plan started successfully',
+      messageAr: 'تم بدء الخطة بنجاح',
+      data: {
+        planId: plan.id,
+        planTitle: plan.title,
+        completion_percentage: completionStatus.completion_percentage,
+        status: completionStatus.status,
+        last_updated: completionStatus.last_updated
+          ? completionStatus.last_updated.toISOString()
+          : null,
+      },
+    };
   }
 }

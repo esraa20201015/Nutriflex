@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import {
     apiGetTraineePlanDetails,
     apiGetTraineePlanStatus,
+    apiStartTraineePlan,
 } from '@/services/TraineeService'
 import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
@@ -29,6 +30,13 @@ const PlanDetails = () => {
     const [status, setStatus] = useState<PlanStatusData | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [starting, setStarting] = useState(false)
+    const [exerciseStatuses, setExerciseStatuses] = useState<
+        Record<string, 'pending' | 'completed'>
+    >({})
+    const [mealStatuses, setMealStatuses] = useState<
+        Record<string, 'pending' | 'completed'>
+    >({})
 
     useEffect(() => {
         const loadPlanDetails = async () => {
@@ -42,6 +50,21 @@ const PlanDetails = () => {
                     apiGetTraineePlanStatus(id).catch(() => null), // Optional
                 ])
                 setPlan(planResponse.data)
+                // Initialize item-level statuses as pending
+                const exercises = planResponse.data.planExercises || []
+                const meals = planResponse.data.meals || []
+                setExerciseStatuses(
+                    exercises.reduce(
+                        (acc, ex) => ({ ...acc, [ex.id]: 'pending' as const }),
+                        {} as Record<string, 'pending' | 'completed'>,
+                    ),
+                )
+                setMealStatuses(
+                    meals.reduce(
+                        (acc, meal) => ({ ...acc, [meal.id]: 'pending' as const }),
+                        {} as Record<string, 'pending' | 'completed'>,
+                    ),
+                )
                 if (statusResponse?.data) {
                     setStatus(statusResponse.data)
                 }
@@ -104,6 +127,111 @@ const PlanDetails = () => {
             default:
                 return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
         }
+    }
+
+    // Derived plan status – must be declared before any early return
+    const effectiveStatus = useMemo(() => {
+        const planStatus = plan?.status
+        const completionStatus = plan?.completionStatus.status
+
+        return {
+            planStatus,
+            completionStatus,
+        }
+    }, [plan])
+
+    const canStartPlan =
+        effectiveStatus.planStatus === 'active' &&
+        plan?.completionStatus.status === 'not_started'
+
+    const isInProgress =
+        effectiveStatus.planStatus === 'active' &&
+        plan?.completionStatus.status === 'in_progress'
+
+    const isCompleted = plan?.completionStatus.status === 'completed'
+
+    const handleStartPlan = useCallback(async () => {
+        if (!id || !canStartPlan) return
+        try {
+            setStarting(true)
+            const response = await apiStartTraineePlan(id)
+            const updated = response.data
+
+            setPlan((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          completionStatus: {
+                              completion_percentage:
+                                  updated.completion_percentage,
+                              status: updated.status,
+                              last_updated: updated.last_updated,
+                          },
+                      }
+                    : prev,
+            )
+            if (status) {
+                setStatus({
+                    ...status,
+                    completion_percentage: updated.completion_percentage,
+                    status: updated.status,
+                    last_updated: updated.last_updated,
+                })
+            }
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to start the plan',
+            )
+        } finally {
+            setStarting(false)
+        }
+    }, [id, canStartPlan, status])
+
+    const isReadOnly =
+        effectiveStatus.planStatus === 'draft' ||
+        effectiveStatus.planStatus === 'archived' ||
+        isCompleted
+
+    // Compute simple local completion from item-level statuses
+    const localCompletionPercentage = useMemo(() => {
+        if (!plan || isCompleted) {
+            return plan?.completionStatus.completion_percentage ?? 0
+        }
+
+        const totalExercises = plan.planExercises?.length ?? 0
+        const totalMeals = plan.meals.length ?? 0
+        const totalItems = totalExercises + totalMeals
+        if (totalItems === 0) {
+            return plan.completionStatus.completion_percentage
+        }
+
+        let completedItems = 0
+        plan.planExercises?.forEach((ex) => {
+            if (exerciseStatuses[ex.id] === 'completed') completedItems += 1
+        })
+        plan.meals.forEach((meal) => {
+            if (mealStatuses[meal.id] === 'completed') completedItems += 1
+        })
+
+        return Math.round((completedItems / totalItems) * 100)
+    }, [plan, exerciseStatuses, mealStatuses, isCompleted])
+
+    const toggleExerciseStatus = (id: string) => {
+        if (!isInProgress || isReadOnly) return
+        setExerciseStatuses((prev) => ({
+            ...prev,
+            [id]: prev[id] === 'completed' ? 'pending' : 'completed',
+        }))
+    }
+
+    const toggleMealStatus = (id: string) => {
+        if (!isInProgress || isReadOnly) return
+        setMealStatuses((prev) => ({
+            ...prev,
+            [id]: prev[id] === 'completed' ? 'pending' : 'completed',
+        }))
     }
 
     if (loading) {
@@ -218,11 +346,11 @@ const PlanDetails = () => {
 
                         {/* Right Column */}
                         <div className="space-y-4">
-                            <div>
+                            <div className="flex items-center justify-between gap-4">
                                 <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
                                     Status
                                 </h3>
-                                <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex items-center gap-3 flex-wrap">
                                     <Tag
                                         className={`${getCompletionBadgeColor(
                                             plan.completionStatus.status,
@@ -247,6 +375,41 @@ const PlanDetails = () => {
                                             </>
                                         )}
                                     </Tag>
+
+                                    {effectiveStatus.planStatus ===
+                                        'active' && (
+                                        <Button
+                                            size="sm"
+                                            variant={
+                                                canStartPlan
+                                                    ? 'solid'
+                                                    : 'twoTone'
+                                            }
+                                            disabled={!canStartPlan || starting}
+                                            loading={starting}
+                                            onClick={handleStartPlan}
+                                        >
+                                            {canStartPlan
+                                                ? 'Start Plan'
+                                                : isInProgress
+                                                ? 'In Progress'
+                                                : 'Completed'}
+                                        </Button>
+                                    )}
+
+                                    {effectiveStatus.planStatus ===
+                                        'draft' && (
+                                        <Tag className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-0">
+                                            Draft (view only)
+                                        </Tag>
+                                    )}
+
+                                    {effectiveStatus.planStatus ===
+                                        'archived' && (
+                                        <Tag className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border-0">
+                                            Archived (view only)
+                                        </Tag>
+                                    )}
                                 </div>
                             </div>
 
@@ -259,26 +422,23 @@ const PlanDetails = () => {
                                         <span className="text-sm text-gray-600 dark:text-gray-400">
                                             Progress
                                         </span>
-                                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            {plan.completionStatus.completion_percentage}%
-                                        </span>
+                                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                {localCompletionPercentage}%
+                                            </span>
                                     </div>
                                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                                         <div
                                             className={`h-3 rounded-full transition-all ${
-                                                plan.completionStatus
-                                                    .completion_percentage >= 75
+                                                localCompletionPercentage >= 75
                                                     ? 'bg-green-500'
-                                                    : plan.completionStatus
-                                                          .completion_percentage >=
+                                                    : localCompletionPercentage >=
                                                       50
                                                     ? 'bg-yellow-500'
                                                     : 'bg-blue-500'
                                             }`}
                                             style={{
                                                 width: `${
-                                                    plan.completionStatus
-                                                        .completion_percentage
+                                                    localCompletionPercentage
                                                 }%`,
                                             }}
                                         />
@@ -320,9 +480,27 @@ const PlanDetails = () => {
                                         className="bg-gray-50 dark:bg-gray-700/50 overflow-hidden"
                                     >
                                         <div className="p-4">
-                                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                                                {ex.name}
-                                            </h4>
+                                            <div className="flex items-center justify-between gap-3 mb-2">
+                                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                                                    {ex.name}
+                                                </h4>
+                                                <Tag
+                                                    className={`text-xs border-0 cursor-pointer ${
+                                                        exerciseStatuses[ex.id] ===
+                                                        'completed'
+                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                                    }`}
+                                                    onClick={() =>
+                                                        toggleExerciseStatus(ex.id)
+                                                    }
+                                                >
+                                                    {exerciseStatuses[ex.id] ===
+                                                    'completed'
+                                                        ? 'Completed'
+                                                        : 'Pending'}
+                                                </Tag>
+                                            </div>
                                             <p className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-3">
                                                 {ex.exercise_type}
                                                 {ex.sub_category && (
@@ -411,16 +589,38 @@ const PlanDetails = () => {
                                             {getMealTypeLabel(mealType)} (
                                             {meals.length})
                                         </h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-4">
                                             {meals.map((meal) => (
                                                 <Card
                                                     key={meal.id}
                                                     className="bg-gray-50 dark:bg-gray-700/50"
                                                 >
                                                     <div className="p-4">
-                                                        <h5 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                                                            {meal.name}
-                                                        </h5>
+                                                        <div className="flex items-center justify-between gap-3 mb-2">
+                                                            <h5 className="font-semibold text-gray-900 dark:text-gray-100">
+                                                                {meal.name}
+                                                            </h5>
+                                                            <Tag
+                                                                className={`text-xs border-0 cursor-pointer ${
+                                                                    mealStatuses[
+                                                                        meal.id
+                                                                    ] === 'completed'
+                                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                                                }`}
+                                                                onClick={() =>
+                                                                    toggleMealStatus(
+                                                                        meal.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                {mealStatuses[
+                                                                    meal.id
+                                                                ] === 'completed'
+                                                                    ? 'Completed'
+                                                                    : 'Pending'}
+                                                            </Tag>
+                                                        </div>
                                                         {meal.instructions && (
                                                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                                                                 {meal.instructions}

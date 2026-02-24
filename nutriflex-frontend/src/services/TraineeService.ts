@@ -173,6 +173,15 @@ export async function apiGetTraineePlanStatus(planId: string) {
     })
 }
 
+export async function apiStartTraineePlan(planId: string) {
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<PlanStatusData>
+    >({
+        url: `/plans/trainee/${planId}/start`,
+        method: 'post',
+    })
+}
+
 // Coach selection APIs (trainee-facing)
 export async function apiGetAvailableCoaches(params?: { trainee_id?: string }) {
     return ApiService.fetchDataWithAxios<
