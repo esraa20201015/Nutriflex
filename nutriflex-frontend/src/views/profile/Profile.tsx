@@ -102,13 +102,13 @@ const Profile = () => {
 
                 // If we navigated here with a desired tab (e.g. from dashboard),
                 // activate it once profile & role are known.
-                const desiredTab =
-                    (location.state as { activeTab?: string; focusField?: string } | null)
-                        ?.activeTab
-                if (res.data.role === 'TRAINEE' && desiredTab === 'bodyMeasurements') {
+                const desiredState =
+                    (location.state as { activeTab?: string; focusField?: string } | null) ||
+                    null
+                if (res.data.role === 'TRAINEE' && desiredState?.activeTab === 'bodyMeasurements') {
                     setActiveTab('bodyMeasurements')
-                    // Optional: clear the navigation state so back/forward don't re-trigger.
-                    window.history.replaceState({}, '')
+                    // Clear navigation state so it doesn't re-trigger on back/forward.
+                    window.history.replaceState({}, document.title, window.location.pathname)
                 }
             } catch (e) {
                 setError('Unable to load profile details.')
@@ -350,6 +350,22 @@ const Profile = () => {
                 }
             }
 
+            // Refresh trainee metrics so the overview card reflects the latest weight/measurements
+            if (serverRole === 'TRAINEE') {
+                try {
+                    const traineeRes =
+                        await ApiService.fetchDataWithAxios<TraineeDashboardResponse>(
+                            {
+                                url: '/dashboard/trainee',
+                                method: 'get',
+                            },
+                        )
+                    setTraineeStats(traineeRes.data)
+                } catch {
+                    // If this refresh fails, we keep the previous stats but do not break the form
+                }
+            }
+
             toast.push(
                 <Notification type="success" title="Success">
                     {res.messageEn || 'Body measurements updated successfully.'}
@@ -539,7 +555,10 @@ const Profile = () => {
                                                 {typeof traineeStats.currentWeight ===
                                                 'number'
                                                     ? `${traineeStats.currentWeight} kg`
-                                                    : 'Not available'}
+                                                    : typeof (profile as { weight_kg?: number | null } | null)?.weight_kg ===
+                                                          'number'
+                                                      ? `${(profile as { weight_kg?: number | null }).weight_kg} kg`
+                                                      : 'Not available'}
                                             </div>
                                         </div>
                                         <div className="space-y-1">
@@ -549,7 +568,9 @@ const Profile = () => {
                                             <div className="font-medium">
                                                 {typeof traineeStats.weightChange30Days ===
                                                 'number'
-                                                    ? `${traineeStats.weightChange30Days} kg`
+                                                    ? `${traineeStats.weightChange30Days > 0 ? '+' : ''}${
+                                                          traineeStats.weightChange30Days
+                                                      } kg`
                                                     : 'Not available'}
                                             </div>
                                         </div>
@@ -558,8 +579,15 @@ const Profile = () => {
                                                 Last measurement
                                             </div>
                                             <div className="font-medium">
-                                                {traineeStats.lastMeasurementDate ||
-                                                    'Not recorded'}
+                                                {traineeStats.lastMeasurementDate
+                                                    ? new Date(
+                                                          traineeStats.lastMeasurementDate,
+                                                      ).toLocaleDateString('en-US', {
+                                                          year: 'numeric',
+                                                          month: 'short',
+                                                          day: 'numeric',
+                                                      })
+                                                    : 'Not recorded'}
                                             </div>
                                         </div>
                                     </div>

@@ -34,6 +34,13 @@ export class TraineeDashboardService {
   ) {}
 
   async getDashboard(traineeId: string) {
+    // Load profile snapshot so we can fall back to stored weight when no metrics exist
+    const profile = await this.traineeProfileRepo.findOne({
+      where: { user_id: traineeId },
+      select: ['weight_kg'],
+    });
+
+    // Latest recorded weight metric (primary source of truth for current weight)
     const latestWeight = await this.healthMetricRepo
       .createQueryBuilder('hm')
       .where('hm.trainee_id = :traineeId', { traineeId })
@@ -41,7 +48,14 @@ export class TraineeDashboardService {
       .orderBy('hm.recorded_date', 'DESC')
       .getOne();
 
-    const currentWeight = latestWeight ? Number(latestWeight.value) : null;
+    let currentWeight: number | null = latestWeight
+      ? Number(latestWeight.value)
+      : null;
+
+    // Fallback to profile snapshot weight if no metrics yet
+    if (currentWeight === null && profile?.weight_kg != null) {
+      currentWeight = Number(profile.weight_kg);
+    }
 
     let weightChange30Days: number | null = null;
     if (latestWeight) {
@@ -87,6 +101,31 @@ export class TraineeDashboardService {
         : 0;
     }
 
+    // Compute last measurement date from either weight metrics or body measurements
+    const latestBodyMeasurement = await this.bodyMeasurementRepo
+      .createQueryBuilder('bm')
+      .where('bm.trainee_id = :traineeId', { traineeId })
+      .orderBy('bm.measured_date', 'DESC')
+      .getOne();
+
+    const weightDate = latestWeight?.recorded_date
+      ? new Date(latestWeight.recorded_date)
+      : null;
+    const bodyDate = latestBodyMeasurement?.measured_date
+      ? new Date(latestBodyMeasurement.measured_date)
+      : null;
+
+    let lastMeasurementDate: string | null = null;
+    if (weightDate && bodyDate) {
+      lastMeasurementDate = (weightDate > bodyDate ? weightDate : bodyDate)
+        .toISOString()
+        .split('T')[0];
+    } else if (weightDate) {
+      lastMeasurementDate = weightDate.toISOString().split('T')[0];
+    } else if (bodyDate) {
+      lastMeasurementDate = bodyDate.toISOString().split('T')[0];
+    }
+
     return {
       status: HttpStatus.OK,
       messageEn: 'Trainee dashboard data retrieved successfully',
@@ -96,6 +135,7 @@ export class TraineeDashboardService {
         weightChange30Days,
         activePlan: activePlanTitle,
         completionPercentage,
+        lastMeasurementDate,
       },
     };
   }
