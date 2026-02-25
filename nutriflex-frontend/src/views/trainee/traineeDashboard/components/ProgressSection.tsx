@@ -1,7 +1,9 @@
 import { useMemo, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router'
 import Chart from '@/components/shared/Chart'
 import Card from '@/components/ui/Card'
 import Checkbox from '@/components/ui/Checkbox'
+import Button from '@/components/ui/Button/Button'
 import {
     PiChartBarDuotone,
     PiRulerDuotone,
@@ -36,6 +38,8 @@ interface Props {
 
 /** Progress section for trainee dashboard: weight change summary, weight history chart, body measurements chart. */
 export default function ProgressSection({ data: progressData }: Props) {
+    const navigate = useNavigate()
+
     const [selectedBodyTypes, setSelectedBodyTypes] = useState<
         ('waist' | 'chest' | 'hips' | 'arm' | 'thigh')[]
     >(['waist', 'chest', 'hips', 'arm', 'thigh'])
@@ -243,10 +247,26 @@ export default function ProgressSection({ data: progressData }: Props) {
             {hasWeightData ? (
                 <Card>
                     <div className="p-6">
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <PiChartBarDuotone className="w-5 h-5" />
-                            Weight History
-                        </h3>
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <PiChartBarDuotone className="w-5 h-5" />
+                                Weight History
+                            </h3>
+                            <Button
+                                size="sm"
+                                variant="solid"
+                                onClick={() =>
+                                    navigate('/profile', {
+                                        state: {
+                                            activeTab: 'bodyMeasurements',
+                                            focusField: 'weight',
+                                        },
+                                    })
+                                }
+                            >
+                                Update Weight
+                            </Button>
+                        </div>
                         <Chart
                             type="line"
                             series={weightChartData.series}
@@ -285,10 +305,23 @@ export default function ProgressSection({ data: progressData }: Props) {
             {hasBodyMeasurementsData ? (
                 <Card>
                     <div className="p-6">
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <PiRulerDuotone className="w-5 h-5" />
-                            Body Measurements
-                        </h3>
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <PiRulerDuotone className="w-5 h-5" />
+                                Body Measurements
+                            </h3>
+                            <Button
+                                size="sm"
+                                variant="solid"
+                                onClick={() =>
+                                    navigate('/profile', {
+                                        state: { activeTab: 'bodyMeasurements' },
+                                    })
+                                }
+                            >
+                                Update Measurements
+                            </Button>
+                        </div>
                         <Checkbox.Group
                             value={selectedBodyTypes}
                             onChange={(next) => handleBodyTypesChange(next as string[])}

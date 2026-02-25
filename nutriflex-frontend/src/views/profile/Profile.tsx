@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router'
 import { useSessionUser } from '@/store/authStore'
 import ApiService from '@/services/ApiService'
 import toast from '@/components/ui/toast'
@@ -17,6 +18,7 @@ type TraineeDashboardResponse = ApiResponse<TraineeDashboardData>
 type GenericResponse = ApiResponse<Record<string, unknown> | null>
 
 const Profile = () => {
+    const location = useLocation()
     const { fullName, email, role } = useSessionUser((state) => state.user)
     const setUser = useSessionUser((state) => state.setUser)
 
@@ -97,6 +99,17 @@ const Profile = () => {
                         )
                     setTraineeStats(traineeRes.data)
                 }
+
+                // If we navigated here with a desired tab (e.g. from dashboard),
+                // activate it once profile & role are known.
+                const desiredTab =
+                    (location.state as { activeTab?: string; focusField?: string } | null)
+                        ?.activeTab
+                if (res.data.role === 'TRAINEE' && desiredTab === 'bodyMeasurements') {
+                    setActiveTab('bodyMeasurements')
+                    // Optional: clear the navigation state so back/forward don't re-trigger.
+                    window.history.replaceState({}, '')
+                }
             } catch (e) {
                 setError('Unable to load profile details.')
             } finally {
@@ -105,7 +118,7 @@ const Profile = () => {
         }
 
         fetchProfile()
-    }, [])
+    }, [location.state])
 
     useEffect(() => {
         setAccountName(fullName || '')
@@ -430,14 +443,18 @@ const Profile = () => {
                                 </span>
                             )}
 
-                            <div className="w-full text-left text-sm text-gray-600 dark:text-gray-300 space-y-2 mt-2">
+                            <div className="w-full text-left text-sm text-gray-600 dark:text-gray-300 space-y-3 mt-3">
                                 {email && (
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">Email:</span>
-                                        <span>{email}</span>
+                                    <div className="space-y-0.5">
+                                        <div className="text-xs font-medium text-gray-500">
+                                            Email
+                                        </div>
+                                        <div className="text-sm break-all text-gray-700 dark:text-gray-200">
+                                            {email}
+                                        </div>
                                     </div>
                                 )}
-                                <div className="text-xs text-gray-500 mt-2">
+                                <div className="text-xs text-gray-500">
                                     Full access based on your Nutriflex role and
                                     permissions.
                                 </div>
