@@ -8,7 +8,7 @@ import {
 } from '@/services/CoachService'
 import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
-import Tag from '@/components/ui/Tag'
+import Progress from '@/components/ui/Progress/Progress'
 import {
     PiUsersThreeDuotone,
     PiUserCircleDuotone,
@@ -104,6 +104,26 @@ const CoachDashboard = () => {
         return `${Math.floor(diffDays / 30)} months ago`
     }
 
+    const totalAssigned =
+        data?.assignedTrainees ?? overview?.assignedTrainees ?? 0
+    const activeCount =
+        data?.activeTrainees ?? overview?.activeTrainees ?? 0
+    const inactiveCount =
+        data?.inactiveTrainees ?? overview?.inactiveTrainees ?? 0
+    const totalPlans = overview?.plansCreated ?? data?.plansCreated ?? 0
+    const activePlans = overview?.activePlans ?? 0
+    const draftPlans = overview?.draftPlans ?? 0
+    const archivedPlans = overview?.archivedPlans ?? 0
+
+    const percent = (value: number, total: number) =>
+        total > 0 ? Math.round((value / total) * 100) : 0
+
+    const activeTraineesPercent = percent(activeCount, totalAssigned)
+    const inactiveTraineesPercent = percent(inactiveCount, totalAssigned)
+    const activePlansPercent = percent(activePlans, totalPlans)
+    const draftPlansPercent = percent(draftPlans, totalPlans)
+    const archivedPlansPercent = percent(archivedPlans, totalPlans)
+
     if (loading) {
         return <CustomIndicator />
     }
@@ -129,124 +149,184 @@ const CoachDashboard = () => {
                 </p>
             </div>
 
-            {/* Statistics Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Assigned Trainees - Prominent */}
-                {(data?.assignedTrainees !== undefined ||
-                    overview?.assignedTrainees !== undefined) && (
-                    <Card className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 border-0 shadow-lg">
-                        <div className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-sm font-semibold text-blue-100 mb-2">
-                                        Assigned Trainees
-                                    </h3>
-                                    <p className="text-4xl font-bold text-white">
-                                        {data?.assignedTrainees ??
-                                            overview?.assignedTrainees ??
-                                            0}
-                                    </p>
-                                    {(data?.activeTrainees !== undefined ||
-                                        overview?.activeTrainees !== undefined) && (
-                                        <p className="text-sm text-blue-100 mt-2">
-                                            {data?.activeTrainees ??
-                                                overview?.activeTrainees ??
-                                                0}{' '}
-                                            active
+            {/* Summary Cards – two columns on desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Plans Created & Status Distribution (with circular summary) */}
+                {totalPlans > 0 && (
+                    <Card className="h-full">
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                                            Plans Created
+                                        </h3>
+                                        <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                                            {totalPlans}
                                         </p>
-                                    )}
+                                    </div>
+                                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                        <PiClipboardTextDuotone className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                    </div>
                                 </div>
-                                <div className="p-4 bg-white/20 rounded-full">
-                                    <PiUsersThreeDuotone className="w-10 h-10 text-white" />
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Distribution of your plans by status
+                                </p>
+                                <div className="mt-2 space-y-2">
+                                    <div>
+                                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                            <span className="flex items-center gap-1">
+                                                <PiPlayCircleDuotone className="w-3 h-3 text-green-500" />
+                                                Active
+                                            </span>
+                                            <span className="font-semibold text-green-600 dark:text-green-400">
+                                                {activePlansPercent}%
+                                            </span>
+                                        </div>
+                                        <Progress
+                                            percent={activePlansPercent}
+                                            variant="line"
+                                            customColorClass="bg-green-500"
+                                            showInfo={false}
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                            <span className="flex items-center gap-1">
+                                                <PiClipboardTextDuotone className="w-3 h-3 text-yellow-500" />
+                                                Draft
+                                            </span>
+                                            <span className="font-semibold text-yellow-600 dark:text-yellow-400">
+                                                {draftPlansPercent}%
+                                            </span>
+                                        </div>
+                                        <Progress
+                                            percent={draftPlansPercent}
+                                            variant="line"
+                                            customColorClass="bg-yellow-500"
+                                            showInfo={false}
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                            <span className="flex items-center gap-1">
+                                                <PiChartLineUpDuotone className="w-3 h-3 text-gray-500" />
+                                                Inactive
+                                            </span>
+                                            <span className="font-semibold text-gray-600 dark:text-gray-300">
+                                                {archivedPlansPercent}%
+                                            </span>
+                                        </div>
+                                        <Progress
+                                            percent={archivedPlansPercent}
+                                            variant="line"
+                                            customColorClass="bg-gray-400"
+                                            showInfo={false}
+                                        />
+                                    </div>
                                 </div>
+                            </div>
+                            <div className="flex items-center justify-center">
+                                <Progress
+                                    variant="circle"
+                                    percent={activePlansPercent}
+                                    customColorClass="text-green-500"
+                                    width={140}
+                                    customInfo={
+                                        <div className="flex flex-col items-center text-xs font-semibold text-gray-900 dark:text-gray-100">
+                                            <span className="text-lg">
+                                                {activePlansPercent}%
+                                            </span>
+                                            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                                Active Plans
+                                            </span>
+                                        </div>
+                                    }
+                                />
                             </div>
                         </div>
                     </Card>
                 )}
 
-                {/* Active Trainees */}
-                {(data?.activeTrainees !== undefined ||
-                    overview?.activeTrainees !== undefined) && (
-                    <Card>
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                                    Active Trainees
-                                </h3>
-                                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                                    <PiUserCircleDuotone className="w-5 h-5 text-green-600 dark:text-green-400" />
+                {/* Trainees Status (Active vs Inactive) */}
+                {totalAssigned > 0 && (
+                    <Card className="h-full">
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                                            Trainees Status
+                                        </h3>
+                                        <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                                            {totalAssigned}{' '}
+                                            <span className="text-base font-medium text-gray-500 dark:text-gray-400">
+                                                total
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                        <PiUsersThreeDuotone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Breakdown of active vs inactive trainees
+                                </p>
+                                <div className="mt-2 space-y-3">
+                                    <div>
+                                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                            <span className="flex items-center gap-1">
+                                                <PiUserCircleDuotone className="w-3 h-3 text-green-500" />
+                                                Active ({activeCount})
+                                            </span>
+                                            <span className="font-semibold text-green-600 dark:text-green-400">
+                                                {activeTraineesPercent}%
+                                            </span>
+                                        </div>
+                                        <Progress
+                                            percent={activeTraineesPercent}
+                                            variant="line"
+                                            customColorClass="bg-green-500"
+                                            showInfo={false}
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                            <span className="flex items-center gap-1">
+                                                <PiUserCircleDuotone className="w-3 h-3 text-gray-400" />
+                                                Inactive ({inactiveCount})
+                                            </span>
+                                            <span className="font-semibold text-gray-600 dark:text-gray-300">
+                                                {inactiveTraineesPercent}%
+                                            </span>
+                                        </div>
+                                        <Progress
+                                            percent={inactiveTraineesPercent}
+                                            variant="line"
+                                            customColorClass="bg-gray-400"
+                                            showInfo={false}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                {data?.activeTrainees ??
-                                    overview?.activeTrainees ??
-                                    0}
-                            </p>
-                            {(data?.inactiveTrainees !== undefined ||
-                                overview?.inactiveTrainees !== undefined) && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {data?.inactiveTrainees ??
-                                        overview?.inactiveTrainees ??
-                                        0}{' '}
-                                    inactive
-                                </p>
-                            )}
-                        </div>
-                    </Card>
-                )}
-
-                {/* Plans Created */}
-                {(data?.plansCreated !== undefined ||
-                    overview?.plansCreated !== undefined) && (
-                    <Card>
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                                    Plans Created
-                                </h3>
-                                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                                    <PiClipboardTextDuotone className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                </div>
+                            <div className="flex items-center justify-center">
+                                <Progress
+                                    variant="circle"
+                                    percent={activeTraineesPercent}
+                                    customColorClass="text-green-500"
+                                    width={140}
+                                    customInfo={
+                                        <div className="flex flex-col items-center text-xs font-semibold text-gray-900 dark:text-gray-100">
+                                            <span className="text-lg">
+                                                {activeTraineesPercent}%
+                                            </span>
+                                            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                                Active Trainees
+                                            </span>
+                                        </div>
+                                    }
+                                />
                             </div>
-                            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                {data?.plansCreated ?? overview?.plansCreated ?? 0}
-                            </p>
-                            {(data?.completedPlans !== undefined ||
-                                overview?.completedPlans !== undefined) && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {data?.completedPlans ??
-                                        overview?.completedPlans ??
-                                        0}{' '}
-                                    completed
-                                </p>
-                            )}
-                        </div>
-                    </Card>
-                )}
-
-                {/* Completed Plans */}
-                {(data?.completedPlans !== undefined ||
-                    overview?.completedPlans !== undefined) && (
-                    <Card>
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                                    Completed Plans
-                                </h3>
-                                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                                    <PiCheckCircleDuotone className="w-5 h-5 text-green-600 dark:text-green-400" />
-                                </div>
-                            </div>
-                            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                {data?.completedPlans ??
-                                    overview?.completedPlans ??
-                                    0}
-                            </p>
-                            {overview?.activePlans !== undefined && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {overview.activePlans} active plans
-                                </p>
-                            )}
                         </div>
                     </Card>
                 )}

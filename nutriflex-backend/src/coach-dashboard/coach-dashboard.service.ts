@@ -161,12 +161,26 @@ export class CoachDashboardService {
     const inactiveTrainees = assignedTrainees - activeTrainees;
 
     // Plan statistics (all filtered by coach_id)
-    const plansCreated = await this.nutritionPlanRepo.count({
+    // Fetch statuses once and derive counts in code to be robust to legacy casing differences.
+    const coachPlans = await this.nutritionPlanRepo.find({
       where: { coach_id: coachId },
+      select: ['status'],
     });
 
-    const activePlans = await this.nutritionPlanRepo.count({
-      where: { coach_id: coachId, status: NutritionPlanStatus.ACTIVE },
+    const plansCreated = coachPlans.length;
+    let activePlans = 0;
+    let draftPlans = 0;
+    let archivedPlans = 0;
+
+    coachPlans.forEach((plan) => {
+      const status = String(plan.status).toLowerCase();
+      if (status === NutritionPlanStatus.ACTIVE) {
+        activePlans += 1;
+      } else if (status === NutritionPlanStatus.DRAFT) {
+        draftPlans += 1;
+      } else if (status === NutritionPlanStatus.ARCHIVED) {
+        archivedPlans += 1;
+      }
     });
 
     // Completed plans = completed statuses for trainees assigned to this coach
@@ -197,6 +211,8 @@ export class CoachDashboardService {
         plansCreated,
         activePlans,
         completedPlans,
+        draftPlans,
+        archivedPlans,
       },
     };
   }

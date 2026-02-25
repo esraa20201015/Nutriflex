@@ -18,6 +18,9 @@ import { RolesGuard } from '../auth/roles.guard';
 import { UsersService } from '../users/users.service';
 import { toDataUrl } from '../common/utils/image.util';
 import { BodyMeasurementService } from '../body-measurement/body-measurement.service';
+import { HealthMetricService } from '../health-metric/health-metric.service';
+import { HealthMetricType } from '../health-metric/enums/health-metric-type.enum';
+import { CreateHealthMetricDto } from '../health-metric/dto/health-metric.dto';
 
 class UpdateCurrentProfileDto {
   fullName?: string;
@@ -40,6 +43,7 @@ export class CurrentProfileController {
     private readonly traineeProfilesRepo: TraineeProfilesRepo,
     private readonly usersService: UsersService,
     private readonly bodyMeasurementService: BodyMeasurementService,
+    private readonly healthMetricService: HealthMetricService,
   ) {}
 
   @Get('me')
@@ -258,6 +262,18 @@ export class CurrentProfileController {
         { user_id: traineeId },
         updateProfilePayload,
       );
+    }
+
+    // Also append a weight health metric entry when weight is provided
+    if (body.weightKg !== undefined && body.weightKg !== null) {
+      const weightMetricPayload: CreateHealthMetricDto = {
+        trainee_id: traineeId,
+        metric_type: HealthMetricType.WEIGHT,
+        value: body.weightKg,
+        unit: 'kg',
+        recorded_date: nowIso,
+      };
+      await this.healthMetricService.create(weightMetricPayload);
     }
 
     const updatedProfile = await this.traineeProfilesRepo.findOne({

@@ -21,6 +21,9 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { toDataUrl } from '../common/utils/image.util';
 import { BodyMeasurementService } from '../body-measurement/body-measurement.service';
 import { CreateBodyMeasurementDto } from '../body-measurement/dto/body-measurement.dto';
+import { HealthMetricService } from '../health-metric/health-metric.service';
+import { HealthMetricType } from '../health-metric/enums/health-metric-type.enum';
+import { CreateHealthMetricDto } from '../health-metric/dto/health-metric.dto';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +35,7 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
     private readonly bodyMeasurementService: BodyMeasurementService,
+    private readonly healthMetricService: HealthMetricService,
   ) {}
 
   async signUp(dto: SignUpDto) {
@@ -165,6 +169,19 @@ export class AuthService {
         await this.usersService.update(createdUser.id, {
           avatarUrl: toDataUrl(tp.avatarBase64),
         });
+      }
+
+      // Create initial weight health metric if weight is provided
+      if (tp.weightKg !== undefined && tp.weightKg !== null) {
+        const nowIso = new Date().toISOString();
+        const metricPayload: CreateHealthMetricDto = {
+          trainee_id: createdUser.id,
+          metric_type: HealthMetricType.WEIGHT,
+          value: tp.weightKg,
+          unit: 'kg',
+          recorded_date: nowIso,
+        };
+        await this.healthMetricService.create(metricPayload);
       }
 
       // Create the initial body measurement history row if provided

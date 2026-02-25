@@ -93,6 +93,10 @@ export type CoachOverviewData = {
     plansCreated: number
     activePlans: number
     completedPlans: number
+    /** Plans with status draft for this coach */
+    draftPlans?: number
+    /** Plans with status archived (inactive) for this coach */
+    archivedPlans?: number
 }
 
 export type CoachTraineeProgressItem = {

@@ -13,6 +13,7 @@ import { AuthModule } from '../auth/auth.module';
 import { CurrentProfileController } from './current-profile.controller';
 import { UsersModule } from '../users/users.module';
 import { BodyMeasurementModule } from '../body-measurement/body-measurement.module';
+import { HealthMetricModule } from '../health-metric/health-metric.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { BodyMeasurementModule } from '../body-measurement/body-measurement.modu
     forwardRef(() => AuthModule),
     forwardRef(() => UsersModule),
     BodyMeasurementModule,
+    HealthMetricModule,
   ],
   controllers: [CoachProfilesController, TraineeProfilesController, CurrentProfileController],
   providers: [
