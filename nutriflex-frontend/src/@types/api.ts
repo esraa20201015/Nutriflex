@@ -102,9 +102,13 @@ export type CoachOverviewData = {
 export type CoachTraineeProgressItem = {
     traineeId: string
     name: string
+    /** Optional avatar URL for this trainee (from users table) */
+    avatarUrl?: string | null
     currentWeight: number | null
     weightChange30Days: number | null
     completionRate: number
+    /** How many plans this trainee has completed in total */
+    completedPlansCount?: number
     lastActivity: string | null
 }
 

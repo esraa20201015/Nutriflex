@@ -104,6 +104,15 @@ const CoachDashboard = () => {
         return `${Math.floor(diffDays / 30)} months ago`
     }
 
+    const getInitials = (name: string) => {
+        if (!name) return '?'
+        const parts = name.split(' ').filter(Boolean)
+        const first = parts[0]?.[0] ?? ''
+        const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+        const letters = `${first}${last}`.toUpperCase()
+        return letters || '?'
+    }
+
     const totalAssigned =
         data?.assignedTrainees ?? overview?.assignedTrainees ?? 0
     const activeCount =
@@ -418,6 +427,9 @@ const CoachDashboard = () => {
                                             Completion Rate
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                            Completed Plans
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                             Last Activity
                                         </th>
                                     </tr>
@@ -438,8 +450,18 @@ const CoachDashboard = () => {
                                             >
                                                 {/* Trainee Name */}
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center gap-2">
-                                                        <PiUserCircleDuotone className="w-5 h-5 text-gray-400" />
+                                                    <div className="flex items-center gap-3">
+                                                        {trainee.avatarUrl ? (
+                                                            <img
+                                                                src={trainee.avatarUrl}
+                                                                alt={trainee.name}
+                                                                className="h-8 w-8 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+                                                            />
+                                                        ) : (
+                                                            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-xs font-semibold text-blue-700 dark:text-blue-200">
+                                                                {getInitials(trainee.name)}
+                                                            </div>
+                                                        )}
                                                         <div>
                                                             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                                 {trainee.name}
@@ -523,6 +545,13 @@ const CoachDashboard = () => {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                </td>
+
+                                                {/* Completed plans count */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                        {trainee.completedPlansCount ?? 0}
+                                                    </span>
                                                 </td>
 
                                                 {/* Last Activity */}

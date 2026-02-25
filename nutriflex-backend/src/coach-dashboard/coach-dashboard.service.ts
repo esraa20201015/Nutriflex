@@ -251,6 +251,17 @@ export class CoachDashboardService {
       profileMap.set(profile.user_id, profile.full_name);
     });
 
+    // Get user avatars for initials/avatar rendering
+    const traineeUsers = await this.userRepo.find({
+      where: { id: In(traineeIds) },
+      select: ['id', 'avatarUrl'],
+    });
+
+    const avatarMap = new Map<string, string | null>();
+    traineeUsers.forEach((user) => {
+      avatarMap.set(user.id, user.avatarUrl ?? null);
+    });
+
     // Get current weight (latest weight metric per trainee)
     const currentWeights = await this.healthMetricRepo
       .createQueryBuilder('hm')
@@ -296,21 +307,28 @@ export class CoachDashboardService {
       weight30DaysAgoMap.set(w.trainee_id, parseFloat(w.value.toString()));
     });
 
-    // Get latest completion rate per trainee
-    const latestPlanStatuses = await this.traineePlanStatusRepo
+    // Aggregate completion per trainee based on completed vs total plans
+    const planCompletionAgg = await this.traineePlanStatusRepo
       .createQueryBuilder('tps')
       .select('tps.trainee_id', 'trainee_id')
-      .addSelect('tps.completion_percentage', 'completion_percentage')
-      .addSelect('MAX(tps.last_updated)', 'max_updated')
+      .addSelect('COUNT(*)', 'total_plans')
+      .addSelect(
+        'SUM(CASE WHEN tps.status = :completed THEN 1 ELSE 0 END)',
+        'completed_plans',
+      )
       .where('tps.trainee_id IN (:...ids)', { ids: traineeIds })
+      .setParameter('completed', TraineePlanStatusEnum.COMPLETED)
       .groupBy('tps.trainee_id')
-      .addGroupBy('tps.completion_percentage')
-      .having('MAX(tps.last_updated) = (SELECT MAX(tps2.last_updated) FROM trainee_plan_status tps2 WHERE tps2.trainee_id = tps.trainee_id)', {})
-      .getRawMany<{ trainee_id: string; completion_percentage: number }>();
+      .getRawMany<{ trainee_id: string; total_plans: string; completed_plans: string }>();
 
     const completionMap = new Map<string, number>();
-    latestPlanStatuses.forEach((ps) => {
-      completionMap.set(ps.trainee_id, ps.completion_percentage || 0);
+    const completedPlansMap = new Map<string, number>();
+    planCompletionAgg.forEach((row) => {
+      const total = Number.parseInt(row.total_plans, 10) || 0;
+      const completed = Number.parseInt(row.completed_plans, 10) || 0;
+      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+      completionMap.set(row.trainee_id, rate);
+      completedPlansMap.set(row.trainee_id, completed);
     });
 
     // Get last activity date (from health_metric, body_measurement, or trainee_plan_status)
@@ -369,13 +387,16 @@ export class CoachDashboardService {
           : null;
       const completionRate = completionMap.get(traineeId) || 0;
       const lastActivity = lastActivityMap.get(traineeId);
+      const completedPlansCount = completedPlansMap.get(traineeId) || 0;
 
       return {
         traineeId,
         name,
+        avatarUrl: avatarMap.get(traineeId) ?? null,
         currentWeight,
         weightChange30Days,
         completionRate,
+        completedPlansCount,
         lastActivity: lastActivity ? lastActivity.toISOString().split('T')[0] : null,
       };
     });
