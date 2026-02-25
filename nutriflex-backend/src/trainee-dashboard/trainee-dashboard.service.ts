@@ -246,15 +246,13 @@ export class TraineeDashboardService {
         ? Number(profile.weight_kg)
         : null;
 
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
+    // Fetch full weight history for the trainee (no time window) so the chart
+    // can display all recorded points over time.
     const weightHistoryRaw = await this.healthMetricRepo
       .createQueryBuilder('hm')
       .select(['hm.recorded_date AS date', 'hm.value AS value'])
       .where('hm.trainee_id = :traineeId', { traineeId })
       .andWhere('hm.metric_type = :type', { type: HealthMetricType.WEIGHT })
-      .andWhere('hm.recorded_date >= :from', { from: ninetyDaysAgo })
       .orderBy('hm.recorded_date', 'ASC')
       .getRawMany<{ date: Date; value: string | number }>();
 

@@ -3,7 +3,6 @@ import { apiGetCoachTraineesProgress } from '@/services/CoachService'
 import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
 import Tag from '@/components/ui/Tag'
-import Avatar from '@/components/ui/Avatar'
 import {
     PiTrendDownDuotone,
     PiTrendUpDuotone,
@@ -49,6 +48,15 @@ const MyTrainees = () => {
             day: 'numeric',
             year: 'numeric',
         })
+    }
+
+    const getInitials = (name: string) => {
+        if (!name) return '?'
+        const parts = name.split(' ').filter(Boolean)
+        const first = parts[0]?.[0] ?? ''
+        const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+        const letters = `${first}${last}`.toUpperCase()
+        return letters || '?'
     }
 
     // Get relative date (e.g., "3 days ago")
@@ -209,19 +217,20 @@ const MyTrainees = () => {
                                             {/* Trainee Name */}
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-3">
-                                                    <Avatar
-                                                        size={40}
-                                                        shape="circle"
-                                                        icon={
-                                                            <PiUserCircleDuotone className="text-lg" />
-                                                        }
-                                                    />
+                                                    {trainee.avatarUrl ? (
+                                                        <img
+                                                            src={trainee.avatarUrl}
+                                                            alt={trainee.name}
+                                                            className="h-10 w-10 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+                                                        />
+                                                    ) : (
+                                                        <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-sm font-semibold text-blue-700 dark:text-blue-200">
+                                                            {getInitials(trainee.name)}
+                                                        </div>
+                                                    )}
                                                     <div>
                                                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                             {trainee.name}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                            ID: {trainee.traineeId.slice(0, 8)}...
                                                         </p>
                                                     </div>
                                                 </div>

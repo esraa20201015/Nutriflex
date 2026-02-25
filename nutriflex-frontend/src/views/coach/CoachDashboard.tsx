@@ -372,7 +372,7 @@ const CoachDashboard = () => {
                                                 <PiWarningDuotone className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                                                 <div className="flex-1">
                                                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                        {trainee?.name || alert.traineeId}
+                                                        {trainee?.name || 'Unknown trainee'}
                                                     </p>
                                                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                                         {alert.reason}
@@ -465,9 +465,6 @@ const CoachDashboard = () => {
                                                         <div>
                                                             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                                 {trainee.name}
-                                                            </p>
-                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                ID: {trainee.traineeId.slice(0, 8)}...
                                                             </p>
                                                         </div>
                                                     </div>

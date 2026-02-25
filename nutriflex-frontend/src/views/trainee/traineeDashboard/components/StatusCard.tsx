@@ -37,13 +37,8 @@ export default function StatusCard({ data }: Props) {
             iconBg: 'bg-primary-subtle dark:bg-primary/15',
             iconColor: 'text-primary',
         },
-        {
-            icon: PiUserCircleDuotone,
-            label: 'Coach',
-            value: data.coachName ?? '—',
-            iconBg: 'bg-info-subtle dark:bg-info/15',
-            iconColor: 'text-info',
-        },
+        // Coach name is intentionally not shown here, because it already
+        // appears in the top Overview card on the dashboard.
     ]
 
     return (
