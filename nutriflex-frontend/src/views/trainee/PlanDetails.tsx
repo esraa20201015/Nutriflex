@@ -54,11 +54,16 @@ const PlanDetails = () => {
                 // Initialize item-level statuses (use persisted completion when available)
                 const exercises = planResponse.data.planExercises || []
                 const meals = planResponse.data.meals || []
+                const completionStatus: any =
+                    planResponse.data.completionStatus || {}
                 const completedExerciseIds =
-                    planResponse.data.completionStatus
-                        ?.completed_exercise_ids || []
+                    (completionStatus.completed_exercise_ids as
+                        | string[]
+                        | undefined) || []
                 const completedMealIds =
-                    planResponse.data.completionStatus?.completed_meal_ids || []
+                    (completionStatus.completed_meal_ids as
+                        | string[]
+                        | undefined) || []
                 setExerciseStatuses(
                     exercises.reduce(
                         (acc, ex) => ({
@@ -268,10 +273,6 @@ const PlanDetails = () => {
                                       updated.completion_percentage,
                                   status: updated.status,
                                   last_updated: updated.last_updated,
-                                  completed_exercise_ids:
-                                      updated.completed_exercise_ids || [],
-                                  completed_meal_ids:
-                                      updated.completed_meal_ids || [],
                               },
                           }
                         : prev,
@@ -466,11 +467,7 @@ const PlanDetails = () => {
                                         'active' && (
                                         <Button
                                             size="sm"
-                                            variant={
-                                                canStartPlan
-                                                    ? 'solid'
-                                                    : 'twoTone'
-                                            }
+                                            variant={canStartPlan ? 'solid' : 'plain'}
                                             disabled={!canStartPlan || starting}
                                             loading={starting}
                                             onClick={handleStartPlan}
@@ -571,22 +568,26 @@ const PlanDetails = () => {
                                                     <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                                                         {ex.name}
                                                     </h4>
-                                                    <Tag
-                                                        className={`text-xs border-0 cursor-pointer ${
-                                                            exerciseStatuses[ex.id] ===
-                                                            'completed'
-                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                                                        }`}
+                                                    <div
+                                                        className="cursor-pointer inline-flex"
                                                         onClick={() =>
                                                             toggleExerciseStatus(ex.id)
                                                         }
                                                     >
-                                                        {exerciseStatuses[ex.id] ===
-                                                        'completed'
-                                                            ? 'Completed'
-                                                            : 'Pending'}
-                                                    </Tag>
+                                                        <Tag
+                                                            className={`text-xs border-0 ${
+                                                                exerciseStatuses[ex.id] ===
+                                                                'completed'
+                                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                                            }`}
+                                                        >
+                                                            {exerciseStatuses[ex.id] ===
+                                                            'completed'
+                                                                ? 'Completed'
+                                                                : 'Pending'}
+                                                        </Tag>
+                                                    </div>
                                                 </div>
                                             <p className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-3">
                                                 {ex.exercise_type}
@@ -714,26 +715,30 @@ const PlanDetails = () => {
                                                                 <h5 className="font-semibold text-gray-900 dark:text-gray-100">
                                                                     {meal.name}
                                                                 </h5>
-                                                                <Tag
-                                                                    className={`text-xs border-0 cursor-pointer ${
-                                                                        mealStatuses[
-                                                                            meal.id
-                                                                        ] === 'completed'
-                                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                                                                    }`}
+                                                                <div
+                                                                    className="cursor-pointer inline-flex"
                                                                     onClick={() =>
                                                                         toggleMealStatus(
                                                                             meal.id,
                                                                         )
                                                                     }
                                                                 >
-                                                                    {mealStatuses[
-                                                                        meal.id
-                                                                    ] === 'completed'
-                                                                        ? 'Completed'
-                                                                        : 'Pending'}
-                                                                </Tag>
+                                                                    <Tag
+                                                                        className={`text-xs border-0 ${
+                                                                            mealStatuses[
+                                                                                meal.id
+                                                                            ] === 'completed'
+                                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                                                        }`}
+                                                                    >
+                                                                        {mealStatuses[
+                                                                            meal.id
+                                                                        ] === 'completed'
+                                                                            ? 'Completed'
+                                                                            : 'Pending'}
+                                                                    </Tag>
+                                                                </div>
                                                             </div>
                                                         {meal.instructions && (
                                                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
