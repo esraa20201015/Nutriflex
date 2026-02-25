@@ -4,6 +4,7 @@ import {
     apiGetTraineePlanDetails,
     apiGetTraineePlanStatus,
     apiStartTraineePlan,
+    apiUpdateTraineePlanProgress,
 } from '@/services/TraineeService'
 import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
@@ -50,18 +51,33 @@ const PlanDetails = () => {
                     apiGetTraineePlanStatus(id).catch(() => null), // Optional
                 ])
                 setPlan(planResponse.data)
-                // Initialize item-level statuses as pending
+                // Initialize item-level statuses (use persisted completion when available)
                 const exercises = planResponse.data.planExercises || []
                 const meals = planResponse.data.meals || []
+                const completedExerciseIds =
+                    planResponse.data.completionStatus
+                        ?.completed_exercise_ids || []
+                const completedMealIds =
+                    planResponse.data.completionStatus?.completed_meal_ids || []
                 setExerciseStatuses(
                     exercises.reduce(
-                        (acc, ex) => ({ ...acc, [ex.id]: 'pending' as const }),
+                        (acc, ex) => ({
+                            ...acc,
+                            [ex.id]: completedExerciseIds.includes(ex.id)
+                                ? 'completed'
+                                : 'pending',
+                        }),
                         {} as Record<string, 'pending' | 'completed'>,
                     ),
                 )
                 setMealStatuses(
                     meals.reduce(
-                        (acc, meal) => ({ ...acc, [meal.id]: 'pending' as const }),
+                        (acc, meal) => ({
+                            ...acc,
+                            [meal.id]: completedMealIds.includes(meal.id)
+                                ? 'completed'
+                                : 'pending',
+                        }),
                         {} as Record<string, 'pending' | 'completed'>,
                     ),
                 )
@@ -218,20 +234,90 @@ const PlanDetails = () => {
         return Math.round((completedItems / totalItems) * 100)
     }, [plan, exerciseStatuses, mealStatuses, isCompleted])
 
+    const syncPlanProgress = useCallback(
+        async (
+            nextExerciseStatuses: Record<string, 'pending' | 'completed'>,
+            nextMealStatuses: Record<string, 'pending' | 'completed'>,
+        ) => {
+            if (!id) return
+            try {
+                const completedExerciseIds = Object.entries(
+                    nextExerciseStatuses,
+                )
+                    .filter(([, value]) => value === 'completed')
+                    .map(([key]) => key)
+
+                const completedMealIds = Object.entries(nextMealStatuses)
+                    .filter(([, value]) => value === 'completed')
+                    .map(([key]) => key)
+
+                const response = await apiUpdateTraineePlanProgress({
+                    planId: id,
+                    completedExerciseIds,
+                    completedMealIds,
+                })
+
+                const updated = response.data
+
+                setPlan((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              completionStatus: {
+                                  completion_percentage:
+                                      updated.completion_percentage,
+                                  status: updated.status,
+                                  last_updated: updated.last_updated,
+                                  completed_exercise_ids:
+                                      updated.completed_exercise_ids || [],
+                                  completed_meal_ids:
+                                      updated.completed_meal_ids || [],
+                              },
+                          }
+                        : prev,
+                )
+                if (status) {
+                    setStatus({
+                        ...status,
+                        completion_percentage: updated.completion_percentage,
+                        status: updated.status,
+                        last_updated: updated.last_updated,
+                    })
+                }
+            } catch (err) {
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : 'Failed to update plan progress',
+                )
+            }
+        },
+        [id, status],
+    )
+
     const toggleExerciseStatus = (id: string) => {
         if (!isInProgress || isReadOnly) return
-        setExerciseStatuses((prev) => ({
-            ...prev,
-            [id]: prev[id] === 'completed' ? 'pending' : 'completed',
-        }))
+        setExerciseStatuses((prev) => {
+            const next: Record<string, 'pending' | 'completed'> = {
+                ...prev,
+                [id]: prev[id] === 'completed' ? 'pending' : 'completed',
+            }
+            // Fire and forget API sync; UI already updated optimistically
+            void syncPlanProgress(next, mealStatuses)
+            return next
+        })
     }
 
     const toggleMealStatus = (id: string) => {
         if (!isInProgress || isReadOnly) return
-        setMealStatuses((prev) => ({
-            ...prev,
-            [id]: prev[id] === 'completed' ? 'pending' : 'completed',
-        }))
+        setMealStatuses((prev) => {
+            const next: Record<string, 'pending' | 'completed'> = {
+                ...prev,
+                [id]: prev[id] === 'completed' ? 'pending' : 'completed',
+            }
+            void syncPlanProgress(exerciseStatuses, next)
+            return next
+        })
     }
 
     if (loading) {
@@ -475,32 +561,33 @@ const PlanDetails = () => {
                             {plan.planExercises
                                 .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
                                 .map((ex) => (
-                                    <Card
+                                    <div
                                         key={ex.id}
-                                        className="bg-gray-50 dark:bg-gray-700/50 overflow-hidden"
+                                        className="relative group"
                                     >
-                                        <div className="p-4">
-                                            <div className="flex items-center justify-between gap-3 mb-2">
-                                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                                                    {ex.name}
-                                                </h4>
-                                                <Tag
-                                                    className={`text-xs border-0 cursor-pointer ${
-                                                        exerciseStatuses[ex.id] ===
+                                        <Card className="bg-gray-50 dark:bg-gray-700/50 overflow-hidden">
+                                            <div className="p-4">
+                                                <div className="flex items-center justify-between gap-3 mb-2">
+                                                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                                                        {ex.name}
+                                                    </h4>
+                                                    <Tag
+                                                        className={`text-xs border-0 cursor-pointer ${
+                                                            exerciseStatuses[ex.id] ===
+                                                            'completed'
+                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                                        }`}
+                                                        onClick={() =>
+                                                            toggleExerciseStatus(ex.id)
+                                                        }
+                                                    >
+                                                        {exerciseStatuses[ex.id] ===
                                                         'completed'
-                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                                                    }`}
-                                                    onClick={() =>
-                                                        toggleExerciseStatus(ex.id)
-                                                    }
-                                                >
-                                                    {exerciseStatuses[ex.id] ===
-                                                    'completed'
-                                                        ? 'Completed'
-                                                        : 'Pending'}
-                                                </Tag>
-                                            </div>
+                                                            ? 'Completed'
+                                                            : 'Pending'}
+                                                    </Tag>
+                                                </div>
                                             <p className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-3">
                                                 {ex.exercise_type}
                                                 {ex.sub_category && (
@@ -555,7 +642,33 @@ const PlanDetails = () => {
                                                 )}
                                             </div>
                                         </div>
-                                    </Card>
+                                        </Card>
+                                        {effectiveStatus.planStatus === 'active' && (
+                                            <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="max-w-xs rounded-lg bg-pink-50/95 border border-pink-300 shadow-md px-3 py-2 dark:bg-pink-900/85 dark:border-pink-400">
+                                                    <p className="text-xs sm:text-sm font-semibold text-pink-900 dark:text-pink-50 text-center leading-snug">
+                                                        <span className="block">
+                                                            Finished this exercise?
+                                                        </span>
+                                                        <span className="block mt-1">
+                                                            Click the{' '}
+                                                            <span className="font-bold text-blue-700 dark:text-blue-200">
+                                                                Pending
+                                                            </span>{' '}
+                                                            pill
+                                                        </span>
+                                                        <span className="block mt-1">
+                                                            to mark it as{' '}
+                                                            <span className="font-bold text-green-700 dark:text-green-300">
+                                                                Completed
+                                                            </span>
+                                                            .
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 ))}
                         </div>
                     </div>
@@ -591,36 +704,37 @@ const PlanDetails = () => {
                                         </h4>
                                         <div className="space-y-4">
                                             {meals.map((meal) => (
-                                                <Card
+                                                <div
                                                     key={meal.id}
-                                                    className="bg-gray-50 dark:bg-gray-700/50"
+                                                    className="relative group"
                                                 >
-                                                    <div className="p-4">
-                                                        <div className="flex items-center justify-between gap-3 mb-2">
-                                                            <h5 className="font-semibold text-gray-900 dark:text-gray-100">
-                                                                {meal.name}
-                                                            </h5>
-                                                            <Tag
-                                                                className={`text-xs border-0 cursor-pointer ${
-                                                                    mealStatuses[
+                                                    <Card className="bg-gray-50 dark:bg-gray-700/50">
+                                                        <div className="p-4">
+                                                            <div className="flex items-center justify-between gap-3 mb-2">
+                                                                <h5 className="font-semibold text-gray-900 dark:text-gray-100">
+                                                                    {meal.name}
+                                                                </h5>
+                                                                <Tag
+                                                                    className={`text-xs border-0 cursor-pointer ${
+                                                                        mealStatuses[
+                                                                            meal.id
+                                                                        ] === 'completed'
+                                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                                                    }`}
+                                                                    onClick={() =>
+                                                                        toggleMealStatus(
+                                                                            meal.id,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {mealStatuses[
                                                                         meal.id
                                                                     ] === 'completed'
-                                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                                                                }`}
-                                                                onClick={() =>
-                                                                    toggleMealStatus(
-                                                                        meal.id,
-                                                                    )
-                                                                }
-                                                            >
-                                                                {mealStatuses[
-                                                                    meal.id
-                                                                ] === 'completed'
-                                                                    ? 'Completed'
-                                                                    : 'Pending'}
-                                                            </Tag>
-                                                        </div>
+                                                                        ? 'Completed'
+                                                                        : 'Pending'}
+                                                                </Tag>
+                                                            </div>
                                                         {meal.instructions && (
                                                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                                                                 {meal.instructions}
@@ -669,7 +783,33 @@ const PlanDetails = () => {
                                                             )}
                                                         </div>
                                                     </div>
-                                                </Card>
+                                                    </Card>
+                                                    {effectiveStatus.planStatus === 'active' && (
+                                                        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="max-w-xs rounded-lg bg-pink-50/95 border border-pink-300 shadow-md px-3 py-2 dark:bg-pink-900/85 dark:border-pink-400">
+                                                                <p className="text-xs sm:text-sm font-semibold text-pink-900 dark:text-pink-50 text-center leading-snug">
+                                                                    <span className="block">
+                                                                        Finished this meal?
+                                                                    </span>
+                                                                    <span className="block mt-1">
+                                                                        Click the{' '}
+                                                                        <span className="font-bold text-blue-700 dark:text-blue-200">
+                                                                            Pending
+                                                                        </span>{' '}
+                                                                        pill
+                                                                    </span>
+                                                                    <span className="block mt-1">
+                                                                        to mark it as{' '}
+                                                                        <span className="font-bold text-green-700 dark:text-green-300">
+                                                                            Completed
+                                                                        </span>
+                                                                        .
+                                                                    </span>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             ))}
                                         </div>
                                     </div>

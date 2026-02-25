@@ -1,11 +1,12 @@
-import { Controller, Get, Param, Query, Req, UseGuards, ForbiddenException, ParseUUIDPipe, Post } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Param, Query, Req, UseGuards, ForbiddenException, ParseUUIDPipe, Post, Body, Put } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { TraineePlansService } from './trainee-plans.service';
 import { Request } from 'express';
 import { RequestUser } from '../auth/types/request-user.interface';
 import { NutritionPlanStatus } from '../nutrition-plan/enums/nutrition-plan-status.enum';
+import { UpdatePlanProgressDto } from './dto/update-plan-progress.dto';
 
 @ApiTags('Trainee Plans')
 @ApiBearerAuth('access-token')
@@ -107,5 +108,28 @@ export class TraineePlansController {
     }
     // Security: user.id comes from verified JWT token - ensures trainee only starts their own plans
     return this.traineePlansService.startPlan(user.id, planId);
+  }
+
+  @Put(':id/progress')
+  @ApiOperation({ summary: 'Update item-level progress (exercises/meals) for a trainee plan' })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiBody({ type: UpdatePlanProgressDto })
+  async updatePlanProgress(
+    @Req() req: Request & { user?: RequestUser },
+    @Param('id', ParseUUIDPipe) planId: string,
+    @Body() body: UpdatePlanProgressDto,
+  ) {
+    const user = req.user;
+    if (!user || !user.id) {
+      throw new ForbiddenException({
+        messageEn: 'User not authenticated',
+        messageAr: 'المستخدم غير مصادق عليه',
+      });
+    }
+
+    return this.traineePlansService.updatePlanProgress(user.id, planId, {
+      completedExerciseIds: body.completedExerciseIds,
+      completedMealIds: body.completedMealIds,
+    });
   }
 }

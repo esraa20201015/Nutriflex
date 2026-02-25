@@ -182,6 +182,21 @@ export async function apiStartTraineePlan(planId: string) {
     })
 }
 
+export async function apiUpdateTraineePlanProgress(params: {
+    planId: string
+    completedExerciseIds?: string[]
+    completedMealIds?: string[]
+}) {
+    const { planId, ...body } = params
+    return ApiService.fetchDataWithAxios<
+        ApiResponse<PlanStatusData>
+    >({
+        url: `/plans/trainee/${planId}/progress`,
+        method: 'put',
+        data: body,
+    })
+}
+
 // Coach selection APIs (trainee-facing)
 export async function apiGetAvailableCoaches(params?: { trainee_id?: string }) {
     return ApiService.fetchDataWithAxios<

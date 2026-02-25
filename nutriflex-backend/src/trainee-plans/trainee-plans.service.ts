@@ -201,11 +201,15 @@ export class TraineePlansService {
                 last_updated: completionStatus.last_updated
                   ? completionStatus.last_updated.toISOString()
                   : null,
+                completed_exercise_ids: completionStatus.completed_exercise_ids ?? [],
+                completed_meal_ids: completionStatus.completed_meal_ids ?? [],
               }
             : {
                 completion_percentage: 0,
                 status: 'not_started' as const,
                 last_updated: null,
+                completed_exercise_ids: [],
+                completed_meal_ids: [],
               },
           created_date: plan.created_date,
           updated_date: plan.updated_date,
@@ -418,6 +422,8 @@ export class TraineePlansService {
         completion_percentage: 0,
         status: TraineePlanStatusEnum.IN_PROGRESS,
         last_updated: now,
+        completed_exercise_ids: [],
+        completed_meal_ids: [],
       });
       await this.traineePlanStatusRepo.save(completionStatus);
     } else {
@@ -427,6 +433,12 @@ export class TraineePlansService {
         completionStatus.completion_percentage = 0;
       }
       completionStatus.last_updated = now;
+      if (!Array.isArray(completionStatus.completed_exercise_ids)) {
+        completionStatus.completed_exercise_ids = [];
+      }
+      if (!Array.isArray(completionStatus.completed_meal_ids)) {
+        completionStatus.completed_meal_ids = [];
+      }
       await this.traineePlanStatusRepo.save(completionStatus);
     }
 
@@ -442,6 +454,123 @@ export class TraineePlansService {
         last_updated: completionStatus.last_updated
           ? completionStatus.last_updated.toISOString()
           : null,
+      },
+    };
+  }
+
+  /**
+   * Update item-level progress (exercises/meals) for a trainee's plan.
+   * This persists which items are completed and recalculates overall completion percentage.
+   */
+  async updatePlanProgress(
+    traineeId: string,
+    planId: string,
+    payload: {
+      completedExerciseIds?: string[];
+      completedMealIds?: string[];
+    },
+  ) {
+    // Verify plan belongs to trainee
+    const plan = await this.nutritionPlanRepo.findOne({
+      where: { id: planId, trainee_id: traineeId },
+      relations: ['planExercises'],
+    });
+
+    if (!plan) {
+      throw new NotFoundException({
+        status: HttpStatus.NOT_FOUND,
+        messageEn: 'Nutrition plan not found',
+        messageAr: 'خطة التغذية غير موجودة',
+        data: null,
+      });
+    }
+
+    const allExercises = plan.planExercises ?? [];
+    const allMeals = await this.mealRepo.find({
+      where: { nutrition_plan_id: planId },
+    });
+
+    const totalExercises = allExercises.length;
+    const totalMeals = allMeals.length;
+    const totalItems = totalExercises + totalMeals;
+
+    const completedExerciseIds = Array.isArray(payload.completedExerciseIds)
+      ? payload.completedExerciseIds
+      : [];
+    const completedMealIds = Array.isArray(payload.completedMealIds)
+      ? payload.completedMealIds
+      : [];
+
+    // Clamp to only IDs that exist in this plan (safety)
+    const validExerciseIdSet = new Set(allExercises.map((ex) => ex.id));
+    const validMealIdSet = new Set(allMeals.map((m) => m.id));
+
+    const filteredCompletedExercises = completedExerciseIds.filter((id) =>
+      validExerciseIdSet.has(id),
+    );
+    const filteredCompletedMeals = completedMealIds.filter((id) =>
+      validMealIdSet.has(id),
+    );
+
+    const completedCount =
+      (totalExercises === 0 ? 0 : filteredCompletedExercises.length) +
+      (totalMeals === 0 ? 0 : filteredCompletedMeals.length);
+
+    const completionPercentage =
+      totalItems === 0 ? 0 : Math.round((completedCount / totalItems) * 100);
+
+    let completionStatus = await this.traineePlanStatusRepo.findOne({
+      where: {
+        trainee_id: traineeId,
+        plan_id: planId,
+      },
+    });
+
+    const now = new Date();
+
+    if (!completionStatus) {
+      completionStatus = this.traineePlanStatusRepo.create({
+        trainee_id: traineeId,
+        plan_id: planId,
+        completion_percentage: completionPercentage,
+        status:
+          completionPercentage >= 100
+            ? TraineePlanStatusEnum.COMPLETED
+            : TraineePlanStatusEnum.IN_PROGRESS,
+        last_updated: now,
+        completed_exercise_ids: filteredCompletedExercises,
+        completed_meal_ids: filteredCompletedMeals,
+      });
+    } else {
+      completionStatus.completed_exercise_ids = filteredCompletedExercises;
+      completionStatus.completed_meal_ids = filteredCompletedMeals;
+      completionStatus.completion_percentage = completionPercentage;
+
+      if (completionPercentage >= 100) {
+        completionStatus.status = TraineePlanStatusEnum.COMPLETED;
+      } else if (completionStatus.status === TraineePlanStatusEnum.NOT_STARTED) {
+        completionStatus.status = TraineePlanStatusEnum.IN_PROGRESS;
+      }
+
+      completionStatus.last_updated = now;
+    }
+
+    await this.traineePlanStatusRepo.save(completionStatus);
+
+    return {
+      status: HttpStatus.OK,
+      messageEn: 'Plan progress updated successfully',
+      messageAr: 'تم تحديث تقدم الخطة بنجاح',
+      data: {
+        planId: plan.id,
+        planTitle: plan.title,
+        completion_percentage: completionStatus.completion_percentage,
+        status: completionStatus.status,
+        last_updated: completionStatus.last_updated
+          ? completionStatus.last_updated.toISOString()
+          : null,
+        completed_exercise_ids: completionStatus.completed_exercise_ids,
+        completed_meal_ids: completionStatus.completed_meal_ids,
       },
     };
   }

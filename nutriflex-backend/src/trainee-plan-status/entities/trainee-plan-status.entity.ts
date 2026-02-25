@@ -32,6 +32,32 @@ export class TraineePlanStatus extends ActionTracked {
   @Column({ name: 'plan_id', type: 'uuid', comment: 'ID of the assigned plan (nutrition or exercise plan)' })
   plan_id: string;
 
+  /**
+   * IDs of plan exercises that the trainee has marked as completed.
+   * Stored as text[] for flexibility across different plan types.
+   */
+  @Column('text', {
+    name: 'completed_exercise_ids',
+    array: true,
+    nullable: false,
+    default: () => 'ARRAY[]::text[]',
+    comment: 'IDs of completed plan exercises for this plan and trainee',
+  })
+  completed_exercise_ids: string[];
+
+  /**
+   * IDs of plan meals that the trainee has marked as completed.
+   * Stored as text[] for flexibility across different plan types.
+   */
+  @Column('text', {
+    name: 'completed_meal_ids',
+    array: true,
+    nullable: false,
+    default: () => 'ARRAY[]::text[]',
+    comment: 'IDs of completed plan meals for this plan and trainee',
+  })
+  completed_meal_ids: string[];
+
   /** Completion percentage (0–100) */
   @Column('int', {
     name: 'completion_percentage',
