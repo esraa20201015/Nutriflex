@@ -10,6 +10,7 @@ import CustomIndicator from '@/components/shared/CustomIndicator'
 import Card from '@/components/ui/Card'
 import Tag from '@/components/ui/Tag'
 import Button from '@/components/ui/Button'
+import Select from '@/components/ui/Select'
 import {
     PiArrowLeftDuotone,
     PiClipboardTextDuotone,
@@ -38,6 +39,7 @@ const PlanDetails = () => {
     const [mealStatuses, setMealStatuses] = useState<
         Record<string, 'pending' | 'completed'>
     >({})
+    const [selectedDay, setSelectedDay] = useState<number>(1)
 
     useEffect(() => {
         const loadPlanDetails = async () => {
@@ -88,6 +90,10 @@ const PlanDetails = () => {
                 )
                 if (statusResponse?.data) {
                     setStatus(statusResponse.data)
+                    const totalDays = statusResponse.data.totalDays
+                    if (typeof totalDays === 'number' && totalDays >= 1) {
+                        setSelectedDay(1)
+                    }
                 }
             } catch (err) {
                 setError(
@@ -347,6 +353,22 @@ const PlanDetails = () => {
     const groupedMeals = groupMealsByType()
     const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack']
 
+    const totalDaysFromPlan =
+        (plan as any).totalDays && typeof (plan as any).totalDays === 'number'
+            ? ((plan as any).totalDays as number)
+            : status?.totalDays ?? null
+
+    const clampedSelectedDay =
+        totalDaysFromPlan && totalDaysFromPlan >= 1
+            ? Math.min(Math.max(selectedDay, 1), totalDaysFromPlan)
+            : selectedDay
+
+    const visibleExercises = plan.planExercises
+        ? plan.planExercises.filter(
+              (ex) => (ex.day_index ?? 1) === clampedSelectedDay,
+          )
+        : []
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -414,6 +436,15 @@ const PlanDetails = () => {
                                             </span>
                                         )}
                                     </div>
+                                )}
+                                {totalDaysFromPlan && totalDaysFromPlan > 0 && (
+                                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                        Plan length:{' '}
+                                        <span className="font-semibold">
+                                            {totalDaysFromPlan} day
+                                            {totalDaysFromPlan > 1 ? 's' : ''}
+                                        </span>
+                                    </p>
                                 )}
                             </div>
 
@@ -546,16 +577,56 @@ const PlanDetails = () => {
                 </div>
             </Card>
 
+            {/* Day selector for execution */}
+            {totalDaysFromPlan && totalDaysFromPlan > 0 && (
+                <Card>
+                    <div className="p-4 flex flex-wrap items-center gap-3 justify-between">
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                View plan for day
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Exercises and meals below are filtered by the selected day.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600 dark:text-gray-300">
+                                Day:
+                            </span>
+                            <Select
+                                className="min-w-[110px]"
+                                value={{
+                                    value: clampedSelectedDay,
+                                    label: `Day ${clampedSelectedDay}`,
+                                }}
+                                options={Array.from(
+                                    { length: totalDaysFromPlan },
+                                    (_v, i) => ({
+                                        value: i + 1,
+                                        label: `Day ${i + 1}`,
+                                    }),
+                                )}
+                                onChange={(option) => {
+                                    if (!option) return
+                                    setSelectedDay(option.value as number)
+                                }}
+                            />
+                        </div>
+                    </div>
+                </Card>
+            )}
+
             {/* Exercises Section (with guide media) */}
-            {plan.planExercises && plan.planExercises.length > 0 && (
+            {plan.planExercises && visibleExercises.length > 0 && (
                 <Card>
                     <div className="p-6">
                         <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
                             <PiBarbellDuotone className="w-5 h-5" />
-                            Exercises ({plan.planExercises.length})
+                            Exercises for Day {clampedSelectedDay} (
+                            {visibleExercises.length})
                         </h3>
                         <div className="space-y-6">
-                            {plan.planExercises
+                            {visibleExercises
                                 .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
                                 .map((ex) => (
                                     <div
@@ -681,7 +752,13 @@ const PlanDetails = () => {
                 <div className="p-6">
                     <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
                         <PiForkKnifeDuotone className="w-5 h-5" />
-                        Meals ({plan.meals.length})
+                        Meals for Day {clampedSelectedDay} (
+                        {
+                            plan.meals.filter(
+                                (meal) => (meal as any).day_index ?? 1 === clampedSelectedDay,
+                            ).length
+                        }
+                        )
                     </h3>
 
                     {plan.meals.length === 0 ? (
@@ -694,17 +771,22 @@ const PlanDetails = () => {
                     ) : (
                         <div className="space-y-8">
                             {mealTypes.map((mealType) => {
-                                const meals = groupedMeals[mealType] || []
-                                if (meals.length === 0) return null
+                                const allForType = groupedMeals[mealType] || []
+                                const mealsForDay = allForType.filter(
+                                    (meal) =>
+                                        ((meal as any).day_index ?? 1) ===
+                                        clampedSelectedDay,
+                                )
+                                if (mealsForDay.length === 0) return null
 
                                 return (
                                     <div key={mealType}>
                                         <h4 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4 capitalize">
                                             {getMealTypeLabel(mealType)} (
-                                            {meals.length})
+                                            {mealsForDay.length})
                                         </h4>
                                         <div className="space-y-4">
-                                            {meals.map((meal) => (
+                                            {mealsForDay.map((meal) => (
                                                 <div
                                                     key={meal.id}
                                                     className="relative group"

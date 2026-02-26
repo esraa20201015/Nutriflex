@@ -70,6 +70,16 @@ export class CreateMealDto {
   @IsEnum(MealType)
   meal_type: MealType;
 
+  @ApiProperty({
+    description: 'Day index within the plan (1-based)',
+    example: 1,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  day_index?: number;
+
   @ApiProperty({ description: 'Calories', example: 350, required: false })
   @IsNumber()
   @IsOptional()
@@ -128,6 +138,16 @@ export class UpdateMealDto {
   @IsEnum(MealType)
   @IsOptional()
   meal_type?: MealType;
+
+  @ApiProperty({
+    description: 'Day index within the plan (1-based)',
+    example: 1,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  day_index?: number;
 
   @ApiProperty({ example: 400, required: false })
   @IsNumber()

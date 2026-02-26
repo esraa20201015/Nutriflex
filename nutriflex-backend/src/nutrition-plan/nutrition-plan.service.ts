@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NutritionPlanRepo } from './nutrition-plan.repo';
@@ -44,15 +44,47 @@ export class NutritionPlanService {
    * This is used by the Coach Plans wizard flow.
    */
   async createWithDetails(dto: CreatePlanWithDetailsDto) {
-    // 1) Create the base plan
+    // 1) Validate dates & compute totalDays (inclusive)
+    if (!dto.end_date) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        messageEn: 'End date is required for a nutrition plan',
+        messageAr: 'تاريخ الانتهاء مطلوب لخطة التغذية',
+        data: null,
+      };
+    }
+
+    const startDate = new Date(dto.start_date);
+    const endDate = new Date(dto.end_date);
+    const startMidnight = new Date(startDate);
+    startMidnight.setHours(0, 0, 0, 0);
+    const endMidnight = new Date(endDate);
+    endMidnight.setHours(0, 0, 0, 0);
+
+    if (endMidnight.getTime() < startMidnight.getTime()) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        messageEn: 'End date must be on or after start date.',
+        messageAr: 'يجب أن يكون تاريخ الانتهاء بعد أو في نفس تاريخ البدء.',
+        data: null,
+      };
+    }
+
+    const dayMs = 1000 * 60 * 60 * 24;
+    const diffDays = Math.floor(
+      (endMidnight.getTime() - startMidnight.getTime()) / dayMs,
+    );
+    const totalDays = diffDays + 1;
+
+    // 2) Create the base plan
     const basePayload: Partial<NutritionPlan> = {
       coach_id: dto.coach_id,
       trainee_id: dto.trainee_id,
       title: dto.title,
       description: dto.description ?? null,
       daily_calories: dto.daily_calories ?? null,
-      start_date: new Date(dto.start_date),
-      end_date: dto.end_date ? new Date(dto.end_date) : null,
+      start_date: startDate,
+      end_date: endDate,
       status: dto.status,
     };
 
@@ -66,7 +98,40 @@ export class NutritionPlanService {
 
     const nutrition_plan_id = plan.id;
 
-    // 2) Attach exercises (if provided)
+    // 3) Validate exercise and meal day_index values against totalDays
+    if (dto.exercises?.length) {
+      const invalidExercise = dto.exercises.find(
+        (ex) => ex.day_index && ex.day_index > totalDays,
+      );
+      if (invalidExercise) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          messageEn:
+            'Selected day for one or more exercises exceeds the total number of plan days.',
+          messageAr:
+            'اليوم المحدد لإحدى التمارين يتجاوز إجمالي عدد أيام الخطة.',
+          data: null,
+        };
+      }
+    }
+
+    if (dto.meals?.length) {
+      const invalidMeal = dto.meals.find(
+        (meal) => meal.day_index && meal.day_index > totalDays,
+      );
+      if (invalidMeal) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          messageEn:
+            'Selected day for one or more meals exceeds the total number of plan days.',
+          messageAr:
+            'اليوم المحدد لإحدى الوجبات يتجاوز إجمالي عدد أيام الخطة.',
+          data: null,
+        };
+      }
+    }
+
+    // 4) Attach exercises (if provided)
     if (dto.exercises?.length) {
       const exerciseEntities = dto.exercises.map((ex, index) =>
         this.planExerciseRepo.create({
@@ -89,7 +154,7 @@ export class NutritionPlanService {
       await this.planExerciseRepo.save(exerciseEntities);
     }
 
-    // 3) Attach meals (if provided) using MealService
+    // 5) Attach meals (if provided) using MealService
     if (dto.meals?.length) {
       const createMealPromises: Promise<unknown>[] = [];
 
@@ -104,6 +169,7 @@ export class NutritionPlanService {
           fats: null,
           instructions: meal.instructions ?? null,
           order_index: meal.order_index ?? index,
+          day_index: meal.day_index ?? 1,
         };
 
         createMealPromises.push(this.mealService.create(mealDto));
@@ -154,12 +220,43 @@ export class NutritionPlanService {
     const planData = (existing as { data?: NutritionPlan }).data;
     if (!planData) return existing;
 
+    if (!dto.end_date) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        messageEn: 'End date is required for a nutrition plan',
+        messageAr: 'تاريخ الانتهاء مطلوب لخطة التغذية',
+        data: null,
+      };
+    }
+
+    const startDate = new Date(dto.start_date);
+    const endDate = new Date(dto.end_date);
+    const startMidnight = new Date(startDate);
+    startMidnight.setHours(0, 0, 0, 0);
+    const endMidnight = new Date(endDate);
+    endMidnight.setHours(0, 0, 0, 0);
+
+    if (endMidnight.getTime() < startMidnight.getTime()) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        messageEn: 'End date must be on or after start date.',
+        messageAr: 'يجب أن يكون تاريخ الانتهاء بعد أو في نفس تاريخ البدء.',
+        data: null,
+      };
+    }
+
+    const dayMs = 1000 * 60 * 60 * 24;
+    const diffDays = Math.floor(
+      (endMidnight.getTime() - startMidnight.getTime()) / dayMs,
+    );
+    const totalDays = diffDays + 1;
+
     const payload: Partial<NutritionPlan> = {
       title: dto.title,
       description: dto.description ?? null,
       daily_calories: dto.daily_calories ?? null,
-      start_date: new Date(dto.start_date),
-      end_date: dto.end_date ? new Date(dto.end_date) : null,
+      start_date: startDate,
+      end_date: endDate,
       status: dto.status,
     };
     await this.repo.updateEntity(id, payload);
@@ -168,6 +265,20 @@ export class NutritionPlanService {
     await this.mealService.deleteByNutritionPlanId(id);
 
     if (dto.exercises?.length) {
+      const invalidExercise = dto.exercises.find(
+        (ex) => ex.day_index && ex.day_index > totalDays,
+      );
+      if (invalidExercise) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          messageEn:
+            'Selected day for one or more exercises exceeds the total number of plan days.',
+          messageAr:
+            'اليوم المحدد لإحدى التمارين يتجاوز إجمالي عدد أيام الخطة.',
+          data: null,
+        };
+      }
+
       const exerciseEntities = dto.exercises.map((ex, index) =>
         this.planExerciseRepo.create({
           nutrition_plan_id: id,
@@ -189,6 +300,20 @@ export class NutritionPlanService {
     }
 
     if (dto.meals?.length) {
+      const invalidMeal = dto.meals.find(
+        (meal) => meal.day_index && meal.day_index > totalDays,
+      );
+      if (invalidMeal) {
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          messageEn:
+            'Selected day for one or more meals exceeds the total number of plan days.',
+          messageAr:
+            'اليوم المحدد لإحدى الوجبات يتجاوز إجمالي عدد أيام الخطة.',
+          data: null,
+        };
+      }
+
       for (let index = 0; index < dto.meals.length; index++) {
         const meal = dto.meals[index];
         const mealDto: CreateMealDto = {
@@ -201,6 +326,7 @@ export class NutritionPlanService {
           fats: null,
           instructions: meal.instructions ?? null,
           order_index: meal.order_index ?? index,
+          day_index: meal.day_index ?? 1,
         };
         await this.mealService.create(mealDto);
       }

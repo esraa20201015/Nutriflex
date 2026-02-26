@@ -53,23 +53,38 @@ function fileToBase64(file: File): Promise<string> {
 /** Use full data URL so backend can store and trainee can use as img/video src. */
 
 // Validation schema
-const planSchema = z.object({
-    trainee_id: z.string().min(1, 'Trainee is required'),
-    title: z
-        .string()
-        .min(1, 'Title is required')
-        .max(255, 'Title must be less than 255 characters'),
-    description: z.string().max(1000, 'Description too long').optional(),
-    daily_calories: z
-        .number()
-        .min(0, 'Calories must be positive')
-        .max(10000, 'Calories must be reasonable')
-        .nullable()
-        .optional(),
-    start_date: z.date({ required_error: 'Start date is required' }),
-    end_date: z.date().nullable().optional(),
-    status: z.enum(['draft', 'active', 'archived']).default('draft'),
-})
+const planSchema = z
+    .object({
+        trainee_id: z.string().min(1, 'Trainee is required'),
+        title: z
+            .string()
+            .min(1, 'Title is required')
+            .max(255, 'Title must be less than 255 characters'),
+        description: z.string().max(1000, 'Description too long').optional(),
+        daily_calories: z
+            .number()
+            .min(0, 'Calories must be positive')
+            .max(10000, 'Calories must be reasonable')
+            .nullable()
+            .optional(),
+        start_date: z.date({ required_error: 'Start date is required' }),
+        end_date: z.date({ required_error: 'End date is required' }),
+        status: z.enum(['draft', 'active', 'archived']).default('draft'),
+    })
+    .refine(
+        (data) => {
+            if (!data.start_date || !data.end_date) return false
+            const start = new Date(data.start_date)
+            start.setHours(0, 0, 0, 0)
+            const end = new Date(data.end_date)
+            end.setHours(0, 0, 0, 0)
+            return end.getTime() >= start.getTime()
+        },
+        {
+            message: 'End date must be on or after start date.',
+            path: ['end_date'],
+        },
+    )
 
 type PlanFormData = z.infer<typeof planSchema>
 
@@ -120,7 +135,7 @@ const CreatePlan = () => {
             status: 'draft',
             daily_calories: null,
             description: '',
-            end_date: null,
+            end_date: undefined,
         },
     })
 
@@ -236,6 +251,7 @@ const CreatePlan = () => {
                             instructions: m.instructions ?? null,
                             order_index: m.order_index ?? 0,
                             ingredients: m.ingredients ?? [],
+                            day_index: (m as any).day_index ?? 1,
                         })),
                 )
             } catch (err) {
@@ -259,14 +275,74 @@ const CreatePlan = () => {
         try {
             setSaving(true)
 
+            const start = data.start_date
+            const end = data.end_date
+
+            if (!start || !end) {
+                toast.push(
+                    <Notification type="danger" title="Error">
+                        Start date and end date are required.
+                    </Notification>,
+                )
+                setSaving(false)
+                return
+            }
+
+            const msPerDay = 1000 * 60 * 60 * 24
+            const startMidnight = new Date(start)
+            startMidnight.setHours(0, 0, 0, 0)
+            const endMidnight = new Date(end)
+            endMidnight.setHours(0, 0, 0, 0)
+            const diffMs = endMidnight.getTime() - startMidnight.getTime()
+            const totalDays =
+                diffMs >= 0 ? Math.floor(diffMs / msPerDay) + 1 : 0
+
+            if (totalDays <= 0) {
+                toast.push(
+                    <Notification type="danger" title="Error">
+                        End date must be on or after start date.
+                    </Notification>,
+                )
+                setSaving(false)
+                return
+            }
+
+            const invalidExercise = exercises.find(
+                (ex) => (ex.day_index ?? 1) > totalDays,
+            )
+            if (invalidExercise) {
+                toast.push(
+                    <Notification type="danger" title="Error">
+                        Selected day for one or more exercises exceeds the total
+                        number of plan days.
+                    </Notification>,
+                )
+                setSaving(false)
+                return
+            }
+
+            const invalidMeal = meals.find(
+                (meal) => (meal.day_index ?? 1) > totalDays,
+            )
+            if (invalidMeal) {
+                toast.push(
+                    <Notification type="danger" title="Error">
+                        Selected day for one or more meals exceeds the total
+                        number of plan days.
+                    </Notification>,
+                )
+                setSaving(false)
+                return
+            }
+
             const base: CreatePlanWithDetailsDto = {
                 coach_id: user.id,
                 trainee_id: data.trainee_id,
                 title: data.title,
                 description: data.description || null,
                 daily_calories: data.daily_calories || null,
-                start_date: data.start_date.toISOString(),
-                end_date: data.end_date?.toISOString() || null,
+                start_date: start.toISOString(),
+                end_date: end.toISOString(),
                 status: data.status,
                 exercises: exercises.map((ex, idx) => ({
                     exercise_id: ex.exercise_id,
@@ -294,6 +370,7 @@ const CreatePlan = () => {
                     instructions: meal.instructions ?? null,
                     order_index: meal.order_index ?? idx + 1,
                     ingredients: meal.ingredients,
+                    day_index: meal.day_index ?? 1,
                 })),
             }
 
@@ -379,6 +456,21 @@ const CreatePlan = () => {
         dailyCalories && dailyCalories > 0
             ? Math.min(100, Math.round((totalMealCalories / dailyCalories) * 100))
             : 0
+
+    const inclusiveTotalDays = (() => {
+        const start = getValues('start_date')
+        const end = getValues('end_date')
+        if (!start || !end) return 0
+        const startMidnight = new Date(start)
+        startMidnight.setHours(0, 0, 0, 0)
+        const endMidnight = new Date(end)
+        endMidnight.setHours(0, 0, 0, 0)
+        const diffMs = endMidnight.getTime() - startMidnight.getTime()
+        if (diffMs < 0) return 0
+        const dayMs = 1000 * 60 * 60 * 24
+        const diffDays = Math.floor(diffMs / dayMs)
+        return diffDays + 1
+    })()
 
     return (
         <div className="space-y-6">
@@ -540,7 +632,7 @@ const CreatePlan = () => {
                                     </FormItem>
 
                                     <FormItem
-                                        label="End Date (Optional)"
+                                        label="End Date"
                                         invalid={!!errors.end_date}
                                         errorMessage={errors.end_date?.message}
                                     >
@@ -550,17 +642,26 @@ const CreatePlan = () => {
                                             render={({ field }) => (
                                                 <DatePicker
                                                     {...field}
-                                                    value={field.value || undefined}
+                                                    value={field.value}
                                                     onChange={(date) =>
-                                                        field.onChange(
-                                                            date || null,
-                                                        )
+                                                        field.onChange(date)
                                                     }
                                                 />
                                             )}
                                         />
                                     </FormItem>
                                 </div>
+
+                                {inclusiveTotalDays > 0 && (
+                                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                        This plan spans{' '}
+                                        <span className="font-semibold">
+                                            {inclusiveTotalDays} day
+                                            {inclusiveTotalDays > 1 ? 's' : ''}
+                                        </span>{' '}
+                                        (inclusive of start and end dates).
+                                    </p>
+                                )}
 
                                 {/* Status */}
                                 <FormItem
@@ -1109,6 +1210,29 @@ const CreatePlan = () => {
                                                                                         )
                                                                                     }}
                                                                                     placeholder={`${label} name`}
+                                                                                />
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    className="w-24"
+                                                                                    value={meal.day_index ?? 1}
+                                                                                    onChange={(e) => {
+                                                                                        const value =
+                                                                                            e.target.value === ''
+                                                                                                ? 1
+                                                                                                : Number(e.target.value)
+                                                                                        setMeals((prev) =>
+                                                                                            prev.map((m) =>
+                                                                                                m.id === meal.id
+                                                                                                    ? {
+                                                                                                          ...m,
+                                                                                                          day_index:
+                                                                                                              value,
+                                                                                                      }
+                                                                                                    : m,
+                                                                                            ),
+                                                                                        )
+                                                                                    }}
+                                                                                    placeholder="Day"
                                                                                 />
                                                                                 <Input
                                                                                     value={

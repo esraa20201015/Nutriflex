@@ -557,8 +557,9 @@ export type TraineePlanExercise = {
 }
 
 export type TraineePlanDetails = TraineeNutritionPlan & {
-    meals: Meal[]
+    meals: (Meal & { day_index?: number })[]
     planExercises?: TraineePlanExercise[]
+    totalDays?: number | null
 }
 
 export type PlanMealsResponse = {
@@ -579,9 +580,9 @@ export type PlanStatusData = {
     completion_percentage: number
     status: 'not_started' | 'in_progress' | 'completed'
     last_updated: string | null
-    daysRemaining: number
+    daysRemaining: number | null
     daysElapsed: number
-    totalDays: number
+    totalDays: number | null
 }
 
 // Trainee Plan Status Types

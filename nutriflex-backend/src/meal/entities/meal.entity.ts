@@ -32,6 +32,10 @@ export class Meal extends ActionTracked {
   @Column({ name: 'meal_type', type: 'varchar', length: 20 })
   meal_type: MealType;
 
+  /** Optional day index within the plan (e.g., 1 = Day 1). */
+  @Column({ name: 'day_index', type: 'int', default: 1 })
+  day_index: number;
+
   @Column({ name: 'calories', type: 'int', nullable: true })
   calories: number | null;
 

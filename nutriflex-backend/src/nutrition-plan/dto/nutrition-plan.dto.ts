@@ -223,6 +223,16 @@ export class PlanMealDto {
   @MaxLength(255)
   name!: string;
 
+  @ApiProperty({
+    description: 'Day index within the plan (1-based)',
+    example: 1,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  day_index?: number;
+
   @ApiProperty({ description: 'Total calories for the meal', example: 550, required: false })
   @IsNumber()
   @IsOptional()

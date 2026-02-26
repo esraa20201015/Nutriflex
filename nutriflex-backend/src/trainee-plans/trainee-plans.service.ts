@@ -173,6 +173,25 @@ export class TraineePlansService {
         guide_video_base64: ex.guide_video_base64 ?? null,
       }));
 
+      // Compute inclusive totalDays for this plan
+      let totalDays: number | null = null;
+      if (plan.end_date) {
+        const startDate = new Date(plan.start_date);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(plan.end_date);
+        endDate.setHours(0, 0, 0, 0);
+        const diffMs = endDate.getTime() - startDate.getTime();
+        if (diffMs >= 0) {
+          const dayMs = 1000 * 60 * 60 * 24;
+          const diffDays = Math.floor(diffMs / dayMs);
+          totalDays = diffDays + 1;
+        } else {
+          totalDays = 1;
+        }
+      } else {
+        totalDays = 1;
+      }
+
       return {
         status: HttpStatus.OK,
         messageEn: 'Nutrition plan retrieved successfully',
@@ -194,6 +213,7 @@ export class TraineePlansService {
             : null,
           meals,
           planExercises,
+          totalDays,
           completionStatus: completionStatus
             ? {
                 completion_percentage: completionStatus.completion_percentage,
@@ -326,13 +346,34 @@ export class TraineePlansService {
         endDate.setHours(0, 0, 0, 0);
       }
 
-      const daysElapsed = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      const daysRemaining = endDate
-        ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-        : null;
-      const totalDays = endDate
-        ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-        : null;
+      let totalDays: number | null = null;
+      if (endDate) {
+        const diffMs = endDate.getTime() - startDate.getTime();
+        if (diffMs < 0) {
+          throw new BadRequestException({
+            status: HttpStatus.BAD_REQUEST,
+            messageEn: 'End date must be on or after start date.',
+            messageAr: 'يجب أن يكون تاريخ الانتهاء بعد أو في نفس تاريخ البدء.',
+            data: null,
+          });
+        }
+        const dayMs = 1000 * 60 * 60 * 24;
+        const diffDays = Math.floor(diffMs / dayMs);
+        totalDays = diffDays + 1;
+      }
+
+      const rawDaysElapsed = Math.floor(
+        (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      const daysElapsed = Math.max(0, rawDaysElapsed);
+
+      let daysRemaining: number | null = null;
+      if (endDate && totalDays !== null) {
+        const rawRemaining = Math.ceil(
+          (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        daysRemaining = rawRemaining < 0 ? 0 : rawRemaining;
+      }
 
       return {
         status: HttpStatus.OK,
@@ -347,7 +388,7 @@ export class TraineePlansService {
             ? completionStatus.last_updated.toISOString()
             : null,
           daysRemaining: daysRemaining ?? null,
-          daysElapsed: Math.max(0, daysElapsed),
+          daysElapsed,
           totalDays: totalDays ?? null,
         },
       };
