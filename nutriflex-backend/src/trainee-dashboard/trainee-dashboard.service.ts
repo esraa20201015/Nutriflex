@@ -324,12 +324,50 @@ export class TraineeDashboardService {
     const activePlan = await this.nutritionPlanRepo
       .createQueryBuilder('np')
       .leftJoinAndSelect('np.meals', 'meals')
+      .leftJoinAndSelect('np.planExercises', 'planExercises')
       .where('np.trainee_id = :traineeId', { traineeId })
       .andWhere('np.status = :status', { status: NutritionPlanStatus.ACTIVE })
       .orderBy('np.start_date', 'DESC')
       .getOne();
 
-    const todayMeals = activePlan?.meals?.length ?? 0;
+    let todayMeals = 0;
+    let completedMeals = 0;
+    let completedWorkout = false;
+
+    if (activePlan) {
+      const meals = activePlan.meals ?? [];
+      todayMeals = meals.length;
+
+      const status = await this.traineePlanStatusRepo.findOne({
+        where: { trainee_id: traineeId, plan_id: activePlan.id },
+      });
+
+      if (status) {
+        const completedMealIds = new Set(
+          Array.isArray(status.completed_meal_ids)
+            ? status.completed_meal_ids
+            : [],
+        );
+
+        completedMeals = meals.reduce(
+          (count, meal) => (completedMealIds.has(meal.id) ? count + 1 : count),
+          0,
+        );
+
+        const exercises = activePlan.planExercises ?? [];
+        if (exercises.length > 0) {
+          const completedExerciseIds = new Set(
+            Array.isArray(status.completed_exercise_ids)
+              ? status.completed_exercise_ids
+              : [],
+          );
+
+          completedWorkout = exercises.every((ex) =>
+            completedExerciseIds.has(ex.id),
+          );
+        }
+      }
+    }
 
     return {
       status: HttpStatus.OK,
@@ -338,8 +376,8 @@ export class TraineeDashboardService {
       data: {
         todayWorkout: activePlan ? activePlan.title : null,
         todayMeals,
-        completedMeals: 0,
-        completedWorkout: false,
+        completedMeals,
+        completedWorkout,
       },
     };
   }
@@ -364,15 +402,162 @@ export class TraineeDashboardService {
 
     const coachName = activeRelation?.coach?.fullName ?? null;
 
+    // Compute streak based on fully completed plan days for the active plan.
+    let streakDays = 0;
+
+    const activePlan = await this.nutritionPlanRepo.findOne({
+      where: {
+        trainee_id: traineeId,
+        status: NutritionPlanStatus.ACTIVE,
+      },
+      relations: ['meals', 'planExercises'],
+      order: { start_date: 'DESC' },
+    });
+
+    if (activePlan) {
+      const completionStatus = await this.traineePlanStatusRepo.findOne({
+        where: {
+          trainee_id: traineeId,
+          plan_id: activePlan.id,
+        },
+      });
+
+      if (completionStatus) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const startDate = new Date(activePlan.start_date);
+        startDate.setHours(0, 0, 0, 0);
+
+        const endDate = activePlan.end_date
+          ? new Date(activePlan.end_date)
+          : null;
+        if (endDate) {
+          endDate.setHours(0, 0, 0, 0);
+        }
+
+        // Start checking from today or the plan end date, whichever is earlier.
+        const cursor = new Date(
+          endDate && endDate < today ? endDate : today,
+        );
+
+        const maxDaysToCheck = 90;
+        let daysChecked = 0;
+
+        while (cursor >= startDate && daysChecked < maxDaysToCheck) {
+          const dayIndex = this.getPlanDayIndexForDate(activePlan, cursor);
+          if (dayIndex === null) {
+            break;
+          }
+
+          const { totalItems, isFullyCompleted } =
+            this.getPlanDayCompletionInfo(activePlan, completionStatus, dayIndex);
+
+          // If there are no tasks for this day, skip it without affecting streak.
+          if (totalItems === 0) {
+            cursor.setDate(cursor.getDate() - 1);
+            daysChecked += 1;
+            continue;
+          }
+
+          if (!isFullyCompleted) {
+            break;
+          }
+
+          streakDays += 1;
+          cursor.setDate(cursor.getDate() - 1);
+          daysChecked += 1;
+        }
+      }
+    }
+
     return {
       status: HttpStatus.OK,
       messageEn: 'Trainee status data retrieved successfully',
       messageAr: 'تم استرجاع بيانات حالة المتدرب بنجاح',
       data: {
-        streakDays: 0,
+        streakDays,
         lastCheckIn,
         coachName,
       },
+    };
+  }
+
+  /**
+   * Map a calendar date to a 1-based day index within the given plan,
+   * using inclusive start/end dates. Returns null if the date is outside
+   * the plan range.
+   */
+  private getPlanDayIndexForDate(
+    plan: NutritionPlan,
+    date: Date,
+  ): number | null {
+    const startDate = new Date(plan.start_date);
+    startDate.setHours(0, 0, 0, 0);
+
+    const target = new Date(date);
+    target.setHours(0, 0, 0, 0);
+
+    const endDate = plan.end_date ? new Date(plan.end_date) : null;
+    if (endDate) {
+      endDate.setHours(0, 0, 0, 0);
+    }
+
+    if (target < startDate) {
+      return null;
+    }
+    if (endDate && target > endDate) {
+      return null;
+    }
+
+    const dayMs = 1000 * 60 * 60 * 24;
+    const diffMs = target.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffMs / dayMs);
+    return diffDays + 1;
+  }
+
+  /**
+   * For a given day index within a plan, determine how many items (exercises + meals)
+   * exist and whether all of them are marked as completed in the given status row.
+   */
+  private getPlanDayCompletionInfo(
+    plan: NutritionPlan,
+    status: TraineePlanStatus,
+    dayIndex: number,
+  ): { totalItems: number; isFullyCompleted: boolean } {
+    const exercises = (plan.planExercises ?? []).filter(
+      (ex: any) => (ex.day_index ?? 1) === dayIndex,
+    );
+    const meals = (plan.meals ?? []).filter(
+      (meal: any) => (meal.day_index ?? 1) === dayIndex,
+    );
+
+    const totalItems = exercises.length + meals.length;
+
+    if (totalItems === 0) {
+      return { totalItems: 0, isFullyCompleted: false };
+    }
+
+    const completedExerciseIds = new Set(
+      Array.isArray(status.completed_exercise_ids)
+        ? status.completed_exercise_ids
+        : [],
+    );
+    const completedMealIds = new Set(
+      Array.isArray(status.completed_meal_ids)
+        ? status.completed_meal_ids
+        : [],
+    );
+
+    const allExercisesDone =
+      exercises.length === 0 ||
+      exercises.every((ex) => completedExerciseIds.has(ex.id));
+    const allMealsDone =
+      meals.length === 0 || meals.every((meal) => completedMealIds.has(meal.id));
+
+    return {
+      totalItems,
+      isFullyCompleted: allExercisesDone && allMealsDone,
     };
   }
 }

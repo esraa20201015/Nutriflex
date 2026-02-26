@@ -25,7 +25,7 @@ export default function StatusCard({ data }: Props) {
     const items = [
         {
             icon: PiFireDuotone,
-            label: 'Streak',
+      label: 'Streak (full days completed)',
             value: `${data.streakDays ?? 0} days`,
             iconBg: 'bg-warning-subtle dark:bg-warning/20',
             iconColor: 'text-warning',

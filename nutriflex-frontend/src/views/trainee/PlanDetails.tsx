@@ -429,7 +429,8 @@ const PlanDetails = () => {
                                         <span className="text-gray-600 dark:text-gray-400">
                                             {status.daysElapsed} days elapsed
                                         </span>
-                                        {status.daysRemaining > 0 && (
+                                        {status.daysRemaining != null &&
+                                            status.daysRemaining > 0 && (
                                             <span className="text-orange-600 dark:text-orange-400 flex items-center gap-1">
                                                 <PiFireDuotone className="w-4 h-4" />
                                                 {status.daysRemaining} days remaining
