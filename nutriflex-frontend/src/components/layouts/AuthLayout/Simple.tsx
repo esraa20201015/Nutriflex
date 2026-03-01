@@ -1,5 +1,6 @@
 import { cloneElement } from 'react'
 import Container from '@/components/shared/Container'
+import { Card } from '@/components/ui'
 import type { ReactNode, ReactElement } from 'react'
 import type { CommonProps } from '@/@types/common'
 
@@ -34,27 +35,32 @@ const Simple = ({
                             : 'w-full min-w-[320px] max-w-full md:min-w-[400px] md:max-w-[1200px]'
                     }
                 >
-                    <div
-                        className={
-                            isNarrow
-                                ? ''
-                                : 'bg-white dark:bg-gray-800 px-8 rounded-lg shadow-lg'
-                        }
-                        style={
-                            isNarrow
-                                ? undefined
-                                : isFirstStep
-                                  ? { height: '82%', marginTop: '6rem' }
-                                  : { marginTop: '2rem', marginBottom: '2rem' }
-                        }
-                    >
-                        {content}
-                        {children
-                            ? cloneElement(children as ReactElement, {
-                                  ...rest,
-                              })
-                            : null}
-                    </div>
+                    {isNarrow ? (
+                        <>
+                            {content}
+                            {children
+                                ? cloneElement(children as ReactElement, {
+                                      ...rest,
+                                  })
+                                : null}
+                        </>
+                    ) : (
+                        <Card
+                            className="bg-white dark:bg-gray-800 px-8"
+                            style={
+                                isFirstStep
+                                    ? { height: '82%', marginTop: '6rem' }
+                                    : { marginTop: '2rem', marginBottom: '2rem' }
+                            }
+                        >
+                            {content}
+                            {children
+                                ? cloneElement(children as ReactElement, {
+                                      ...rest,
+                                  })
+                                : null}
+                        </Card>
+                    )}
                 </div>
             </Container>
         </div>

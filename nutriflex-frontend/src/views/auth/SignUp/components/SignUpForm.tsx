@@ -125,8 +125,9 @@ const bodyMeasurementsSchema: z.ZodType<BodyMeasurementsPayload> = z.object({
         .nullable(),
 })
 
-// Combined schema with conditional validation
-const validationSchema: ZodType<SignUpCredential> = baseSchema
+// Combined schema with conditional validation. Cast to ZodType<SignUpCredential>
+// because fullName is optional in the schema (derived from firstName+lastName on submit).
+const validationSchema = baseSchema
     .extend({
         coachProfile: coachProfileSchema.optional(),
         traineeProfile: traineeProfileSchema.optional(),
@@ -166,7 +167,7 @@ const validationSchema: ZodType<SignUpCredential> = baseSchema
                 'Trainee profile with gender and date of birth is required for TRAINEE sign-up',
             path: ['traineeProfile', 'dateOfBirth'],
         },
-    )
+    ) as ZodType<SignUpCredential>
 
 const SignUpForm = (props: SignUpFormProps) => {
     const { disableSubmit = false, className, setMessage, preselectedRole } = props
@@ -314,8 +315,8 @@ const SignUpForm = (props: SignUpFormProps) => {
             : ['Account Information', 'Trainee Profile', 'Body Measurements']
 
     return (
-        <div className={`${className ?? ''} [&_.form-label]:whitespace-nowrap`}>
-            <Steps current={step} className="mb-5">
+        <div className={`max-w-8xl mx-auto ${className ?? ''} [&_.form-label]:whitespace-nowrap`}>
+            <Steps current={step} className="mb-5 w-full">
                 <Steps.Item title={stepTitles[0]} />
                 <Steps.Item title={stepTitles[1]} />
                 {selectedRole === 'TRAINEE' && (
@@ -323,52 +324,55 @@ const SignUpForm = (props: SignUpFormProps) => {
                 )}
             </Steps>
 
-            <Form onSubmit={handleSubmit(onSignUp)}>
+            <Form onSubmit={handleSubmit(onSignUp)} className="w-full">
                 {/* Step 1: Account Information - vertical layout, labels above, single Next button */}
                 {step === 0 && (
-                    <div className="flex flex-col">
-                        <FormItem
-                            className="mb-2"
-                            label="First Name"
-                            invalid={Boolean(errors.firstName)}
-                            errorMessage={errors.firstName?.message}
-                        >
-                            <Controller
-                                name="firstName"
-                                control={control}
-                                render={({ field }) => (
-                                    <Input
-                                        type="text"
-                                        placeholder="First Name"
-                                        autoComplete="off"
-                                        {...field}
-                                    />
-                                )}
-                            />
-                        </FormItem>
+                    <div className="flex flex-col w-full">
+                        {/* Group A: First name + Last name */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+                            <FormItem
+                                label="First Name"
+                                invalid={Boolean(errors.firstName)}
+                                errorMessage={errors.firstName?.message}
+                            >
+                                <Controller
+                                    name="firstName"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="text"
+                                            placeholder="First Name"
+                                            autoComplete="off"
+                                            className="w-full"
+                                            {...field}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+                            <FormItem
+                                label="Last Name"
+                                invalid={Boolean(errors.lastName)}
+                                errorMessage={errors.lastName?.message}
+                            >
+                                <Controller
+                                    name="lastName"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="text"
+                                            placeholder="Last Name"
+                                            autoComplete="off"
+                                            className="w-full"
+                                            {...field}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+                        </div>
 
+                        {/* Group B: Email (single full-width row) */}
                         <FormItem
-                            className="mb-2"
-                            label="Last Name"
-                            invalid={Boolean(errors.lastName)}
-                            errorMessage={errors.lastName?.message}
-                        >
-                            <Controller
-                                name="lastName"
-                                control={control}
-                                render={({ field }) => (
-                                    <Input
-                                        type="text"
-                                        placeholder="Last Name"
-                                        autoComplete="off"
-                                        {...field}
-                                    />
-                                )}
-                            />
-                        </FormItem>
-
-                        <FormItem
-                            className="mb-2"
+                            className="!mb-5"
                             label="Email"
                             invalid={Boolean(errors.email)}
                             errorMessage={errors.email?.message}
@@ -381,15 +385,17 @@ const SignUpForm = (props: SignUpFormProps) => {
                                         type="email"
                                         placeholder="Email"
                                         autoComplete="off"
+                                        className="w-full"
                                         {...field}
                                     />
                                 )}
                             />
                         </FormItem>
 
-                        <div className="mb-4 flex gap-4">
+                        {/* Group E: Password + Confirm Password */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
                             <FormItem
-                                className="mb-0 flex-1"
+                                className="!mb-0"
                                 label="Password"
                                 invalid={Boolean(errors.password)}
                                 errorMessage={errors.password?.message}
@@ -402,14 +408,14 @@ const SignUpForm = (props: SignUpFormProps) => {
                                             type="text"
                                             placeholder="Password"
                                             autoComplete="off"
+                                            className="w-full"
                                             {...field}
                                         />
                                     )}
                                 />
                             </FormItem>
-
                             <FormItem
-                                className="mb-0 flex-1"
+                                className="!mb-0"
                                 label="Confirm Password"
                                 invalid={Boolean(errors.confirmPassword)}
                                 errorMessage={errors.confirmPassword?.message}
@@ -422,6 +428,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                                             type="text"
                                             placeholder="Confirm Password"
                                             autoComplete="off"
+                                            className="w-full"
                                             {...field}
                                         />
                                     )}
@@ -440,23 +447,22 @@ const SignUpForm = (props: SignUpFormProps) => {
                             />
                         )}
 
-                        <div className="mt-2 flex justify-end">
-                            <Button
-                                variant="solid"
-                                type="button"
-                                onClick={onNext}
-                                size="md"
-                                className="min-w-[120px]"
-                            >
-                                Next
-                            </Button>
-                        </div>
+                        <Button
+                            variant="solid"
+                            type="button"
+                            onClick={onNext}
+                            size="md"
+                            block
+                            className="mt-3"
+                        >
+                            Next
+                        </Button>
                     </div>
                 )}
 
                 {/* Step 1: Profile Information - same vertical formatting */}
                 {step === 1 && (
-                    <div className="flex flex-col">
+                    <div className="flex flex-col w-full">
                         {/* Coach Profile Fields */}
                         {selectedRole === 'COACH' && (
                             <>
@@ -787,6 +793,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                                                 type="date"
                                                 placeholder="YYYY-MM-DD"
                                                 autoComplete="off"
+                                                className="w-full"
                                                 {...field}
                                             />
                                         )}
@@ -837,6 +844,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                                                     placeholder="165.5"
                                                     autoComplete="off"
                                                     step="0.1"
+                                                    className="w-full"
                                                     {...field}
                                                     onChange={(e) =>
                                                         field.onChange(
@@ -870,6 +878,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                                                     placeholder="60.5"
                                                     autoComplete="off"
                                                     step="0.1"
+                                                    className="w-full"
                                                     {...field}
                                                     onChange={(e) =>
                                                         field.onChange(
@@ -929,7 +938,9 @@ const SignUpForm = (props: SignUpFormProps) => {
                                                 type="text"
                                                 placeholder="None"
                                                 autoComplete="off"
+                                                className="w-full"
                                                 {...field}
+                                                value={field.value ?? ''}
                                             />
                                         )}
                                     />
@@ -1000,7 +1011,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                             </>
                         )}
 
-                        <div className="mt-2 flex justify-between items-center gap-4">
+                        <div className="mt-2 mb-8 flex justify-between items-center gap-4">
                             <Button
                                 variant="default"
                                 type="button"
@@ -1039,7 +1050,7 @@ const SignUpForm = (props: SignUpFormProps) => {
 
                 {/* Step 2: Body Measurements (TRAINEE only) */}
                 {step === 2 && selectedRole === 'TRAINEE' && (
-                    <div className="flex flex-col">
+                    <div className="flex flex-col w-full">
                         <div className="mb-2">
                             <h4 className="text-lg font-semibold">Body Measurements</h4>
                             <p className="text-xs text-gray-500 mt-1">
@@ -1197,7 +1208,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                             </FormItem>
                         </div>
 
-                        <div className="mt-2 flex justify-between items-center gap-4">
+                        <div className="mt-2 mb-8 flex justify-between items-center gap-4">
                             <Button
                                 variant="default"
                                 type="button"
