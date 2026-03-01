@@ -723,7 +723,7 @@ const CreatePlan = () => {
                                 <Button
                                     type="button"
                                     variant="default"
-                                    size="lg"
+                                    size="md"
                                     className="mb-5"
                                     onClick={() => {
                                         setExercises((prev) => [
@@ -751,15 +751,15 @@ const CreatePlan = () => {
                                     {exercises.map((ex, index) => (
                                         <div
                                             key={ex.id}
-                                            className="grid grid-cols-1 md:grid-cols-[1fr_minmax(150px,160px)_minmax(150px,160px)_70px_minmax(200px,1fr)_auto] gap-4 items-end bg-white dark:bg-gray-800/60 rounded-xl p-5 border border-gray-200 dark:border-gray-600/60 shadow-sm"
+                                            className="grid grid-cols-1 md:grid-cols-[minmax(160px,1.4fr)_minmax(140px,1.1fr)_minmax(140px,1.1fr)_70px_minmax(150px,1fr)_auto] gap-4 items-center bg-gray-50 dark:bg-gray-800/70 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm"
                                         >
                                             <div className="min-w-0">
                                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                                                     Name
                                                 </label>
                                                 <Input
-                                                    size="lg"
-                                                    className="text-base w-full"
+                                                    size="md"
+                                                    className="w-full text-sm"
                                                     value={ex.name}
                                                     onChange={(e) => {
                                                         const value = e.target.value
@@ -782,8 +782,8 @@ const CreatePlan = () => {
                                                     Type
                                                 </label>
                                                 <Select
-                                                    size="lg"
-                                                    className="w-full [&_.select-control]:min-h-12 [&_.select-control]:w-full [&_.select-value-container]:min-w-0 [&_.select-single-value]:text-base [&_.select-single-value]:truncate [&_.select-placeholder]:text-base"
+                                                    size="md"
+                                                    className="w-full [&_.select-control]:w-full [&_.select-value-container]:min-w-0 [&_.select-single-value]:text-sm [&_.select-placeholder]:text-sm"
                                                     menuPortalTarget={
                                                         typeof document !==
                                                         'undefined'
@@ -833,11 +833,11 @@ const CreatePlan = () => {
                                             </div>
                                             <div className="min-w-0 w-full">
                                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-                                                    Subcategory
+                                                    Subcat
                                                 </label>
                                                 <Select
-                                                    size="lg"
-                                                    className="w-full [&_.select-control]:min-h-12 [&_.select-control]:w-full [&_.select-value-container]:min-w-0 [&_.select-single-value]:text-base [&_.select-single-value]:truncate [&_.select-placeholder]:text-base"
+                                                    size="md"
+                                                    className="w-full [&_.select-control]:w-full [&_.select-value-container]:min-w-0 [&_.select-single-value]:text-sm [&_.select-placeholder]:text-sm"
                                                     menuPortalTarget={
                                                         typeof document !==
                                                         'undefined'
@@ -871,9 +871,9 @@ const CreatePlan = () => {
                                                     Day
                                                 </label>
                                                 <Input
-                                                    size="lg"
+                                                    size="md"
                                                     type="number"
-                                                    className="text-base w-full"
+                                                    className="w-full text-sm"
                                                     value={ex.day_index ?? 1}
                                                     onChange={(e) => {
                                                         const value =
@@ -897,77 +897,84 @@ const CreatePlan = () => {
                                                     }}
                                                 />
                                             </div>
-                                            <div className="min-w-0">
-                                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-                                                    Sets × Reps
-                                                </label>
-                                                <div className="flex gap-3 flex-1 min-w-[180px]">
-                                                    <Input
-                                                        size="lg"
-                                                        type="number"
-                                                        className="text-base flex-1 min-w-[72px]"
-                                                        placeholder="Sets"
-                                                        value={ex.sets ?? ''}
-                                                        onChange={(e) => {
-                                                            const value =
-                                                                e.target
-                                                                    .value === ''
-                                                                    ? null
-                                                                    : Number(
-                                                                          e
-                                                                              .target
-                                                                              .value,
-                                                                      )
-                                                            setExercises(
-                                                                (prev) =>
-                                                                    prev.map(
-                                                                        (
-                                                                            row,
-                                                                        ) =>
-                                                                            row.id ===
-                                                                            ex.id
-                                                                                ? {
-                                                                                      ...row,
-                                                                                      sets: value,
-                                                                                  }
-                                                                                : row,
-                                                                    ),
-                                                            )
-                                                        }}
-                                                    />
-                                                    <Input
-                                                        size="lg"
-                                                        type="number"
-                                                        className="text-base flex-1 min-w-[72px]"
-                                                        placeholder="Reps"
-                                                        value={ex.reps ?? ''}
-                                                        onChange={(e) => {
-                                                            const value =
-                                                                e.target
-                                                                    .value === ''
-                                                                    ? null
-                                                                    : Number(
-                                                                          e
-                                                                              .target
-                                                                              .value,
-                                                                      )
-                                                            setExercises(
-                                                                (prev) =>
-                                                                    prev.map(
-                                                                        (
-                                                                            row,
-                                                                        ) =>
-                                                                            row.id ===
-                                                                            ex.id
-                                                                                ? {
-                                                                                      ...row,
-                                                                                      reps: value,
-                                                                                  }
-                                                                                : row,
-                                                                    ),
-                                                            )
-                                                        }}
-                                                    />
+                                            <div className="min-w-0 w-full">
+                                                <div className="grid grid-cols-[minmax(90px,1fr)_minmax(80px,0.7fr)] gap-3 min-w-[150px]">
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                                                            Sets
+                                                        </label>
+                                                        <Input
+                                                            size="md"
+                                                            type="number"
+                                                            className="w-full text-sm"
+                                                            placeholder="Sets"
+                                                            value={ex.sets ?? ''}
+                                                            onChange={(e) => {
+                                                                const value =
+                                                                    e.target
+                                                                        .value === ''
+                                                                        ? null
+                                                                        : Number(
+                                                                              e
+                                                                                  .target
+                                                                                  .value,
+                                                                          )
+                                                                setExercises(
+                                                                    (prev) =>
+                                                                        prev.map(
+                                                                            (
+                                                                                row,
+                                                                            ) =>
+                                                                                row.id ===
+                                                                                ex.id
+                                                                                    ? {
+                                                                                          ...row,
+                                                                                          sets: value,
+                                                                                      }
+                                                                                    : row,
+                                                                        ),
+                                                                )
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                                                            Reps
+                                                        </label>
+                                                        <Input
+                                                            size="md"
+                                                            type="number"
+                                                            className="w-full text-sm"
+                                                            placeholder="Reps"
+                                                            value={ex.reps ?? ''}
+                                                            onChange={(e) => {
+                                                                const value =
+                                                                    e.target
+                                                                        .value === ''
+                                                                        ? null
+                                                                        : Number(
+                                                                              e
+                                                                                  .target
+                                                                                  .value,
+                                                                          )
+                                                                setExercises(
+                                                                    (prev) =>
+                                                                        prev.map(
+                                                                            (
+                                                                                row,
+                                                                            ) =>
+                                                                                row.id ===
+                                                                                ex.id
+                                                                                    ? {
+                                                                                          ...row,
+                                                                                          reps: value,
+                                                                                      }
+                                                                                    : row,
+                                                                        ),
+                                                                )
+                                                            }}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-end pb-1 justify-end">
@@ -975,7 +982,7 @@ const CreatePlan = () => {
                                                     type="button"
                                                     variant="plain"
                                                     size="sm"
-                                                    className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-error dark:hover:text-error"
+                                                    className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-error dark:hover:text-error h-10 px-3"
                                                     onClick={() =>
                                                         setExercises((prev) =>
                                                             prev.filter(
