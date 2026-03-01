@@ -335,6 +335,37 @@ const CreatePlan = () => {
                 return
             }
 
+            const dailyLimit = data.daily_calories ?? null
+            if (dailyLimit != null && dailyLimit > 0) {
+                const getMealCal = (meal: WizardMeal): number => {
+                    if (meal.calories != null && meal.calories > 0)
+                        return meal.calories
+                    return (meal.ingredients ?? []).reduce(
+                        (sum, ing) => sum + (ing.calories ?? 0),
+                        0,
+                    )
+                }
+                const getDayTotal = (dayIndex: number): number =>
+                    meals
+                        .filter((m) => (m.day_index ?? 1) === dayIndex)
+                        .reduce((sum, m) => sum + getMealCal(m), 0)
+
+                for (let d = 1; d <= totalDays; d++) {
+                    const total = getDayTotal(d)
+                    if (total > dailyLimit) {
+                        toast.push(
+                            <Notification type="danger" title="Daily calorie limit exceeded">
+                                Day {d} exceeds the daily calorie limit (
+                                {total} &gt; {dailyLimit}). Please adjust meals
+                                or increase the daily limit.
+                            </Notification>,
+                        )
+                        setSaving(false)
+                        return
+                    }
+                }
+            }
+
             const base: CreatePlanWithDetailsDto = {
                 coach_id: user.id,
                 trainee_id: data.trainee_id,
@@ -471,6 +502,23 @@ const CreatePlan = () => {
         const diffDays = Math.floor(diffMs / dayMs)
         return diffDays + 1
     })()
+
+    /** Calories for a single meal: direct calories or sum of ingredient calories. */
+    const getMealCalories = (meal: WizardMeal): number => {
+        if (meal.calories != null && meal.calories > 0) return meal.calories
+        const fromIng = (meal.ingredients ?? []).reduce(
+            (sum, ing) => sum + (ing.calories ?? 0),
+            0,
+        )
+        return fromIng
+    }
+
+    /** Total calories for all meals assigned to a given day. */
+    const getTotalCaloriesForDay = (dayIndex: number): number => {
+        return meals
+            .filter((m) => (m.day_index ?? 1) === dayIndex)
+            .reduce((sum, m) => sum + getMealCalories(m), 0)
+    }
 
     return (
         <div className="space-y-6">
@@ -751,7 +799,7 @@ const CreatePlan = () => {
                                     {exercises.map((ex, index) => (
                                         <div
                                             key={ex.id}
-                                            className="grid grid-cols-1 md:grid-cols-[minmax(160px,1.4fr)_minmax(140px,1.1fr)_minmax(140px,1.1fr)_70px_minmax(150px,1fr)_auto] gap-4 items-center bg-gray-50 dark:bg-gray-800/70 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm"
+                                            className="grid grid-cols-1 md:grid-cols-[minmax(120px,1fr)_minmax(120px,1fr)_minmax(120px,1fr)_70px_minmax(140px,1fr)_minmax(72px,auto)] gap-4 items-center bg-gray-50 dark:bg-gray-800/70 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm"
                                         >
                                             <div className="min-w-0">
                                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
@@ -898,9 +946,9 @@ const CreatePlan = () => {
                                                 />
                                             </div>
                                             <div className="min-w-0 w-full">
-                                                <div className="grid grid-cols-[minmax(90px,1fr)_minmax(80px,0.7fr)] gap-3 min-w-[150px]">
-                                                    <div>
-                                                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                                                <div className="grid grid-cols-[minmax(72px,1fr)_minmax(64px,0.7fr)] gap-2 min-w-0">
+                                                    <div className="min-w-0">
+                                                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
                                                             Sets
                                                         </label>
                                                         <Input
@@ -937,8 +985,8 @@ const CreatePlan = () => {
                                                             }}
                                                         />
                                                     </div>
-                                                    <div>
-                                                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                                                    <div className="min-w-0">
+                                                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
                                                             Reps
                                                         </label>
                                                         <Input
@@ -977,12 +1025,15 @@ const CreatePlan = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-end pb-1 justify-end">
+                                            <div className="min-w-0 flex flex-col justify-end">
+                                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 invisible">
+                                                    Remove
+                                                </label>
                                                 <Button
                                                     type="button"
                                                     variant="plain"
                                                     size="sm"
-                                                    className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-error dark:hover:text-error h-10 px-3"
+                                                    className="w-full sm:w-auto text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-error dark:hover:text-error hover:bg-error/10 h-9 min-h-9 px-2.5 shrink-0"
                                                     onClick={() =>
                                                         setExercises((prev) =>
                                                             prev.filter(
@@ -1130,6 +1181,28 @@ const CreatePlan = () => {
                                                                 size="sm"
                                                                 variant="solid"
                                                                 onClick={() => {
+                                                                    const dailyLimit =
+                                                                        getValues('daily_calories') ?? null
+                                                                    if (
+                                                                        dailyLimit != null &&
+                                                                        getTotalCaloriesForDay(1) >= dailyLimit
+                                                                    ) {
+                                                                        toast.push(
+                                                                            <Notification
+                                                                                type="warning"
+                                                                                title="Daily calorie limit reached"
+                                                                            >
+                                                                                You have reached the
+                                                                                assigned daily calorie
+                                                                                limit. If you would
+                                                                                like to add another
+                                                                                meal, please update
+                                                                                the daily calorie
+                                                                                limit first.
+                                                                            </Notification>,
+                                                                        )
+                                                                        return
+                                                                    }
                                                                     setMeals(
                                                                         (prev) => [
                                                                             ...prev,
@@ -1142,8 +1215,8 @@ const CreatePlan = () => {
                                                                                 instructions:
                                                                                     null,
                                                                                 order_index:
-                                                                                    idx +
-                                                                                    1,
+                                                                                    idx + 1,
+                                                                                day_index: 1,
                                                                                 ingredients:
                                                                                     [],
                                                                             },
@@ -1162,140 +1235,179 @@ const CreatePlan = () => {
                                                                 meals yet.
                                                             </p>
                                                         ) : (
-                                                            sectionMeals.map(
-                                                                (meal) => {
-                                                                    const mealIngredients =
-                                                                        meal.ingredients ||
-                                                                        []
-                                                                    const mealTotal =
-                                                                        mealIngredients.reduce(
-                                                                            (
-                                                                                sum,
-                                                                                ing,
-                                                                            ) =>
-                                                                                sum +
-                                                                                (ing.calories ??
-                                                                                    0),
-                                                                            0,
-                                                                        )
-
-                                                                    return (
+                                                            (() => {
+                                                                const daysWithMeals = [
+                                                                    ...new Set(
+                                                                        sectionMeals.map(
+                                                                            (m) =>
+                                                                                m.day_index ?? 1,
+                                                                        ),
+                                                                    ),
+                                                                ]
+                                                                    .sort(
+                                                                        (a, b) =>
+                                                                            a - b,
+                                                                    )
+                                                                    .filter(
+                                                                        (d) =>
+                                                                            d >= 1 &&
+                                                                            (inclusiveTotalDays === 0 ||
+                                                                                d <= inclusiveTotalDays),
+                                                                    )
+                                                                return daysWithMeals.map(
+                                                                    (dayNum) => (
                                                                         <div
-                                                                            key={
-                                                                                meal.id
-                                                                            }
-                                                                            className="mt-3 space-y-2"
+                                                                            key={`${mealType}-day-${dayNum}`}
+                                                                            className="mt-4 first:mt-2"
                                                                         >
-                                                                            <div className="flex flex-col md:flex-row md:items-center gap-2">
-                                                                                <Input
-                                                                                    value={
-                                                                                        meal.name
-                                                                                    }
-                                                                                    onChange={(
-                                                                                        e,
-                                                                                    ) => {
-                                                                                        const value =
-                                                                                            e
-                                                                                                .target
-                                                                                                .value
-                                                                                        setMeals(
-                                                                                            (
-                                                                                                prev,
-                                                                                            ) =>
-                                                                                                prev.map(
-                                                                                                    (
-                                                                                                        m,
-                                                                                                    ) =>
-                                                                                                        m.id ===
-                                                                                                        meal.id
-                                                                                                            ? {
-                                                                                                                  ...m,
-                                                                                                                  name: value,
-                                                                                                              }
-                                                                                                            : m,
-                                                                                                ),
-                                                                                        )
-                                                                                    }}
-                                                                                    placeholder={`${label} name`}
-                                                                                />
-                                                                                <Input
-                                                                                    type="number"
-                                                                                    className="w-24"
-                                                                                    value={meal.day_index ?? 1}
-                                                                                    onChange={(e) => {
-                                                                                        const value =
-                                                                                            e.target.value === ''
-                                                                                                ? 1
-                                                                                                : Number(e.target.value)
-                                                                                        setMeals((prev) =>
-                                                                                            prev.map((m) =>
-                                                                                                m.id === meal.id
-                                                                                                    ? {
-                                                                                                          ...m,
-                                                                                                          day_index:
-                                                                                                              value,
-                                                                                                      }
-                                                                                                    : m,
-                                                                                            ),
-                                                                                        )
-                                                                                    }}
-                                                                                    placeholder="Day"
-                                                                                />
-                                                                                <Input
-                                                                                    value={
-                                                                                        meal.instructions ??
-                                                                                        ''
-                                                                                    }
-                                                                                    onChange={(
-                                                                                        e,
-                                                                                    ) => {
-                                                                                        const value =
-                                                                                            e
-                                                                                                .target
-                                                                                                .value
-                                                                                        setMeals(
-                                                                                            (
-                                                                                                prev,
-                                                                                            ) =>
-                                                                                                prev.map(
-                                                                                                    (
-                                                                                                        m,
-                                                                                                    ) =>
-                                                                                                        m.id ===
-                                                                                                        meal.id
-                                                                                                            ? {
-                                                                                                                  ...m,
-                                                                                                                  instructions:
-                                                                                                                      value,
-                                                                                                              }
-                                                                                                            : m,
-                                                                                                ),
-                                                                                        )
-                                                                                    }}
-                                                                                    placeholder="Instructions (optional)"
-                                                                                />
-                                                                                <Button
-                                                                                    type="button"
-                                                                                    size="xs"
-                                                                                    variant="plain"
-                                                                                    onClick={() =>
-                                                                                        setMeals(
-                                                                                            (
-                                                                                                prev,
-                                                                                            ) =>
-                                                                                                prev.filter(
-                                                                                                    (
-                                                                                                        m,
-                                                                                                    ) =>
-                                                                                                        m.id !==
-                                                                                                        meal.id,
-                                                                                                ),
-                                                                                        )
-                                                                                    }
-                                                                                >
-                                                                                    Remove
-                                                                                </Button>
-                                                                            </div>
+                                                                            <h5 className="text-sm font-semibold text-white/90 mb-2">
+                                                                                Day {dayNum}
+                                                                            </h5>
+                                                                            {sectionMeals
+                                                                                .filter(
+                                                                                    (m) =>
+                                                                                        (m.day_index ?? 1) === dayNum,
+                                                                                )
+                                                                                .map(
+                                                                                    (meal) => {
+                                                                                        const mealIngredients =
+                                                                                            meal.ingredients ||
+                                                                                            []
+                                                                                        const mealTotal =
+                                                                                            mealIngredients.reduce(
+                                                                                                (sum, ing) =>
+                                                                                                    sum +
+                                                                                                    (ing.calories ?? 0),
+                                                                                                0,
+                                                                                            )
+
+                                                                                        return (
+                                                                                            <div
+                                                                                                key={meal.id}
+                                                                                                className="mt-3 space-y-2"
+                                                                                            >
+                                                                                                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                                                                                                    <Input
+                                                                                                        value={
+                                                                                                            meal.name
+                                                                                                        }
+                                                                                                        onChange={(
+                                                                                                            e,
+                                                                                                        ) => {
+                                                                                                            const value =
+                                                                                                                e.target.value
+                                                                                                            setMeals(
+                                                                                                                (prev) =>
+                                                                                                                    prev.map(
+                                                                                                                        (m) =>
+                                                                                                                            m.id === meal.id
+                                                                                                                                ? {
+                                                                                                                                      ...m,
+                                                                                                                                      name: value,
+                                                                                                                                  }
+                                                                                                                                : m,
+                                                                                                                    ),
+                                                                                                            )
+                                                                                                        }}
+                                                                                                        placeholder={`${label} name`}
+                                                                                                    />
+                                                                                                    <Input
+                                                                                                        type="number"
+                                                                                                        className="w-24"
+                                                                                                        value={meal.day_index ?? 1}
+                                                                                                        onChange={(e) => {
+                                                                                                            const value =
+                                                                                                                e.target.value === ''
+                                                                                                                    ? 1
+                                                                                                                    : Number(e.target.value)
+                                                                                                            const dailyLimit =
+                                                                                                                getValues('daily_calories') ?? null
+                                                                                                            if (
+                                                                                                                dailyLimit != null &&
+                                                                                                                value >= 1
+                                                                                                            ) {
+                                                                                                                const otherTotal =
+                                                                                                                    meals
+                                                                                                                        .filter(
+                                                                                                                            (m) =>
+                                                                                                                                m.id !== meal.id &&
+                                                                                                                                (m.day_index ?? 1) === value,
+                                                                                                                        )
+                                                                                                                        .reduce(
+                                                                                                                            (s, m) =>
+                                                                                                                                s + getMealCalories(m),
+                                                                                                                            0,
+                                                                                                                        )
+                                                                                                                const thisCal =
+                                                                                                                    getMealCalories(meal)
+                                                                                                                if (
+                                                                                                                    otherTotal + thisCal >
+                                                                                                                    dailyLimit
+                                                                                                                ) {
+                                                                                                                    toast.push(
+                                                                                                                        <Notification
+                                                                                                                            type="warning"
+                                                                                                                            title="Daily calorie limit"
+                                                                                                                        >
+                                                                                                                            Day {value} would exceed the
+                                                                                                                            daily calorie limit.
+                                                                                                                            Increase the limit or
+                                                                                                                            reduce meal calories.
+                                                                                                                        </Notification>,
+                                                                                                                    )
+                                                                                                                    return
+                                                                                                                }
+                                                                                                            }
+                                                                                                            setMeals((prev) =>
+                                                                                                                prev.map((m) =>
+                                                                                                                    m.id === meal.id
+                                                                                                                        ? { ...m, day_index: value }
+                                                                                                                        : m,
+                                                                                                                ),
+                                                                                                            )
+                                                                                                        }}
+                                                                                                        placeholder="Day"
+                                                                                                    />
+                                                                                                    <Input
+                                                                                                        value={
+                                                                                                            meal.instructions ??
+                                                                                                            ''
+                                                                                                        }
+                                                                                                        onChange={(
+                                                                                                            e,
+                                                                                                        ) => {
+                                                                                                            const value =
+                                                                                                                e.target.value
+                                                                                                            setMeals(
+                                                                                                                (prev) =>
+                                                                                                                    prev.map(
+                                                                                                                        (m) =>
+                                                                                                                            m.id === meal.id
+                                                                                                                                ? {
+                                                                                                                                      ...m,
+                                                                                                                                      instructions: value,
+                                                                                                                                  }
+                                                                                                                                : m,
+                                                                                                                    ),
+                                                                                                            )
+                                                                                                        }}
+                                                                                                        placeholder="Instructions (optional)"
+                                                                                                    />
+                                                                                                    <Button
+                                                                                                        type="button"
+                                                                                                        size="xs"
+                                                                                                        variant="plain"
+                                                                                                        onClick={() =>
+                                                                                                            setMeals((prev) =>
+                                                                                                                prev.filter(
+                                                                                                                    (m) => m.id !== meal.id,
+                                                                                                                ),
+                                                                                                            )
+                                                                                                        }
+                                                                                                    >
+                                                                                                        Remove
+                                                                                                    </Button>
+                                                                                                </div>
 
                                                                             <div className="mt-2 rounded-xl bg-black/40 px-3 py-2">
                                                                                 <div className="grid grid-cols-4 gap-2 text-[11px] font-semibold mb-2 text-gray-200">
@@ -1538,9 +1650,15 @@ const CreatePlan = () => {
                                                                             </div>
                                                                         </div>
                                                                     )
-                                                                },
-                                                            )
-                                                        )}
+                                                                                }
+                                                                                )
+                                                                            }
+                                                                            </div>
+                                                                        )
+                                                                        )
+                                                                    }
+                                                                )()
+                                                            )}
                                                     </div>
                                                 </Card>
                                             )
@@ -1590,6 +1708,43 @@ const CreatePlan = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {dailyCalories != null &&
+                                    dailyCalories > 0 &&
+                                    inclusiveTotalDays > 0 && (
+                                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                                                Per-day totals
+                                            </p>
+                                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                                                {Array.from(
+                                                    {
+                                                        length: inclusiveTotalDays,
+                                                    },
+                                                    (_, i) => i + 1,
+                                                ).map((d) => {
+                                                    const total =
+                                                        getTotalCaloriesForDay(d)
+                                                    const over =
+                                                        total > dailyCalories
+                                                    return (
+                                                        <span
+                                                            key={d}
+                                                            className={
+                                                                over
+                                                                    ? 'text-red-600 dark:text-red-400 font-medium'
+                                                                    : 'text-gray-600 dark:text-gray-400'
+                                                            }
+                                                        >
+                                                            Day {d}: {total.toFixed(0)}{' '}
+                                                            kcal
+                                                            {over && ' (over limit)'}
+                                                        </span>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                             </div>
                         )}
 

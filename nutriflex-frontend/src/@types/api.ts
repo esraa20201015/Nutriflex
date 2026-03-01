@@ -468,6 +468,7 @@ export interface PlanMealDto {
     calories?: number | null
     instructions?: string | null
     order_index?: number
+    day_index?: number
     ingredients?: MealIngredientInputDto[]
 }
 

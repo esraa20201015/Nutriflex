@@ -129,6 +129,23 @@ export class NutritionPlanService {
           data: null,
         };
       }
+
+      const dailyLimit = dto.daily_calories ?? null;
+      if (dailyLimit != null && dailyLimit > 0) {
+        for (let d = 1; d <= totalDays; d++) {
+          const dayTotal = (dto.meals ?? [])
+            .filter((m) => (m.day_index ?? 1) === d)
+            .reduce((sum, m) => sum + (m.calories ?? 0), 0);
+          if (dayTotal > dailyLimit) {
+            return {
+              status: HttpStatus.BAD_REQUEST,
+              messageEn: `Day ${d} exceeds the daily calorie limit (${dayTotal} > ${dailyLimit}). Adjust meals or increase the daily limit.`,
+              messageAr: `اليوم ${d} يتجاوز حد السعرات اليومية. يرجى تعديل الوجبات أو زيادة الحد.`,
+              data: null,
+            };
+          }
+        }
+      }
     }
 
     // 4) Attach exercises (if provided)
@@ -312,6 +329,23 @@ export class NutritionPlanService {
             'اليوم المحدد لإحدى الوجبات يتجاوز إجمالي عدد أيام الخطة.',
           data: null,
         };
+      }
+
+      const dailyLimit = dto.daily_calories ?? null;
+      if (dailyLimit != null && dailyLimit > 0) {
+        for (let d = 1; d <= totalDays; d++) {
+          const dayTotal = (dto.meals ?? [])
+            .filter((m) => (m.day_index ?? 1) === d)
+            .reduce((sum, m) => sum + (m.calories ?? 0), 0);
+          if (dayTotal > dailyLimit) {
+            return {
+              status: HttpStatus.BAD_REQUEST,
+              messageEn: `Day ${d} exceeds the daily calorie limit (${dayTotal} > ${dailyLimit}). Adjust meals or increase the daily limit.`,
+              messageAr: `اليوم ${d} يتجاوز حد السعرات اليومية. يرجى تعديل الوجبات أو زيادة الحد.`,
+              data: null,
+            };
+          }
+        }
       }
 
       for (let index = 0; index < dto.meals.length; index++) {
