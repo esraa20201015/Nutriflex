@@ -354,10 +354,15 @@ const CreatePlan = () => {
                     const total = getDayTotal(d)
                     if (total > dailyLimit) {
                         toast.push(
-                            <Notification type="danger" title="Daily calorie limit exceeded">
+                            <Notification
+                                type="danger"
+                                title="Daily calorie limit exceeded"
+                                closable
+                                duration={0}
+                            >
                                 Day {d} exceeds the daily calorie limit (
                                 {total} &gt; {dailyLimit}). Please adjust meals
-                                or increase the daily limit.
+                                or increase the daily limit. Dismiss when read.
                             </Notification>,
                         )
                         setSaving(false)
@@ -472,21 +477,7 @@ const CreatePlan = () => {
         )
     }
 
-    const totalMealCalories = meals.reduce((planSum, meal) => {
-        const mealTotal =
-            meal.calories ??
-            meal.ingredients?.reduce(
-                (sum, ing) => sum + (ing.calories ?? 0),
-                0,
-            ) ?? 0
-        return planSum + mealTotal
-    }, 0)
-
     const dailyCalories = getValues('daily_calories') ?? null
-    const caloriesProgress =
-        dailyCalories && dailyCalories > 0
-            ? Math.min(100, Math.round((totalMealCalories / dailyCalories) * 100))
-            : 0
 
     const inclusiveTotalDays = (() => {
         const start = getValues('start_date')
@@ -1191,14 +1182,16 @@ const CreatePlan = () => {
                                                                             <Notification
                                                                                 type="warning"
                                                                                 title="Daily calorie limit reached"
+                                                                                closable
+                                                                                duration={0}
                                                                             >
                                                                                 You have reached the
                                                                                 assigned daily calorie
-                                                                                limit. If you would
-                                                                                like to add another
-                                                                                meal, please update
-                                                                                the daily calorie
-                                                                                limit first.
+                                                                                limit for Day 1. You cannot
+                                                                                add another meal until you
+                                                                                update the daily calorie
+                                                                                limit or move/remove meals.
+                                                                                Dismiss when read.
                                                                             </Notification>,
                                                                         )
                                                                         return
@@ -1348,11 +1341,14 @@ const CreatePlan = () => {
                                                                                                                         <Notification
                                                                                                                             type="warning"
                                                                                                                             title="Daily calorie limit"
+                                                                                                                            closable
+                                                                                                                            duration={0}
                                                                                                                         >
                                                                                                                             Day {value} would exceed the
                                                                                                                             daily calorie limit.
                                                                                                                             Increase the limit or
                                                                                                                             reduce meal calories.
+                                                                                                                            Dismiss when read.
                                                                                                                         </Notification>,
                                                                                                                     )
                                                                                                                     return
@@ -1666,85 +1662,102 @@ const CreatePlan = () => {
                                     )}
                                 </div>
 
-                                {/* Calories Goal Progress */}
-                                <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                {/* Calories per day (each day calculated separately) */}
+                                <div className="mt-6 space-y-4">
                                     <div className="flex items-center gap-2">
                                         <PiClipboardTextDuotone className="w-6 h-6 text-primary" />
                                         <div>
                                             <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                                                Total Plan Calories
+                                                Calories per day
                                             </p>
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                Sum of all meal calories vs daily
-                                                goal
+                                                Each day&apos;s meal total vs daily
+                                                goal (calculated separately)
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right">
-                                            <div className="text-sm font-semibold">
-                                                {totalMealCalories.toFixed(0)}{' '}
-                                                Kcal
-                                            </div>
-                                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                Daily goal:{' '}
-                                                {dailyCalories
-                                                    ? `${dailyCalories} Kcal`
-                                                    : 'Not set'}
-                                            </div>
+                                    {inclusiveTotalDays > 0 ? (
+                                        <div className="space-y-3">
+                                            {Array.from(
+                                                {
+                                                    length: inclusiveTotalDays,
+                                                },
+                                                (_, i) => i + 1,
+                                            ).map((d) => {
+                                                const dayTotal =
+                                                    getTotalCaloriesForDay(d)
+                                                const dayProgress =
+                                                    dailyCalories &&
+                                                    dailyCalories > 0
+                                                        ? Math.min(
+                                                              100,
+                                                              Math.round(
+                                                                  (dayTotal /
+                                                                      dailyCalories) *
+                                                                      100,
+                                                              ),
+                                                          )
+                                                        : 0
+                                                const over =
+                                                    dailyCalories != null &&
+                                                    dayTotal > dailyCalories
+                                                return (
+                                                    <div
+                                                        key={d}
+                                                        className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+                                                    >
+                                                        <div className="flex items-center gap-2 min-w-[5rem]">
+                                                            <span
+                                                                className={`text-sm font-semibold ${
+                                                                    over
+                                                                        ? 'text-red-600 dark:text-red-400'
+                                                                        : 'text-gray-800 dark:text-gray-100'
+                                                                }`}
+                                                            >
+                                                                Day {d}:
+                                                            </span>
+                                                            <span className="text-sm font-medium">
+                                                                {dayTotal.toFixed(
+                                                                    0,
+                                                                )}{' '}
+                                                                Kcal
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex-1 flex items-center gap-3">
+                                                            <div className="flex-1 max-w-xs h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                                                <div
+                                                                    className={`h-2 rounded-full transition-all ${
+                                                                        over
+                                                                            ? 'bg-red-500'
+                                                                            : 'bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500'
+                                                                    }`}
+                                                                    style={{
+                                                                        width: `${dayProgress}%`,
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                                {dailyCalories
+                                                                    ? `${dayProgress}% of ${dailyCalories} Kcal`
+                                                                    : 'Daily goal not set'}
+                                                                {over && (
+                                                                    <span className="text-red-600 dark:text-red-400 font-medium ml-1">
+                                                                        (over limit)
+                                                                    </span>
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
                                         </div>
-                                        <div className="w-40">
-                                            <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                                <div
-                                                    className="h-2 rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 transition-all"
-                                                    style={{
-                                                        width: `${caloriesProgress}%`,
-                                                    }}
-                                                />
-                                            </div>
-                                            <div className="mt-1 text-xs text-right text-gray-500 dark:text-gray-400">
-                                                {caloriesProgress}% of goal
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {dailyCalories != null &&
-                                    dailyCalories > 0 &&
-                                    inclusiveTotalDays > 0 && (
-                                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                                                Per-day totals
-                                            </p>
-                                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                                                {Array.from(
-                                                    {
-                                                        length: inclusiveTotalDays,
-                                                    },
-                                                    (_, i) => i + 1,
-                                                ).map((d) => {
-                                                    const total =
-                                                        getTotalCaloriesForDay(d)
-                                                    const over =
-                                                        total > dailyCalories
-                                                    return (
-                                                        <span
-                                                            key={d}
-                                                            className={
-                                                                over
-                                                                    ? 'text-red-600 dark:text-red-400 font-medium'
-                                                                    : 'text-gray-600 dark:text-gray-400'
-                                                            }
-                                                        >
-                                                            Day {d}: {total.toFixed(0)}{' '}
-                                                            kcal
-                                                            {over && ' (over limit)'}
-                                                        </span>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            Set plan start and end dates to see
+                                            per-day calories.
+                                        </p>
                                     )}
+                                </div>
                             </div>
                         )}
 
