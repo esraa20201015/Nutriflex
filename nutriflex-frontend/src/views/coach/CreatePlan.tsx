@@ -1677,80 +1677,112 @@ const CreatePlan = () => {
                                         </div>
                                     </div>
                                     {inclusiveTotalDays > 0 ? (
-                                        <div className="space-y-3">
-                                            {Array.from(
-                                                {
-                                                    length: inclusiveTotalDays,
-                                                },
-                                                (_, i) => i + 1,
-                                            ).map((d) => {
-                                                const dayTotal =
-                                                    getTotalCaloriesForDay(d)
-                                                const dayProgress =
-                                                    dailyCalories &&
-                                                    dailyCalories > 0
-                                                        ? Math.min(
-                                                              100,
-                                                              Math.round(
-                                                                  (dayTotal /
-                                                                      dailyCalories) *
+                                        <>
+                                            {!dailyCalories ||
+                                            dailyCalories <= 0 ? (
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                                                    No daily calorie goal set.
+                                                    Set a goal in Plan Info to
+                                                    see daily progress.
+                                                </p>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {Array.from(
+                                                        {
+                                                            length: inclusiveTotalDays,
+                                                        },
+                                                        (_, i) => i + 1,
+                                                    ).map((d) => {
+                                                        const dayTotal =
+                                                            getTotalCaloriesForDay(
+                                                                d,
+                                                            )
+                                                        const hasMeals =
+                                                            dayTotal > 0
+                                                        const dayProgress =
+                                                            dailyCalories > 0
+                                                                ? Math.min(
                                                                       100,
-                                                              ),
-                                                          )
-                                                        : 0
-                                                const over =
-                                                    dailyCalories != null &&
-                                                    dayTotal > dailyCalories
-                                                return (
-                                                    <div
-                                                        key={d}
-                                                        className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
-                                                    >
-                                                        <div className="flex items-center gap-2 min-w-[5rem]">
-                                                            <span
-                                                                className={`text-sm font-semibold ${
-                                                                    over
-                                                                        ? 'text-red-600 dark:text-red-400'
-                                                                        : 'text-gray-800 dark:text-gray-100'
-                                                                }`}
-                                                            >
-                                                                Day {d}:
-                                                            </span>
-                                                            <span className="text-sm font-medium">
-                                                                {dayTotal.toFixed(
-                                                                    0,
-                                                                )}{' '}
-                                                                Kcal
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex-1 flex items-center gap-3">
-                                                            <div className="flex-1 max-w-xs h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                                                      Math.round(
+                                                                          (dayTotal /
+                                                                              dailyCalories) *
+                                                                              100,
+                                                                      ),
+                                                                  )
+                                                                : 0
+                                                        const over =
+                                                            dayTotal >
+                                                            dailyCalories
+
+                                                        if (!hasMeals) {
+                                                            return (
                                                                 <div
-                                                                    className={`h-2 rounded-full transition-all ${
-                                                                        over
-                                                                            ? 'bg-red-500'
-                                                                            : 'bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500'
-                                                                    }`}
-                                                                    style={{
-                                                                        width: `${dayProgress}%`,
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                            <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                                {dailyCalories
-                                                                    ? `${dayProgress}% of ${dailyCalories} Kcal`
-                                                                    : 'Daily goal not set'}
-                                                                {over && (
-                                                                    <span className="text-red-600 dark:text-red-400 font-medium ml-1">
-                                                                        (over limit)
+                                                                    key={d}
+                                                                    className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+                                                                >
+                                                                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                                                        Day {d}:
                                                                     </span>
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
+                                                                    <span className="text-sm text-gray-500 dark:text-gray-400 italic">
+                                                                        Free day (no meals)
+                                                                    </span>
+                                                                </div>
+                                                            )
+                                                        }
+
+                                                        return (
+                                                            <div
+                                                                key={d}
+                                                                className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+                                                            >
+                                                                <div className="flex items-center gap-2 min-w-[5rem]">
+                                                                    <span
+                                                                        className={`text-sm font-semibold ${
+                                                                            over
+                                                                                ? 'text-red-600 dark:text-red-400'
+                                                                                : 'text-gray-800 dark:text-gray-100'
+                                                                        }`}
+                                                                    >
+                                                                        Day {d}:
+                                                                    </span>
+                                                                    <span className="text-sm font-medium">
+                                                                        {dayTotal.toFixed(
+                                                                            0,
+                                                                        )}{' '}
+                                                                        Kcal
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex-1 flex items-center gap-3">
+                                                                    <div className="flex-1 max-w-xs h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                                                        <div
+                                                                            className={`h-2 rounded-full transition-all ${
+                                                                                over
+                                                                                    ? 'bg-red-500'
+                                                                                    : 'bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500'
+                                                                            }`}
+                                                                            style={{
+                                                                                width: `${dayProgress}%`,
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                    <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                                        {dayProgress}% of{' '}
+                                                                        {dailyCalories}{' '}
+                                                                        Kcal
+                                                                        {over && (
+                                                                            <span className="text-red-600 dark:text-red-400 font-medium ml-1">
+                                                                                (over
+                                                                                limit)
+                                                                            </span>
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
+                                        </>
                                     ) : (
                                         <p className="text-sm text-gray-500 dark:text-gray-400">
                                             Set plan start and end dates to see
