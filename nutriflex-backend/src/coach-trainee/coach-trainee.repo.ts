@@ -274,4 +274,28 @@ export class CoachTraineeRepo extends Repository<CoachTrainee> {
           : CoachTraineeStatus.ACTIVE;
     return this.updateEntity(id, { status: newStatus });
   }
+
+  // ======= New method to get all trainees for a coach =======
+  async getTraineesByCoach(coach_id: string) {
+    try {
+      const result = await this.findAll({ coach_id, status: CoachTraineeStatus.ACTIVE });
+      const trainees = result.data?.map(rel => ({
+        traineeId: rel.trainee_id,
+        fullName: rel.trainee?.fullName ?? 'Unknown',
+      })) ?? [];
+      return {
+        status: HttpStatus.OK,
+        messageEn: 'Trainees retrieved successfully',
+        messageAr: 'تم استرجاع المتدربين بنجاح',
+        data: trainees,
+      };
+    } catch (error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        messageEn: 'Error retrieving trainees',
+        messageAr: 'خطأ في استرجاع المتدربين',
+        error: (error as Error).message,
+      };
+    }
+  }
 }

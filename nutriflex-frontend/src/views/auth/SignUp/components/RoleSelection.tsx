@@ -51,10 +51,11 @@ const RoleSelection = ({ className, signInUrl = '/sign-in' }: RoleSelectionProps
                             type="button"
                             onClick={() => handleRoleSelect(role.value)}
                             className={classNames(
-                                'p-6 rounded-lg border-2 transition-all duration-200',
+                                'group p-6 rounded-lg border-2 transition-all duration-200',
                                 'hover:shadow-lg hover:scale-[1.02]',
                                 'text-left cursor-pointer',
-                                'border-gray-200 dark:border-gray-700 hover:border-primary',
+                                'border-gray-200 dark:border-gray-700',
+                                'hover:border-info focus:border-info focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2',
                             )}
                         >
                             <div className="flex flex-col items-center text-center">
@@ -63,7 +64,7 @@ const RoleSelection = ({ className, signInUrl = '/sign-in' }: RoleSelectionProps
                                         'w-16 h-16 rounded-full flex items-center justify-center mb-4',
                                         'transition-colors duration-200',
                                         'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
-                                        'hover:bg-primary hover:text-white',
+                                        'group-hover:bg-info group-hover:text-white',
                                     )}
                                 >
                                     <Icon className="w-8 h-8" />

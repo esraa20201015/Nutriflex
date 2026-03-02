@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import { FormItem, Form } from '@/components/ui/Form'
@@ -11,7 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { ZodType } from 'zod'
 import type { CommonProps } from '@/@types/common'
-import type { SignUpCredential } from '@/@types/auth'
+import type { BodyMeasurementsPayload, SignUpCredential } from '@/@types/auth'
 
 interface SignUpFormProps extends CommonProps {
     disableSubmit?: boolean
@@ -56,6 +57,10 @@ const baseSchema = z.object({
 
 // Coach profile schema
 const coachProfileSchema = z.object({
+    fullName: z
+        .string({ required_error: 'Full name is required' })
+        .min(1, { message: 'Full name is required' })
+        .max(255, { message: 'Full name must be less than 255 characters' }),
     age: z
         .number({ required_error: 'Age is required' })
         .min(1, { message: 'Age must be at least 1' })
@@ -63,46 +68,70 @@ const coachProfileSchema = z.object({
     gender: z.enum(['male', 'female'], {
         required_error: 'Gender is required',
     }),
-    qualificationFilePath: z
-        .string({ required_error: 'Qualification file is required' })
-        .min(1, { message: 'Qualification file is required' })
-        .max(500, { message: 'File path must be less than 500 characters' }),
+    qualificationFilePath: z.string().max(500).optional(),
     certifications: z.string().optional(),
     experience: z.string().optional(),
     specialization: z.string().max(255).optional(),
     profilePicture: z.string().max(500).optional(),
     bio: z.string().optional(),
+    profileImageBase64: z.string().optional(),
+    certificationDocumentBase64: z.string().optional(),
 })
 
-// Trainee profile schema
+// Trainee profile schema (matches backend TraineeProfileDto) - without height/weight,
+// which are collected in the dedicated Body Measurements step.
 const traineeProfileSchema = z.object({
-    age: z
-        .number({ required_error: 'Age is required' })
-        .min(1, { message: 'Age must be at least 1' })
-        .max(120, { message: 'Age must be at most 120' }),
+    fullName: z.string().optional(),
     gender: z.enum(['male', 'female'], {
         required_error: 'Gender is required',
     }),
-    height: z
+    dateOfBirth: z
+        .string({ required_error: 'Date of birth is required' })
+        .min(1, { message: 'Date of birth is required' }),
+    fitnessGoal: z.string().optional(),
+    activityLevel: z.string().optional(),
+    medicalNotes: z.string().optional(),
+    dietaryPreference: z.string().optional(),
+    avatarBase64: z.string().optional(),
+})
+
+// Body measurements schema used in the dedicated third step for trainees
+const bodyMeasurementsSchema: z.ZodType<BodyMeasurementsPayload> = z.object({
+    heightCm: z
         .number({ required_error: 'Height is required' })
         .min(0, { message: 'Height must be at least 0' })
         .max(300, { message: 'Height must be at most 300 cm' }),
-    weight: z
+    weightKg: z
         .number({ required_error: 'Weight is required' })
         .min(0, { message: 'Weight must be at least 0' })
         .max(500, { message: 'Weight must be at most 500 kg' }),
-    fitnessGoals: z
-        .string({ required_error: 'Fitness goals are required' })
-        .min(1, { message: 'Fitness goals are required' }),
-    medicalConditions: z.string().optional(),
-    dietaryPreferences: z.string().optional(),
+    waistCm: z
+        .number()
+        .min(0, { message: 'Waist must be at least 0' })
+        .max(500, { message: 'Waist must be at most 500 cm' })
+        .optional()
+        .nullable(),
+    chestCm: z
+        .number()
+        .min(0, { message: 'Chest must be at least 0' })
+        .max(500, { message: 'Chest must be at most 500 cm' })
+        .optional()
+        .nullable(),
+    hipsCm: z
+        .number()
+        .min(0, { message: 'Hips must be at least 0' })
+        .max(500, { message: 'Hips must be at most 500 cm' })
+        .optional()
+        .nullable(),
 })
 
-// Combined schema with conditional validation
-const validationSchema: ZodType<SignUpCredential> = baseSchema
+// Combined schema with conditional validation. Cast to ZodType<SignUpCredential>
+// because fullName is optional in the schema (derived from firstName+lastName on submit).
+const validationSchema = baseSchema
     .extend({
         coachProfile: coachProfileSchema.optional(),
         traineeProfile: traineeProfileSchema.optional(),
+        bodyMeasurements: bodyMeasurementsSchema.optional(),
     })
     .refine((data) => data.password === data.confirmPassword, {
         message: 'Password and confirm password do not match',
@@ -111,27 +140,34 @@ const validationSchema: ZodType<SignUpCredential> = baseSchema
     .refine(
         (data) => {
             if (data.role === 'COACH') {
-                return !!data.coachProfile
+                return !!data.coachProfile && !!data.coachProfile.fullName && data.coachProfile.fullName.trim().length > 0
             }
             return true
         },
         {
-            message: 'Coach profile is required for COACH sign-up',
-            path: ['coachProfile'],
+            message: 'Coach profile with full name is required for COACH sign-up',
+            path: ['coachProfile', 'fullName'],
         },
     )
     .refine(
         (data) => {
             if (data.role === 'TRAINEE') {
-                return !!data.traineeProfile
+                const tp = data.traineeProfile
+                return (
+                    !!tp &&
+                    !!tp.gender &&
+                    !!tp.dateOfBirth &&
+                    tp.dateOfBirth.trim().length > 0
+                )
             }
             return true
         },
         {
-            message: 'Trainee profile is required for TRAINEE sign-up',
-            path: ['traineeProfile'],
+            message:
+                'Trainee profile with gender and date of birth is required for TRAINEE sign-up',
+            path: ['traineeProfile', 'dateOfBirth'],
         },
-    )
+    ) as ZodType<SignUpCredential>
 
 const SignUpForm = (props: SignUpFormProps) => {
     const { disableSubmit = false, className, setMessage, preselectedRole } = props
@@ -139,6 +175,7 @@ const SignUpForm = (props: SignUpFormProps) => {
     const [isSubmitting, setSubmitting] = useState<boolean>(false)
     const [step, setStep] = useState(0)
     const { signUp } = useAuth()
+    const navigate = useNavigate()
 
     const {
         handleSubmit,
@@ -146,6 +183,7 @@ const SignUpForm = (props: SignUpFormProps) => {
         control,
         watch,
         trigger,
+        setValue,
     } = useForm<SignUpCredential>({
         resolver: zodResolver(validationSchema),
         defaultValues: {
@@ -161,8 +199,24 @@ const SignUpForm = (props: SignUpFormProps) => {
     // Generate fullName from firstName and lastName
     const fullName = firstName && lastName ? `${firstName} ${lastName}` : ''
 
+    // Update coachProfile.fullName when firstName or lastName changes (for COACH role)
+    useEffect(() => {
+        if (selectedRole === 'COACH' && fullName) {
+            setValue('coachProfile.fullName', fullName, { shouldValidate: true })
+        }
+    }, [fullName, selectedRole, setValue])
+
+    /** Read a file as base64 data URL for API upload. */
+    const readFileAsDataUrl = (file: File): Promise<string> =>
+        new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = () => reject(reader.error)
+            reader.readAsDataURL(file)
+        })
+
     const onNext = async () => {
-        // Validate step 1 fields before proceeding
+        // Step 0 -> Step 1: validate account information fields before proceeding
         const isValid = await trigger([
             'firstName',
             'lastName',
@@ -176,7 +230,21 @@ const SignUpForm = (props: SignUpFormProps) => {
     }
 
     const onPrevious = () => {
-        setStep(0)
+        setStep((prev) => Math.max(prev - 1, 0))
+    }
+
+    const onNextFromProfileForTrainee = async () => {
+        // Validate core trainee profile fields before moving to Body Measurements step
+        const isValid = await trigger([
+            'traineeProfile.gender',
+            'traineeProfile.dateOfBirth',
+            'traineeProfile.fitnessGoal',
+            'traineeProfile.activityLevel',
+            'traineeProfile.dietaryPreference',
+        ])
+        if (isValid) {
+            setStep(2)
+        }
     }
 
     const onSignUp = async (values: SignUpCredential) => {
@@ -196,81 +264,115 @@ const SignUpForm = (props: SignUpFormProps) => {
 
             // Add role-specific profile
             if (values.role === 'COACH' && values.coachProfile) {
-                submitData.coachProfile = values.coachProfile
+                // Ensure coachProfile includes required fullName
+                submitData.coachProfile = {
+                    ...values.coachProfile,
+                    fullName: values.coachProfile.fullName || submitData.fullName,
+                }
             } else if (values.role === 'TRAINEE' && values.traineeProfile) {
-                submitData.traineeProfile = values.traineeProfile
+                // Map body measurements into the trainee profile snapshot if present
+                const bm = values.bodyMeasurements
+                submitData.traineeProfile = {
+                    ...values.traineeProfile,
+                    ...(bm && {
+                        heightCm: bm.heightCm,
+                        weightKg: bm.weightKg,
+                    }),
+                }
+
+                // Also prepare an initial body measurement history payload for the backend
+                if (bm) {
+                    submitData.bodyMeasurements = bm
+                    submitData.initialBodyMeasurement = {
+                        waistCm: bm.waistCm ?? null,
+                        chestCm: bm.chestCm ?? null,
+                        hipsCm: bm.hipsCm ?? null,
+                    }
+                }
             }
 
             const result = await signUp(submitData)
 
             if (result?.status === 'failed') {
                 setMessage?.(result.message)
+                setSubmitting(false)
             } else if (result?.status === 'success') {
                 setMessage?.(result.message)
+                // Redirect to sign-in page after successful sign-up
+                // Small delay to show success message
+                setTimeout(() => {
+                    navigate('/sign-in', { replace: true })
+                }, 1500)
+            } else {
+                setSubmitting(false)
             }
-
-            setSubmitting(false)
         }
     }
 
     const stepTitles =
         selectedRole === 'COACH'
             ? ['Account Information', 'Coach Profile']
-            : ['Account Information', 'Trainee Profile']
+            : ['Account Information', 'Trainee Profile', 'Body Measurements']
 
     return (
-        <div className={className}>
-            <Steps current={step} className="mb-8">
+        <div className={`max-w-8xl mx-auto ${className ?? ''} [&_.form-label]:whitespace-nowrap`}>
+            <Steps current={step} className="mb-5 w-full">
                 <Steps.Item title={stepTitles[0]} />
                 <Steps.Item title={stepTitles[1]} />
+                {selectedRole === 'TRAINEE' && (
+                    <Steps.Item title={stepTitles[2]} />
+                )}
             </Steps>
 
-            <Form onSubmit={handleSubmit(onSignUp)}>
+            <Form onSubmit={handleSubmit(onSignUp)} className="w-full">
                 {/* Step 1: Account Information - vertical layout, labels above, single Next button */}
                 {step === 0 && (
-                    <div className="flex flex-col">
-                        <FormItem
-                            className="mb-5"
-                            label="First Name"
-                            invalid={Boolean(errors.firstName)}
-                            errorMessage={errors.firstName?.message}
-                        >
-                            <Controller
-                                name="firstName"
-                                control={control}
-                                render={({ field }) => (
-                                    <Input
-                                        type="text"
-                                        placeholder="First Name"
-                                        autoComplete="off"
-                                        {...field}
-                                    />
-                                )}
-                            />
-                        </FormItem>
+                    <div className="flex flex-col w-full">
+                        {/* Group A: First name + Last name */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+                            <FormItem
+                                label="First Name"
+                                invalid={Boolean(errors.firstName)}
+                                errorMessage={errors.firstName?.message}
+                            >
+                                <Controller
+                                    name="firstName"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="text"
+                                            placeholder="First Name"
+                                            autoComplete="off"
+                                            className="w-full"
+                                            {...field}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+                            <FormItem
+                                label="Last Name"
+                                invalid={Boolean(errors.lastName)}
+                                errorMessage={errors.lastName?.message}
+                            >
+                                <Controller
+                                    name="lastName"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="text"
+                                            placeholder="Last Name"
+                                            autoComplete="off"
+                                            className="w-full"
+                                            {...field}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+                        </div>
 
+                        {/* Group B: Email (single full-width row) */}
                         <FormItem
-                            className="mb-5"
-                            label="Last Name"
-                            invalid={Boolean(errors.lastName)}
-                            errorMessage={errors.lastName?.message}
-                        >
-                            <Controller
-                                name="lastName"
-                                control={control}
-                                render={({ field }) => (
-                                    <Input
-                                        type="text"
-                                        placeholder="Last Name"
-                                        autoComplete="off"
-                                        {...field}
-                                    />
-                                )}
-                            />
-                        </FormItem>
-
-                        <FormItem
-                            className="mb-5"
+                            className="!mb-5"
                             label="Email"
                             invalid={Boolean(errors.email)}
                             errorMessage={errors.email?.message}
@@ -283,15 +385,17 @@ const SignUpForm = (props: SignUpFormProps) => {
                                         type="email"
                                         placeholder="Email"
                                         autoComplete="off"
+                                        className="w-full"
                                         {...field}
                                     />
                                 )}
                             />
                         </FormItem>
 
-                        <div className="mb-6 flex gap-4">
+                        {/* Group E: Password + Confirm Password */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
                             <FormItem
-                                className="mb-0 flex-1"
+                                className="!mb-0"
                                 label="Password"
                                 invalid={Boolean(errors.password)}
                                 errorMessage={errors.password?.message}
@@ -304,14 +408,14 @@ const SignUpForm = (props: SignUpFormProps) => {
                                             type="text"
                                             placeholder="Password"
                                             autoComplete="off"
+                                            className="w-full"
                                             {...field}
                                         />
                                     )}
                                 />
                             </FormItem>
-
                             <FormItem
-                                className="mb-0 flex-1"
+                                className="!mb-0"
                                 label="Confirm Password"
                                 invalid={Boolean(errors.confirmPassword)}
                                 errorMessage={errors.confirmPassword?.message}
@@ -324,6 +428,7 @@ const SignUpForm = (props: SignUpFormProps) => {
                                             type="text"
                                             placeholder="Confirm Password"
                                             autoComplete="off"
+                                            className="w-full"
                                             {...field}
                                         />
                                     )}
@@ -342,32 +447,44 @@ const SignUpForm = (props: SignUpFormProps) => {
                             />
                         )}
 
-                        <div className="mt-2 flex justify-end">
-                            <Button
-                                variant="solid"
-                                type="button"
-                                onClick={onNext}
-                                size="md"
-                                className="min-w-[120px]"
-                            >
-                                Next
-                            </Button>
-                        </div>
+                        <Button
+                            variant="solid"
+                            type="button"
+                            onClick={onNext}
+                            size="md"
+                            block
+                            className="mt-3"
+                        >
+                            Next
+                        </Button>
                     </div>
                 )}
 
-                {/* Step 2: Profile Information - same vertical formatting */}
+                {/* Step 1: Profile Information - same vertical formatting */}
                 {step === 1 && (
-                    <div className="flex flex-col">
+                    <div className="flex flex-col w-full">
                         {/* Coach Profile Fields */}
                         {selectedRole === 'COACH' && (
                             <>
-                                <div className="mb-4">
+                                <div className="mb-2">
                                     <h4 className="text-lg font-semibold">Coach Profile</h4>
                                 </div>
 
+                                {/* Hidden fullName field - auto-populated from firstName + lastName */}
+                                <Controller
+                                    name="coachProfile.fullName"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <input
+                                            type="hidden"
+                                            {...field}
+                                            value={fullName || field.value || ''}
+                                        />
+                                    )}
+                                />
+
                                 <FormItem
-                                    className="mb-5"
+                                    className="mb-2"
                                     label="Age"
                                     invalid={Boolean(errors.coachProfile?.age)}
                                     errorMessage={errors.coachProfile?.age?.message}
@@ -395,8 +512,9 @@ const SignUpForm = (props: SignUpFormProps) => {
                                 </FormItem>
 
                                 <FormItem
-                                    className="mb-5"
+                                    className="mb-2"
                                     label="Gender"
+                                    layout="horizontal"
                                     invalid={Boolean(errors.coachProfile?.gender)}
                                     errorMessage={errors.coachProfile?.gender?.message}
                                 >
@@ -416,8 +534,8 @@ const SignUpForm = (props: SignUpFormProps) => {
                                 </FormItem>
 
                                 <FormItem
-                                    className="mb-5"
-                                    label="Qualification File Path"
+                                    className="mb-2"
+                                    label="Qualification file path"
                                     invalid={Boolean(
                                         errors.coachProfile?.qualificationFilePath,
                                     )}
@@ -440,8 +558,8 @@ const SignUpForm = (props: SignUpFormProps) => {
                                 </FormItem>
 
                                 <FormItem
-                                    className="mb-5"
-                                    label="Certifications (Optional)"
+                                    className="mb-2"
+                                    label="Certifications"
                                     invalid={Boolean(errors.coachProfile?.certifications)}
                                     errorMessage={
                                         errors.coachProfile?.certifications?.message
@@ -462,8 +580,8 @@ const SignUpForm = (props: SignUpFormProps) => {
                                 </FormItem>
 
                                 <FormItem
-                                    className="mb-5"
-                                    label="Experience (Optional)"
+                                    className="mb-2"
+                                    label="Experience"
                                     invalid={Boolean(errors.coachProfile?.experience)}
                                     errorMessage={errors.coachProfile?.experience?.message}
                                 >
@@ -482,8 +600,8 @@ const SignUpForm = (props: SignUpFormProps) => {
                                 </FormItem>
 
                                 <FormItem
-                                    className="mb-5"
-                                    label="Specialization (Optional)"
+                                    className="mb-2"
+                                    label="Specialization"
                                     invalid={Boolean(
                                         errors.coachProfile?.specialization,
                                     )}
@@ -506,32 +624,91 @@ const SignUpForm = (props: SignUpFormProps) => {
                                 </FormItem>
 
                                 <FormItem
-                                    className="mb-5"
-                                    label="Profile Picture Path (Optional)"
+                                    className="mb-2"
+                                    label="Profile image"
                                     invalid={Boolean(
-                                        errors.coachProfile?.profilePicture,
+                                        errors.coachProfile?.profileImageBase64,
                                     )}
                                     errorMessage={
-                                        errors.coachProfile?.profilePicture?.message
+                                        errors.coachProfile?.profileImageBase64?.message
                                     }
                                 >
                                     <Controller
-                                        name="coachProfile.profilePicture"
+                                        name="coachProfile.profileImageBase64"
                                         control={control}
                                         render={({ field }) => (
-                                            <Input
-                                                type="text"
-                                                placeholder="/uploads/profiles/picture.jpg"
-                                                autoComplete="off"
-                                                {...field}
-                                            />
+                                            <div className="space-y-2">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="block w-full text-sm text-gray-500 file:mr-3 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:text-white file:hover:bg-primary-mild"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0]
+                                                        if (file) {
+                                                            const dataUrl = await readFileAsDataUrl(file)
+                                                            field.onChange(dataUrl)
+                                                        }
+                                                        e.target.value = ''
+                                                    }}
+                                                />
+                                                {field.value && (
+                                                    <img
+                                                        src={field.value}
+                                                        alt="Profile preview"
+                                                        className="h-20 w-20 rounded object-cover border border-gray-200"
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+                                    />
+                                </FormItem>
+                                <FormItem
+                                    className="mb-2"
+                                    label="Certification document"
+                                    invalid={Boolean(
+                                        errors.coachProfile?.certificationDocumentBase64,
+                                    )}
+                                    errorMessage={
+                                        errors.coachProfile?.certificationDocumentBase64?.message
+                                    }
+                                >
+                                    <Controller
+                                        name="coachProfile.certificationDocumentBase64"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <div className="space-y-2">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*,.pdf"
+                                                    className="block w-full text-sm text-gray-500 file:mr-3 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:text-white file:hover:bg-primary-mild"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0]
+                                                        if (file) {
+                                                            const dataUrl = await readFileAsDataUrl(file)
+                                                            field.onChange(dataUrl)
+                                                        }
+                                                        e.target.value = ''
+                                                    }}
+                                                />
+                                                {field.value && (
+                                                    field.value.startsWith('data:image/') ? (
+                                                        <img
+                                                            src={field.value}
+                                                            alt="Certification preview"
+                                                            className="max-h-24 rounded border border-gray-200 object-contain"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-sm text-gray-500">Document selected</span>
+                                                    )
+                                                )}
+                                            </div>
                                         )}
                                     />
                                 </FormItem>
 
                                 <FormItem
-                                    className="mb-5"
-                                    label="Bio (Optional)"
+                                    className="mb-2"
+                                    label="Bio"
                                     invalid={Boolean(errors.coachProfile?.bio)}
                                     errorMessage={errors.coachProfile?.bio?.message}
                                 >
@@ -554,41 +731,79 @@ const SignUpForm = (props: SignUpFormProps) => {
                         {/* Trainee Profile Fields */}
                         {selectedRole === 'TRAINEE' && (
                             <>
-                                <div className="mb-4">
+                                <div className="mb-2">
                                     <h4 className="text-lg font-semibold">Trainee Profile</h4>
                                 </div>
 
                                 <FormItem
-                                    className="mb-5"
-                                    label="Age"
-                                    invalid={Boolean(errors.traineeProfile?.age)}
-                                    errorMessage={errors.traineeProfile?.age?.message}
+                                    className="mb-2 min-w-0"
+                                    label="Profile avatar"
+                                    invalid={Boolean(
+                                        errors.traineeProfile?.avatarBase64,
+                                    )}
+                                    errorMessage={
+                                        errors.traineeProfile?.avatarBase64?.message
+                                    }
                                 >
                                     <Controller
-                                        name="traineeProfile.age"
+                                        name="traineeProfile.avatarBase64"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <div className="min-w-0 w-full overflow-hidden space-y-2 p-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="block w-full min-w-0 max-w-full text-sm text-gray-500 file:mr-3 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:text-white file:hover:bg-primary-mild"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0]
+                                                        if (file) {
+                                                            const dataUrl = await readFileAsDataUrl(file)
+                                                            field.onChange(dataUrl)
+                                                        }
+                                                        e.target.value = ''
+                                                    }}
+                                                />
+                                                {field.value && (
+                                                    <img
+                                                        src={field.value}
+                                                        alt="Avatar preview"
+                                                        className="h-14 w-14 rounded-full object-cover border border-gray-200 dark:border-gray-600 shrink-0"
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+                                    />
+                                </FormItem>
+
+                                <FormItem
+                                    className="mb-2"
+                                    label="Date of birth"
+                                    invalid={Boolean(
+                                        errors.traineeProfile?.dateOfBirth,
+                                    )}
+                                    errorMessage={
+                                        errors.traineeProfile?.dateOfBirth?.message
+                                    }
+                                >
+                                    <Controller
+                                        name="traineeProfile.dateOfBirth"
                                         control={control}
                                         render={({ field }) => (
                                             <Input
-                                                type="number"
-                                                placeholder="Age"
+                                                type="date"
+                                                placeholder="YYYY-MM-DD"
                                                 autoComplete="off"
+                                                className="w-full"
                                                 {...field}
-                                                onChange={(e) =>
-                                                    field.onChange(
-                                                        e.target.value
-                                                            ? parseInt(e.target.value, 10)
-                                                            : undefined,
-                                                    )
-                                                }
-                                                value={field.value || ''}
                                             />
                                         )}
                                     />
                                 </FormItem>
 
                                 <FormItem
-                                    className="mb-5"
+                                    className="mb-2"
                                     label="Gender"
+                                    layout="horizontal"
                                     invalid={Boolean(errors.traineeProfile?.gender)}
                                     errorMessage={
                                         errors.traineeProfile?.gender?.message
@@ -609,140 +824,391 @@ const SignUpForm = (props: SignUpFormProps) => {
                                     />
                                 </FormItem>
 
-                                <FormItem
-                                    className="mb-5"
-                                    label="Height (cm)"
-                                    invalid={Boolean(errors.traineeProfile?.height)}
-                                    errorMessage={errors.traineeProfile?.height?.message}
-                                >
-                                    <Controller
-                                        name="traineeProfile.height"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <Input
-                                                type="number"
-                                                placeholder="165.5"
-                                                autoComplete="off"
-                                                step="0.1"
-                                                {...field}
-                                                onChange={(e) =>
-                                                    field.onChange(
-                                                        e.target.value
-                                                            ? parseFloat(e.target.value)
-                                                            : undefined,
-                                                    )
-                                                }
-                                                value={field.value || ''}
-                                            />
+                                <div className="grid gap-4 md:grid-cols-2 mb-1">
+                                    <FormItem
+                                        className="mb-0"
+                                        label="Height (cm)"
+                                        invalid={Boolean(
+                                            errors.traineeProfile?.heightCm,
                                         )}
-                                    />
-                                </FormItem>
+                                        errorMessage={
+                                            errors.traineeProfile?.heightCm?.message
+                                        }
+                                    >
+                                        <Controller
+                                            name="traineeProfile.heightCm"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Input
+                                                    type="number"
+                                                    placeholder="165.5"
+                                                    autoComplete="off"
+                                                    step="0.1"
+                                                    className="w-full"
+                                                    {...field}
+                                                    onChange={(e) =>
+                                                        field.onChange(
+                                                            e.target.value
+                                                                ? parseFloat(e.target.value)
+                                                                : undefined,
+                                                        )
+                                                    }
+                                                    value={field.value || ''}
+                                                />
+                                            )}
+                                        />
+                                    </FormItem>
+
+                                    <FormItem
+                                        className="mb-0"
+                                        label="Weight (kg)"
+                                        invalid={Boolean(
+                                            errors.traineeProfile?.weightKg,
+                                        )}
+                                        errorMessage={
+                                            errors.traineeProfile?.weightKg?.message
+                                        }
+                                    >
+                                        <Controller
+                                            name="traineeProfile.weightKg"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Input
+                                                    type="number"
+                                                    placeholder="60.5"
+                                                    autoComplete="off"
+                                                    step="0.1"
+                                                    className="w-full"
+                                                    {...field}
+                                                    onChange={(e) =>
+                                                        field.onChange(
+                                                            e.target.value
+                                                                ? parseFloat(e.target.value)
+                                                                : undefined,
+                                                        )
+                                                    }
+                                                    value={field.value || ''}
+                                                />
+                                            )}
+                                        />
+                                    </FormItem>
+                                </div>
 
                                 <FormItem
-                                    className="mb-5"
-                                    label="Weight (kg)"
-                                    invalid={Boolean(errors.traineeProfile?.weight)}
-                                    errorMessage={errors.traineeProfile?.weight?.message}
-                                >
-                                    <Controller
-                                        name="traineeProfile.weight"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <Input
-                                                type="number"
-                                                placeholder="60.5"
-                                                autoComplete="off"
-                                                step="0.1"
-                                                {...field}
-                                                onChange={(e) =>
-                                                    field.onChange(
-                                                        e.target.value
-                                                            ? parseFloat(e.target.value)
-                                                            : undefined,
-                                                    )
-                                                }
-                                                value={field.value || ''}
-                                            />
-                                        )}
-                                    />
-                                </FormItem>
-
-                                <FormItem
-                                    className="mb-5"
+                                    className="mb-2"
                                     label="Fitness Goals"
+                                    layout="horizontal"
                                     invalid={Boolean(
-                                        errors.traineeProfile?.fitnessGoals,
+                                        errors.traineeProfile?.fitnessGoal,
                                     )}
                                     errorMessage={
-                                        errors.traineeProfile?.fitnessGoals?.message
+                                        errors.traineeProfile?.fitnessGoal?.message
                                     }
                                 >
                                     <Controller
-                                        name="traineeProfile.fitnessGoals"
+                                        name="traineeProfile.fitnessGoal"
                                         control={control}
                                         render={({ field }) => (
-                                            <Input
-                                                type="text"
-                                                placeholder="Build muscle, lose fat"
-                                                autoComplete="off"
-                                                {...field}
-                                            />
+                                            <Radio.Group
+                                                value={field.value || ''}
+                                                onChange={(value) => field.onChange(value)}
+                                            >
+                                                <Radio value="Build Muscles">Build Muscles</Radio>
+                                                <Radio value="Lose weight">Lose weight</Radio>
+                                            </Radio.Group>
                                         )}
                                     />
                                 </FormItem>
 
                                 <FormItem
-                                    className="mb-5"
-                                    label="Medical Conditions (Optional)"
+                                    className="mb-2"
+                                    label="Medical notes"
                                     invalid={Boolean(
-                                        errors.traineeProfile?.medicalConditions,
+                                        errors.traineeProfile?.medicalNotes,
                                     )}
                                     errorMessage={
-                                        errors.traineeProfile?.medicalConditions?.message
+                                        errors.traineeProfile?.medicalNotes?.message
                                     }
                                 >
                                     <Controller
-                                        name="traineeProfile.medicalConditions"
+                                        name="traineeProfile.medicalNotes"
                                         control={control}
                                         render={({ field }) => (
                                             <Input
                                                 type="text"
                                                 placeholder="None"
                                                 autoComplete="off"
+                                                className="w-full"
                                                 {...field}
+                                                value={field.value ?? ''}
                                             />
                                         )}
                                     />
                                 </FormItem>
 
                                 <FormItem
-                                    className="mb-5"
-                                    label="Dietary Preferences (Optional)"
+                                    className="mb-3 flex flex-nowrap items-center gap-x-2"
+                                    label="Dietary preference"
+                                    layout="inline"
                                     invalid={Boolean(
-                                        errors.traineeProfile?.dietaryPreferences,
+                                        errors.traineeProfile?.dietaryPreference,
                                     )}
                                     errorMessage={
-                                        errors.traineeProfile?.dietaryPreferences
+                                        errors.traineeProfile?.dietaryPreference
                                             ?.message
                                     }
                                 >
                                     <Controller
-                                        name="traineeProfile.dietaryPreferences"
+                                        name="traineeProfile.dietaryPreference"
                                         control={control}
                                         render={({ field }) => (
-                                            <Input
-                                                type="text"
-                                                placeholder="Vegetarian"
-                                                autoComplete="off"
-                                                {...field}
-                                            />
+                                            <Radio.Group
+                                                value={field.value || ''}
+                                                onChange={(value) => field.onChange(value)}
+                                                className="inline-flex flex-nowrap items-center gap-2"
+                                            >
+                                                <Radio value="normal">Normal</Radio>
+                                                <Radio value="vegetarian">Vegetarian</Radio>
+                                            </Radio.Group>
+                                        )}
+                                    />
+                                </FormItem>
+
+                                <FormItem
+                                    className="mb-3 flex flex-nowrap items-center gap-x-2"
+                                    label="Activity level"
+                                    layout="inline"
+                                    invalid={Boolean(
+                                        errors.traineeProfile?.activityLevel,
+                                    )}
+                                    errorMessage={
+                                        errors.traineeProfile?.activityLevel
+                                            ?.message
+                                    }
+                                >
+                                    <Controller
+                                        name="traineeProfile.activityLevel"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Radio.Group
+                                                value={field.value || ''}
+                                                onChange={(value) => field.onChange(value)}
+                                                className="inline-flex flex-nowrap items-center gap-2"
+                                            >
+                                                <Radio value="sedentary">
+                                                    Sedentary
+                                                </Radio>
+                                                <Radio value="lightly_active">
+                                                    Lightly active
+                                                </Radio>
+                                                <Radio value="very_active">
+                                                    Very active
+                                                </Radio>
+                                            </Radio.Group>
                                         )}
                                     />
                                 </FormItem>
                             </>
                         )}
 
-                        <div className="mt-2 flex justify-between items-center gap-4">
+                        <div className="mt-2 mb-8 flex justify-between items-center gap-4">
+                            <Button
+                                variant="default"
+                                type="button"
+                                onClick={onPrevious}
+                                size="md"
+                                className="min-w-[120px] !bg-primary-mild !text-white border-0 hover:!bg-primary"
+                            >
+                                Previous
+                            </Button>
+                            {selectedRole === 'COACH' ? (
+                                <Button
+                                    variant="solid"
+                                    type="submit"
+                                    loading={isSubmitting}
+                                    disabled={!selectedRole}
+                                    size="md"
+                                    className="min-w-[120px]"
+                                >
+                                    {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="solid"
+                                    type="button"
+                                    onClick={onNextFromProfileForTrainee}
+                                    disabled={!selectedRole}
+                                    size="md"
+                                    className="min-w-[120px]"
+                                >
+                                    Next
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Step 2: Body Measurements (TRAINEE only) */}
+                {step === 2 && selectedRole === 'TRAINEE' && (
+                    <div className="flex flex-col w-full">
+                        <div className="mb-2">
+                            <h4 className="text-lg font-semibold">Body Measurements</h4>
+                            <p className="text-xs text-gray-500 mt-1">
+                                These measurements help Nutriflex track your progress over time.
+                                Height and weight are required; other fields are optional.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2 mb-1">
+                            <FormItem
+                                className="mb-0"
+                                label="Height (cm)"
+                                invalid={Boolean(errors.bodyMeasurements?.heightCm)}
+                                errorMessage={errors.bodyMeasurements?.heightCm?.message}
+                            >
+                                <Controller
+                                    name="bodyMeasurements.heightCm"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="number"
+                                            placeholder="165.5"
+                                            autoComplete="off"
+                                            step="0.1"
+                                            {...field}
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : undefined,
+                                                )
+                                            }
+                                            value={field.value ?? ''}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+
+                            <FormItem
+                                className="mb-0"
+                                label="Weight (kg)"
+                                invalid={Boolean(errors.bodyMeasurements?.weightKg)}
+                                errorMessage={errors.bodyMeasurements?.weightKg?.message}
+                            >
+                                <Controller
+                                    name="bodyMeasurements.weightKg"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="number"
+                                            placeholder="60.5"
+                                            autoComplete="off"
+                                            step="0.1"
+                                            {...field}
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : undefined,
+                                                )
+                                            }
+                                            value={field.value ?? ''}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-3 mb-3">
+                            <FormItem
+                                className="mb-0"
+                                label="Waist (cm)"
+                                invalid={Boolean(errors.bodyMeasurements?.waistCm)}
+                                errorMessage={errors.bodyMeasurements?.waistCm?.message}
+                            >
+                                <Controller
+                                    name="bodyMeasurements.waistCm"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="number"
+                                            placeholder="80"
+                                            autoComplete="off"
+                                            step="0.1"
+                                            {...field}
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : undefined,
+                                                )
+                                            }
+                                            value={field.value ?? ''}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+
+                            <FormItem
+                                className="mb-0"
+                                label="Chest (cm)"
+                                invalid={Boolean(errors.bodyMeasurements?.chestCm)}
+                                errorMessage={errors.bodyMeasurements?.chestCm?.message}
+                            >
+                                <Controller
+                                    name="bodyMeasurements.chestCm"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="number"
+                                            placeholder="95"
+                                            autoComplete="off"
+                                            step="0.1"
+                                            {...field}
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : undefined,
+                                                )
+                                            }
+                                            value={field.value ?? ''}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+
+                            <FormItem
+                                className="mb-0"
+                                label="Hips (cm)"
+                                invalid={Boolean(errors.bodyMeasurements?.hipsCm)}
+                                errorMessage={errors.bodyMeasurements?.hipsCm?.message}
+                            >
+                                <Controller
+                                    name="bodyMeasurements.hipsCm"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            type="number"
+                                            placeholder="95"
+                                            autoComplete="off"
+                                            step="0.1"
+                                            {...field}
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : undefined,
+                                                )
+                                            }
+                                            value={field.value ?? ''}
+                                        />
+                                    )}
+                                />
+                            </FormItem>
+                        </div>
+
+                        <div className="mt-2 mb-8 flex justify-between items-center gap-4">
                             <Button
                                 variant="default"
                                 type="button"

@@ -9,31 +9,39 @@ import type {
     CoachTraineesListResponse,
     PlansListResponse,
     NutritionPlan,
+    CoachNutritionPlan,
+    CoachPlanDetails,
+    CoachMeal,
+    MealsListResponse,
+    CreatePlanDto,
+    UpdatePlanDto,
+    CreateMealDto,
+    UpdateMealDto,
     TraineePlanStatusListResponse,
+    CreatePlanWithDetailsDto,
+    CoachTrainee,
+    TraineeNutritionPlan,
+    TraineePlansListResponse,
+    TraineePlanDetails,
 } from '@/@types/api'
 
+// -------------------- DASHBOARD --------------------
 export async function apiGetCoachDashboard() {
-    return ApiService.fetchDataWithAxios<
-        ApiResponse<CoachDashboardData>
-    >({
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachDashboardData>>({
         url: '/dashboard/coach',
         method: 'get',
     })
 }
 
 export async function apiGetCoachOverview() {
-    return ApiService.fetchDataWithAxios<
-        ApiResponse<CoachOverviewData>
-    >({
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachOverviewData>>({
         url: '/dashboard/coach/overview',
         method: 'get',
     })
 }
 
 export async function apiGetCoachTraineesProgress() {
-    return ApiService.fetchDataWithAxios<
-        ApiResponse<CoachTraineesProgressData>
-    >({
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachTraineesProgressData>>({
         url: '/dashboard/coach/trainees-progress',
         method: 'get',
     })
@@ -47,38 +55,34 @@ export async function apiGetCoachAlerts() {
 }
 
 export async function apiGetCoachRecentActivity() {
-    return ApiService.fetchDataWithAxios<
-        ApiResponse<CoachRecentActivityData>
-    >({
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachRecentActivityData>>({
         url: '/dashboard/coach/recent-activity',
         method: 'get',
     })
 }
 
+// -------------------- TRAINEES --------------------
 export async function apiGetCoachTrainees(params?: {
     skip?: number
     take?: number
     status?: string
     coach_id?: string
 }) {
-    return ApiService.fetchDataWithAxios<
-        ApiResponse<CoachTraineesListResponse>
-    >({
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachTrainee[]>>({
         url: '/coach-trainee',
         method: 'get',
         params,
     })
 }
 
+// -------------------- PLANS --------------------
 export async function apiGetCoachPlans(params?: {
     skip?: number
     take?: number
     status?: string
     coach_id?: string
 }) {
-    return ApiService.fetchDataWithAxios<
-        ApiResponse<PlansListResponse>
-    >({
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachNutritionPlan[]>>({
         url: '/nutrition-plan',
         method: 'get',
         params,
@@ -86,20 +90,135 @@ export async function apiGetCoachPlans(params?: {
 }
 
 export async function apiGetPlan(id: string) {
-    return ApiService.fetchDataWithAxios<
-        ApiResponse<NutritionPlan>
-    >({
+    return ApiService.fetchDataWithAxios<ApiResponse<NutritionPlan>>({
         url: `/nutrition-plan/${id}`,
         method: 'get',
     })
 }
 
+/** Plan with exercises and meals for coach view/edit. */
+export async function apiGetPlanCoachDetails(planId: string) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachPlanDetails>>({
+        url: `/nutrition-plan/${planId}/coach-details`,
+        method: 'get',
+    })
+}
+
+export async function apiUpdatePlanWithDetails(
+    planId: string,
+    data: CreatePlanWithDetailsDto,
+) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachPlanDetails>>({
+        url: `/nutrition-plan/${planId}/coach-details`,
+        method: 'put',
+        data: data as unknown as Record<string, unknown>,
+    })
+}
+
+// Fetch a plan along with its meals
+export async function apiGetPlanWithMeals(planId: string) {
+    return ApiService.fetchDataWithAxios<ApiResponse<TraineePlanDetails>>({
+        url: `/nutrition-plan/${planId}/with-meals`,
+        method: 'get',
+    })
+}
+
+// Fetch plan statuses for trainees
 export async function apiGetPlanStatuses(planId: string) {
-    return ApiService.fetchDataWithAxios<
-        ApiResponse<TraineePlanStatusListResponse>
-    >({
+    return ApiService.fetchDataWithAxios<ApiResponse<TraineePlanStatusListResponse>>({
         url: '/trainee-plan-status/search',
         method: 'get',
         params: { plan_id: planId },
+    })
+}
+
+// -------------------- PLAN CRUD --------------------
+export async function apiCreatePlan(data: CreatePlanDto) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachNutritionPlan>>({
+        url: '/nutrition-plan',
+        method: 'post',
+        data,
+    })
+}
+
+export async function apiCreatePlanWithDetails(data: CreatePlanWithDetailsDto) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachNutritionPlan>>({
+        url: '/nutrition-plan/coach-with-details',
+        method: 'post',
+        data: data as unknown as Record<string, unknown>,
+    })
+}
+
+export async function apiUpdatePlan(id: string, data: UpdatePlanDto) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachNutritionPlan>>({
+        url: `/nutrition-plan/${id}`,
+        method: 'put',
+        data,
+    })
+}
+
+export async function apiTogglePlanStatus(id: string) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachNutritionPlan>>({
+        url: `/nutrition-plan/${id}/toggle-status`,
+        method: 'put',
+    })
+}
+
+export async function apiDeletePlan(id: string) {
+    return ApiService.fetchDataWithAxios<ApiResponse<null>>({
+        url: `/nutrition-plan/${id}`,
+        method: 'delete',
+    })
+}
+
+export async function apiSearchPlans(params: {
+    coach_id: string
+    search?: string
+    trainee_id?: string
+    status?: string
+    skip?: number
+    take?: number
+}) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachNutritionPlan[]>>({
+        url: '/nutrition-plan/search',
+        method: 'get',
+        params,
+    })
+}
+
+// -------------------- MEALS --------------------
+export async function apiGetPlanMeals(params: {
+    nutrition_plan_id: string
+    meal_type?: string
+    skip?: number
+    take?: number
+}) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachMeal[]>>({
+        url: '/meal',
+        method: 'get',
+        params,
+    })
+}
+
+export async function apiCreateMeal(data: CreateMealDto) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachMeal>>({
+        url: '/meal',
+        method: 'post',
+        data,
+    })
+}
+
+export async function apiUpdateMeal(id: string, data: UpdateMealDto) {
+    return ApiService.fetchDataWithAxios<ApiResponse<CoachMeal>>({
+        url: `/meal/${id}`,
+        method: 'put',
+        data,
+    })
+}
+
+export async function apiDeleteMeal(id: string) {
+    return ApiService.fetchDataWithAxios<ApiResponse<null>>({
+        url: `/meal/${id}`,
+        method: 'delete',
     })
 }

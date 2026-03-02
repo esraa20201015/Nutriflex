@@ -50,8 +50,17 @@ export class CoachProfileDto {
   @ApiProperty({ example: '/uploads/profiles/john-doe-profile.jpg', description: 'URL to profile image', required: false })
   @IsString()
   @IsOptional()
-  @MaxLength(500)
   profileImageUrl?: string | null;
+
+  @ApiProperty({ description: 'Profile image as base64 (raw or data:image/...;base64,...) for upload', required: false })
+  @IsString()
+  @IsOptional()
+  profileImageBase64?: string | null;
+
+  @ApiProperty({ description: 'Certification document/image as base64 for upload', required: false })
+  @IsString()
+  @IsOptional()
+  certificationDocumentBase64?: string | null;
 }
 
 /** Trainee-specific fields for sign-up (trainee profile) */
@@ -96,10 +105,55 @@ export class TraineeProfileDto {
   @IsOptional()
   activityLevel?: string | null;
 
+  @ApiProperty({ example: 'normal', description: 'Dietary preference', required: false })
+  @IsString()
+  @IsOptional()
+  dietaryPreference?: string | null;
+
   @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
   medicalNotes?: string | null;
+
+  @ApiProperty({ description: 'Avatar image as base64 for upload', required: false })
+  @IsString()
+  @IsOptional()
+  avatarBase64?: string | null;
+}
+
+export class InitialBodyMeasurementDto {
+  @ApiProperty({
+    example: 100.5,
+    description: 'Initial chest circumference (cm)',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(500)
+  chestCm?: number | null;
+
+  @ApiProperty({
+    example: 80.0,
+    description: 'Initial waist circumference (cm)',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(500)
+  waistCm?: number | null;
+
+  @ApiProperty({
+    example: 95.0,
+    description: 'Initial hips circumference (cm)',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(500)
+  hipsCm?: number | null;
 }
 
 export class SignUpDto {
@@ -159,4 +213,16 @@ export class SignUpDto {
   @Type(() => TraineeProfileDto)
   @IsOptional()
   traineeProfile?: TraineeProfileDto;
+
+  @ApiProperty({
+    type: InitialBodyMeasurementDto,
+    required: false,
+    description:
+      'Optional initial body measurements (waist/chest/hips) to create the first measurement history entry for trainees',
+  })
+  @ValidateIf((o) => o.role === 'TRAINEE')
+  @ValidateNested()
+  @Type(() => InitialBodyMeasurementDto)
+  @IsOptional()
+  initialBodyMeasurement?: InitialBodyMeasurementDto;
 }

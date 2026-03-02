@@ -194,7 +194,7 @@ function Select<
                         borderRadius,
                         boxShadow,
                         ...provided
-                    }) => ({ ...provided, zIndex: 50 }),
+                    }) => ({ ...provided, zIndex: 9999 }),
                     ...styles,
                 } as StylesConfig<Option, IsMulti, Group>
             }

@@ -51,10 +51,9 @@ export class MealRepo extends Repository<Meal> {
     nutrition_plan_id?: string;
   }) {
     try {
-      const query = this.createQueryBuilder('meal').leftJoinAndSelect(
-        'meal.nutrition_plan',
-        'nutrition_plan',
-      );
+      const query = this.createQueryBuilder('meal')
+        .leftJoinAndSelect('meal.nutrition_plan', 'nutrition_plan')
+        .leftJoinAndSelect('meal.ingredients', 'ingredients');
 
       if (options?.meal_type !== undefined) {
         query.andWhere('meal.meal_type = :meal_type', { meal_type: options.meal_type });
@@ -99,7 +98,7 @@ export class MealRepo extends Repository<Meal> {
     try {
       const entity = await this.findOne({
         where: { id },
-        relations: ['nutrition_plan'],
+        relations: ['nutrition_plan', 'ingredients'],
       });
 
       if (!entity) {
@@ -152,7 +151,7 @@ export class MealRepo extends Repository<Meal> {
       await this.save(entity);
       const updated = await this.findOne({
         where: { id },
-        relations: ['nutrition_plan'],
+        relations: ['nutrition_plan', 'ingredients'],
       });
 
       return {

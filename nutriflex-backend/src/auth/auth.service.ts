@@ -18,6 +18,12 @@ import { UserStatus } from '../users/enums/user-status.enum';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { toDataUrl } from '../common/utils/image.util';
+import { BodyMeasurementService } from '../body-measurement/body-measurement.service';
+import { CreateBodyMeasurementDto } from '../body-measurement/dto/body-measurement.dto';
+import { HealthMetricService } from '../health-metric/health-metric.service';
+import { HealthMetricType } from '../health-metric/enums/health-metric-type.enum';
+import { CreateHealthMetricDto } from '../health-metric/dto/health-metric.dto';
 
 @Injectable()
 export class AuthService {
@@ -28,6 +34,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly bodyMeasurementService: BodyMeasurementService,
+    private readonly healthMetricService: HealthMetricService,
   ) {}
 
   async signUp(dto: SignUpDto) {
@@ -129,13 +137,19 @@ export class AuthService {
 
     if (dto.role === 'COACH') {
       const cp = dto.coachProfile!;
+      const profileImageUrl =
+        cp.profileImageUrl ?? (cp.profileImageBase64 ? toDataUrl(cp.profileImageBase64) : null);
+      const certificationDocument = cp.certificationDocumentBase64
+        ? toDataUrl(cp.certificationDocumentBase64, 'image/jpeg')
+        : null;
       await this.profilesService.createCoachProfile(createdUser.id, {
         full_name: cp.fullName || fullName, // Use coach profile fullName or fallback to user fullName
         bio: cp.bio ?? null,
         specialization: cp.specialization ?? null,
         years_of_experience: cp.yearsOfExperience ?? null,
         certifications: cp.certifications ?? null,
-        profile_image_url: cp.profileImageUrl ?? null,
+        profile_image_url: profileImageUrl,
+        certification_document: certificationDocument,
         status: true, // Default to active for new signups
       });
     } else {
@@ -148,8 +162,42 @@ export class AuthService {
         weight_kg: tp.weightKg ?? null,
         fitness_goal: tp.fitnessGoal ?? null,
         activity_level: tp.activityLevel ?? null,
+        dietary_preference: tp.dietaryPreference ?? null,
         medical_notes: tp.medicalNotes ?? null,
       });
+      if (tp.avatarBase64) {
+        await this.usersService.update(createdUser.id, {
+          avatarUrl: toDataUrl(tp.avatarBase64),
+        });
+      }
+
+      // Create initial weight health metric if weight is provided
+      if (tp.weightKg !== undefined && tp.weightKg !== null) {
+        const nowIso = new Date().toISOString();
+        const metricPayload: CreateHealthMetricDto = {
+          trainee_id: createdUser.id,
+          metric_type: HealthMetricType.WEIGHT,
+          value: tp.weightKg,
+          unit: 'kg',
+          recorded_date: nowIso,
+        };
+        await this.healthMetricService.create(metricPayload);
+      }
+
+      // Create the initial body measurement history row if provided
+      if (dto.initialBodyMeasurement) {
+        const nowIso = new Date().toISOString();
+        const payload: CreateBodyMeasurementDto = {
+          trainee_id: createdUser.id,
+          chest_cm: dto.initialBodyMeasurement.chestCm ?? null,
+          waist_cm: dto.initialBodyMeasurement.waistCm ?? null,
+          hips_cm: dto.initialBodyMeasurement.hipsCm ?? null,
+          arm_cm: null,
+          thigh_cm: null,
+          measured_date: nowIso,
+        };
+        await this.bodyMeasurementService.create(payload);
+      }
     }
 
     const responseMessage = enableEmailVerification
@@ -220,10 +268,11 @@ export class AuthService {
         roleName = userWithRole?.role?.name ?? 'USER';
       } catch (error) {
         console.error('Error loading user role:', error);
-        // Use default role if loading fails
         roleName = 'USER';
       }
     }
+    // Normalize to uppercase so frontend role-based redirect always matches (ADMIN, COACH, TRAINEE, USER)
+    roleName = (roleName && String(roleName).toUpperCase()) || 'USER';
 
     const payload = { sub: user.id, role: roleName };
     let access_token: string;

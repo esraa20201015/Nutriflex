@@ -77,7 +77,6 @@ export class MenuController {
               items: [
                 { id: 'trainee-dashboard', label: 'Dashboard', labelAr: 'لوحة التحكم', path: '/trainee/dashboard', icon: 'dashboard', roles: ['ADMIN', 'TRAINEE'] },
                 { id: 'my-plans', label: 'My Plans', labelAr: 'خططي', path: '/trainee/plans', icon: 'plan', roles: ['ADMIN', 'TRAINEE'] },
-                { id: 'progress', label: 'Progress', labelAr: 'التقدم', path: '/trainee/progress', icon: 'chart', roles: ['ADMIN', 'TRAINEE'] },
               ],
             },
           ],
@@ -182,13 +181,14 @@ export class MenuController {
             roles: ['ADMIN', 'TRAINEE'],
           },
           {
-            id: 'progress',
-            label: 'Progress',
-            labelAr: 'التقدم',
-            path: '/trainee/progress',
-            icon: 'chart',
+            id: 'trainee-choose-coach',
+            label: 'Coaches',
+            labelAr: 'المدربون',
+            path: '/trainee/choose-coach',
+            icon: 'users',
             roles: ['ADMIN', 'TRAINEE'],
           },
+          // Progress is not in nav; its content is shown in Trainee Dashboard.
           // Profile is intentionally NOT in primary sidebar; it should be accessed from the user avatar/account menu in the frontend.
         ],
       },

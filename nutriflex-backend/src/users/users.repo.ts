@@ -3,6 +3,13 @@ import { DataSource, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserStatus } from './enums/user-status.enum';
 
+/** Remove passwordHash from user object for API responses */
+function sanitizeUser<T extends Partial<User>>(user: T): Omit<T, 'passwordHash'> {
+  if (!user) return user;
+  const { passwordHash: _, ...rest } = user;
+  return rest as Omit<T, 'passwordHash'>;
+}
+
 @Injectable()
 export class UsersRepo extends Repository<User> {
   constructor(private dataSource: DataSource) {
@@ -29,13 +36,13 @@ export class UsersRepo extends Repository<User> {
         createdBy: dto.createdBy ?? null,
       });
       const saved = await this.save(entity);
-      const result = await this.findOne({ where: { id: saved.id } });
+      const result = await this.findOne({ where: { id: saved.id }, relations: ['role'] });
 
       return {
         status: HttpStatus.CREATED,
         messageEn: 'User created successfully',
         messageAr: 'تم إنشاء المستخدم بنجاح',
-        data: result,
+        data: sanitizeUser(result!),
       };
     } catch (error) {
       return {
@@ -49,7 +56,8 @@ export class UsersRepo extends Repository<User> {
 
   async findAll(options?: { skip?: number; take?: number; status?: UserStatus }) {
     try {
-      const query = this.createQueryBuilder('user');
+      const query = this.createQueryBuilder('user')
+        .leftJoinAndSelect('user.role', 'role');
 
       if (options?.status !== undefined) {
         query.andWhere('user.status = :status', { status: options.status });
@@ -66,7 +74,7 @@ export class UsersRepo extends Repository<User> {
         status: HttpStatus.OK,
         messageEn: 'Users retrieved successfully',
         messageAr: 'تم استرجاع المستخدمين بنجاح',
-        data: rows,
+        data: rows.map((row) => sanitizeUser(row)),
         meta: {
           total,
           count: rows.length,
@@ -86,7 +94,7 @@ export class UsersRepo extends Repository<User> {
 
   async findById(id: string) {
     try {
-      const entity = await this.findOne({ where: { id } });
+      const entity = await this.findOne({ where: { id }, relations: ['role'] });
 
       if (!entity) {
         return {
@@ -101,7 +109,7 @@ export class UsersRepo extends Repository<User> {
         status: HttpStatus.OK,
         messageEn: 'User retrieved successfully',
         messageAr: 'تم استرجاع المستخدم بنجاح',
-        data: entity,
+        data: sanitizeUser(entity),
       };
     } catch (error) {
       return {
@@ -154,13 +162,13 @@ export class UsersRepo extends Repository<User> {
       if (dto.avatarUrl !== undefined) entity.avatarUrl = dto.avatarUrl;
 
       await this.save(entity);
-      const updated = await this.findOne({ where: { id } });
+      const updated = await this.findOne({ where: { id }, relations: ['role'] });
 
       return {
         status: HttpStatus.OK,
         messageEn: 'User updated successfully',
         messageAr: 'تم تحديث المستخدم بنجاح',
-        data: updated,
+        data: sanitizeUser(updated!),
       };
     } catch (error) {
       return {
@@ -220,7 +228,8 @@ export class UsersRepo extends Repository<User> {
     take?: number;
   }) {
     try {
-      const query = this.createQueryBuilder('user');
+      const query = this.createQueryBuilder('user')
+        .leftJoinAndSelect('user.role', 'role');
 
       if (options.search) {
         query.andWhere('user.email ILIKE :search', {
@@ -243,7 +252,7 @@ export class UsersRepo extends Repository<User> {
         status: HttpStatus.OK,
         messageEn: 'User search completed',
         messageAr: 'تم البحث في المستخدمين بنجاح',
-        data: rows,
+        data: rows.map((row) => sanitizeUser(row)),
         meta: {
           total,
           count: rows.length,
@@ -264,7 +273,7 @@ export class UsersRepo extends Repository<User> {
   async toggleStatus(id: string) {
     const found = await this.findById(id);
     if ((found as { status?: number }).status !== 200) return found;
-    const entity = (found as { data: User }).data;
+    const entity = (found as unknown as { data: User }).data;
     const newStatus =
       entity.status === UserStatus.ACTIVE ? UserStatus.INACTIVE : UserStatus.ACTIVE;
     return this.updateEntity(id, { status: newStatus });

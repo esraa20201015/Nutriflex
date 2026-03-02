@@ -7,7 +7,7 @@ import {
     LAYOUT_CONTENT_OVERLAY,
     LAYOUT_BLANK,
 } from '@/constants/theme.constant'
-import Loading from '@/components/shared/Loading'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import type { CommonProps } from '@/@types/common'
 import type { LazyExoticComponent, JSX } from 'react'
 import type { LayoutType } from '@/@types/theme'
@@ -38,8 +38,8 @@ const PostLoginLayout = ({ layoutType, children }: PostLoginLayoutProps) => {
     return (
         <Suspense
             fallback={
-                <div className="flex flex-auto flex-col h-[100vh]">
-                    <Loading loading={true} />
+                <div className="flex flex-auto flex-col h-[100vh] items-center justify-center">
+                    <CustomIndicator />
                 </div>
             }
         >

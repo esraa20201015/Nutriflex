@@ -7,8 +7,52 @@ import {
   IsEnum,
   IsNumber,
   Min,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { MealType } from '../enums/meal-type.enum';
+
+export class MealIngredientInputDto {
+  @ApiProperty({ description: 'Ingredient name', example: 'Oats' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  name: string;
+
+  @ApiProperty({ description: 'Quantity', example: 50, required: false })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  quantity?: number | null;
+
+  @ApiProperty({ description: 'Unit', example: 'g', required: false })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  unit?: string | null;
+
+  @ApiProperty({ description: 'Calories for this ingredient', example: 180, required: false })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  calories?: number | null;
+
+  @ApiProperty({ description: 'Optional notes for this ingredient', required: false })
+  @IsString()
+  @IsOptional()
+  notes?: string | null;
+
+  @ApiProperty({
+    description: 'Display order of the ingredient within the meal',
+    example: 0,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  order_index?: number;
+}
 
 export class CreateMealDto {
   @ApiProperty({ description: 'Nutrition plan ID (UUID)', example: 'uuid' })
@@ -25,6 +69,16 @@ export class CreateMealDto {
   @ApiProperty({ description: 'Meal type', enum: MealType, example: MealType.BREAKFAST })
   @IsEnum(MealType)
   meal_type: MealType;
+
+  @ApiProperty({
+    description: 'Day index within the plan (1-based)',
+    example: 1,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  day_index?: number;
 
   @ApiProperty({ description: 'Calories', example: 350, required: false })
   @IsNumber()
@@ -60,6 +114,17 @@ export class CreateMealDto {
   @IsOptional()
   @Min(0)
   order_index?: number;
+
+  @ApiProperty({
+    description: 'Structured ingredients belonging to this meal',
+    type: [MealIngredientInputDto],
+    required: false,
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MealIngredientInputDto)
+  @IsOptional()
+  ingredients?: MealIngredientInputDto[];
 }
 
 export class UpdateMealDto {
@@ -73,6 +138,16 @@ export class UpdateMealDto {
   @IsEnum(MealType)
   @IsOptional()
   meal_type?: MealType;
+
+  @ApiProperty({
+    description: 'Day index within the plan (1-based)',
+    example: 1,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  day_index?: number;
 
   @ApiProperty({ example: 400, required: false })
   @IsNumber()
@@ -108,6 +183,18 @@ export class UpdateMealDto {
   @IsOptional()
   @Min(0)
   order_index?: number;
+
+  @ApiProperty({
+    description:
+      'Full replacement list of structured ingredients for this meal (omit to keep unchanged).',
+    type: [MealIngredientInputDto],
+    required: false,
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MealIngredientInputDto)
+  @IsOptional()
+  ingredients?: MealIngredientInputDto[];
 }
 
 export class PaginationDto {

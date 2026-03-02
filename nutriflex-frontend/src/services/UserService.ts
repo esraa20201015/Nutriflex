@@ -12,7 +12,7 @@ import type {
  * Create a new user (Admin only)
  */
 export async function apiCreateUser(data: CreateUserRequest) {
-    return ApiService.fetchDataWithAxios<UserResponse>({
+    return ApiService.fetchDataWithAxios<UserResponse, CreateUserRequest>({
         url: endpointConfig.users,
         method: 'post',
         data,
@@ -35,13 +35,13 @@ export async function apiGetUsers(params?: {
 }
 
 /**
- * Search users by keyword (Admin only)
+ * Search users by keyword (Admin only). Backend expects query param "search".
  */
 export async function apiSearchUsers(keyword: string) {
     return ApiService.fetchDataWithAxios<UsersListResponse>({
         url: endpointConfig.usersSearch,
         method: 'get',
-        params: { keyword },
+        params: { search: keyword },
     })
 }
 
@@ -59,7 +59,7 @@ export async function apiGetUserById(id: string) {
  * Update user (Admin only)
  */
 export async function apiUpdateUser(id: string, data: UpdateUserRequest) {
-    return ApiService.fetchDataWithAxios<UserResponse>({
+    return ApiService.fetchDataWithAxios<UserResponse, UpdateUserRequest>({
         url: `${endpointConfig.users}/${id}`,
         method: 'put',
         data,
@@ -73,7 +73,7 @@ export async function apiToggleUserStatus(
     id: string,
     data: ToggleUserStatusRequest,
 ) {
-    return ApiService.fetchDataWithAxios<UserResponse>({
+    return ApiService.fetchDataWithAxios<UserResponse, ToggleUserStatusRequest>({
         url: `${endpointConfig.users}/${id}/toggle-status`,
         method: 'put',
         data,

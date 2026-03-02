@@ -7,7 +7,7 @@ import {
 import Avatar from '@/components/ui/Avatar'
 import Button from '@/components/ui/Button'
 import Dialog from '@/components/ui/Dialog'
-import type { ReactNode } from 'react'
+import type { ReactNode, MouseEvent } from 'react'
 import type { DialogProps } from '@/components/ui/Dialog'
 import type { ButtonProps } from '@/components/ui/Button'
 
@@ -83,6 +83,7 @@ const ConfirmDialog = (props: ConfirmDialogProps) => {
         children,
         onCancel,
         onConfirm,
+        onClose,
         cancelText = 'Cancel',
         confirmText = 'Confirm',
         confirmButtonProps,
@@ -92,14 +93,20 @@ const ConfirmDialog = (props: ConfirmDialogProps) => {
 
     const handleCancel = () => {
         onCancel?.()
+        onClose?.(
+            undefined as unknown as MouseEvent<HTMLSpanElement>,
+        )
     }
 
     const handleConfirm = () => {
         onConfirm?.()
+        onClose?.(
+            undefined as unknown as MouseEvent<HTMLSpanElement>,
+        )
     }
 
     return (
-        <Dialog contentClassName="pb-0 px-0" {...rest}>
+        <Dialog contentClassName="pb-0 px-0" onClose={onClose} {...rest}>
             <div className="px-6 pb-6 pt-2 flex">
                 <div>
                     <StatusIcon status={type} />

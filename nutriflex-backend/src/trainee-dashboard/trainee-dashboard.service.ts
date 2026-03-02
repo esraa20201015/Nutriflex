@@ -1,28 +1,46 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { HealthMetric } from '../health-metric/entities/health-metric.entity';
 import { HealthMetricType } from '../health-metric/enums/health-metric-type.enum';
 import { BodyMeasurement } from '../body-measurement/entities/body-measurement.entity';
 import { NutritionPlan } from '../nutrition-plan/entities/nutrition-plan.entity';
 import { NutritionPlanStatus } from '../nutrition-plan/enums/nutrition-plan-status.enum';
 import { TraineePlanStatus } from '../trainee-plan-status/entities/trainee-plan-status.entity';
+import { TraineeProfile } from '../profiles/entities/trainee-profile.entity';
+import { CoachTrainee } from '../coach-trainee/entities/coach-trainee.entity';
+import { CoachTraineeStatus } from '../coach-trainee/enums/coach-trainee-status.enum';
 
 @Injectable()
 export class TraineeDashboardService {
   constructor(
     @InjectRepository(HealthMetric)
     private readonly healthMetricRepo: Repository<HealthMetric>,
+
     @InjectRepository(BodyMeasurement)
     private readonly bodyMeasurementRepo: Repository<BodyMeasurement>,
+
     @InjectRepository(NutritionPlan)
     private readonly nutritionPlanRepo: Repository<NutritionPlan>,
+
     @InjectRepository(TraineePlanStatus)
     private readonly traineePlanStatusRepo: Repository<TraineePlanStatus>,
+
+    @InjectRepository(TraineeProfile)
+    private readonly traineeProfileRepo: Repository<TraineeProfile>,
+
+    @InjectRepository(CoachTrainee)
+    private readonly coachTraineeRepo: Repository<CoachTrainee>, // ✅ added for active coach
   ) {}
 
   async getDashboard(traineeId: string) {
-    // 1) Current weight: latest weight health metric
+    // Load profile snapshot so we can fall back to stored weight when no metrics exist
+    const profile = await this.traineeProfileRepo.findOne({
+      where: { user_id: traineeId },
+      select: ['weight_kg'],
+    });
+
+    // Latest recorded weight metric (primary source of truth for current weight)
     const latestWeight = await this.healthMetricRepo
       .createQueryBuilder('hm')
       .where('hm.trainee_id = :traineeId', { traineeId })
@@ -30,9 +48,15 @@ export class TraineeDashboardService {
       .orderBy('hm.recorded_date', 'DESC')
       .getOne();
 
-    const currentWeight = latestWeight ? Number(latestWeight.value) : null;
+    let currentWeight: number | null = latestWeight
+      ? Number(latestWeight.value)
+      : null;
 
-    // 2) Weight change over last 30 days
+    // Fallback to profile snapshot weight if no metrics yet
+    if (currentWeight === null && profile?.weight_kg != null) {
+      currentWeight = Number(profile.weight_kg);
+    }
+
     let weightChange30Days: number | null = null;
     if (latestWeight) {
       const cutoff = new Date(latestWeight.recorded_date);
@@ -42,17 +66,19 @@ export class TraineeDashboardService {
         .createQueryBuilder('hm')
         .where('hm.trainee_id = :traineeId', { traineeId })
         .andWhere('hm.metric_type = :type', { type: HealthMetricType.WEIGHT })
-        .andWhere('hm.recorded_date <= :latest', { latest: latestWeight.recorded_date })
-        .andWhere('hm.recorded_date >= :cutoff', { cutoff })
+        .andWhere('hm.recorded_date BETWEEN :cutoff AND :latest', {
+          cutoff,
+          latest: latestWeight.recorded_date,
+        })
         .orderBy('hm.recorded_date', 'ASC')
         .getOne();
 
       if (oldestInWindow) {
-        weightChange30Days = Number(latestWeight.value) - Number(oldestInWindow.value);
+        weightChange30Days =
+          Number(latestWeight.value) - Number(oldestInWindow.value);
       }
     }
 
-    // 3) Active plan (latest active nutrition plan for this trainee)
     const activePlan = await this.nutritionPlanRepo
       .createQueryBuilder('np')
       .where('np.trainee_id = :traineeId', { traineeId })
@@ -62,7 +88,6 @@ export class TraineeDashboardService {
 
     const activePlanTitle = activePlan ? activePlan.title : null;
 
-    // 4) Completion percentage for that plan (if status row exists)
     let completionPercentage: number | null = null;
     if (activePlan) {
       const planStatus = await this.traineePlanStatusRepo.findOne({
@@ -71,29 +96,34 @@ export class TraineeDashboardService {
           plan_id: activePlan.id,
         },
       });
-      completionPercentage = planStatus ? planStatus.completion_percentage : 0;
+      completionPercentage = planStatus
+        ? planStatus.completion_percentage
+        : 0;
     }
 
-    // 5) Last measurement date (max of health_metric / body_measurement activity)
-    const lastHealth = await this.healthMetricRepo
-      .createQueryBuilder('hm')
-      .select('MAX(hm.recorded_date)', 'last')
-      .where('hm.trainee_id = :traineeId', { traineeId })
-      .getRawOne<{ last: string | null }>();
-
-    const lastBody = await this.bodyMeasurementRepo
+    // Compute last measurement date from either weight metrics or body measurements
+    const latestBodyMeasurement = await this.bodyMeasurementRepo
       .createQueryBuilder('bm')
-      .select('MAX(bm.measured_date)', 'last')
       .where('bm.trainee_id = :traineeId', { traineeId })
-      .getRawOne<{ last: string | null }>();
+      .orderBy('bm.measured_date', 'DESC')
+      .getOne();
+
+    const weightDate = latestWeight?.recorded_date
+      ? new Date(latestWeight.recorded_date)
+      : null;
+    const bodyDate = latestBodyMeasurement?.measured_date
+      ? new Date(latestBodyMeasurement.measured_date)
+      : null;
 
     let lastMeasurementDate: string | null = null;
-    const dates: Date[] = [];
-    if (lastHealth?.last) dates.push(new Date(lastHealth.last));
-    if (lastBody?.last) dates.push(new Date(lastBody.last));
-    if (dates.length > 0) {
-      const maxDate = dates.reduce((a, b) => (a > b ? a : b));
-      lastMeasurementDate = maxDate.toISOString();
+    if (weightDate && bodyDate) {
+      lastMeasurementDate = (weightDate > bodyDate ? weightDate : bodyDate)
+        .toISOString()
+        .split('T')[0];
+    } else if (weightDate) {
+      lastMeasurementDate = weightDate.toISOString().split('T')[0];
+    } else if (bodyDate) {
+      lastMeasurementDate = bodyDate.toISOString().split('T')[0];
     }
 
     return {
@@ -110,12 +140,11 @@ export class TraineeDashboardService {
     };
   }
 
-  /**
-   * 1) Personal Overview
-   * GET /dashboard/trainee/overview
-   */
   async getOverview(traineeId: string) {
-    // Latest weight
+    const profile = await this.traineeProfileRepo.findOne({
+      where: { user_id: traineeId },
+    });
+
     const latestWeight = await this.healthMetricRepo
       .createQueryBuilder('hm')
       .where('hm.trainee_id = :traineeId', { traineeId })
@@ -123,53 +152,55 @@ export class TraineeDashboardService {
       .orderBy('hm.recorded_date', 'DESC')
       .getOne();
 
-    const currentWeight = latestWeight ? Number(latestWeight.value) : null;
+    let currentWeight: number | null = latestWeight
+      ? Number(latestWeight.value)
+      : null;
+    if (currentWeight === null && profile?.weight_kg != null) {
+      currentWeight = Number(profile.weight_kg);
+    }
 
-    // Weight change 7 and 30 days (relative to latest)
     let weightChange7Days: number | null = null;
     let weightChange30Days: number | null = null;
-
     if (latestWeight) {
       const latestDate = latestWeight.recorded_date;
-
       const cutoff7 = new Date(latestDate);
       cutoff7.setDate(cutoff7.getDate() - 7);
-
       const cutoff30 = new Date(latestDate);
       cutoff30.setDate(cutoff30.getDate() - 30);
 
-      const oldest7 = await this.healthMetricRepo
-        .createQueryBuilder('hm')
-        .where('hm.trainee_id = :traineeId', { traineeId })
-        .andWhere('hm.metric_type = :type', { type: HealthMetricType.WEIGHT })
-        .andWhere('hm.recorded_date BETWEEN :cutoff7 AND :latest', {
-          cutoff7,
-          latest: latestDate,
-        })
-        .orderBy('hm.recorded_date', 'ASC')
-        .getOne();
+      const [oldest7, oldest30] = await Promise.all([
+        this.healthMetricRepo
+          .createQueryBuilder('hm')
+          .where('hm.trainee_id = :traineeId', { traineeId })
+          .andWhere('hm.metric_type = :type', { type: HealthMetricType.WEIGHT })
+          .andWhere('hm.recorded_date BETWEEN :cutoff AND :latest', {
+            cutoff: cutoff7,
+            latest: latestDate,
+          })
+          .orderBy('hm.recorded_date', 'ASC')
+          .getOne(),
+        this.healthMetricRepo
+          .createQueryBuilder('hm')
+          .where('hm.trainee_id = :traineeId', { traineeId })
+          .andWhere('hm.metric_type = :type', { type: HealthMetricType.WEIGHT })
+          .andWhere('hm.recorded_date BETWEEN :cutoff AND :latest', {
+            cutoff: cutoff30,
+            latest: latestDate,
+          })
+          .orderBy('hm.recorded_date', 'ASC')
+          .getOne(),
+      ]);
 
       if (oldest7) {
-        weightChange7Days = Number(latestWeight.value) - Number(oldest7.value);
+        weightChange7Days =
+          Number(latestWeight.value) - Number(oldest7.value);
       }
-
-      const oldest30 = await this.healthMetricRepo
-        .createQueryBuilder('hm')
-        .where('hm.trainee_id = :traineeId', { traineeId })
-        .andWhere('hm.metric_type = :type', { type: HealthMetricType.WEIGHT })
-        .andWhere('hm.recorded_date BETWEEN :cutoff30 AND :latest', {
-          cutoff30,
-          latest: latestDate,
-        })
-        .orderBy('hm.recorded_date', 'ASC')
-        .getOne();
-
       if (oldest30) {
-        weightChange30Days = Number(latestWeight.value) - Number(oldest30.value);
+        weightChange30Days =
+          Number(latestWeight.value) - Number(oldest30.value);
       }
     }
 
-    // Active plan and completion
     const activePlan = await this.nutritionPlanRepo
       .createQueryBuilder('np')
       .where('np.trainee_id = :traineeId', { traineeId })
@@ -187,26 +218,8 @@ export class TraineeDashboardService {
           plan_id: activePlan.id,
         },
       });
-      planCompletion = planStatus ? planStatus.completion_percentage : 0;
+      planCompletion = planStatus?.completion_percentage ?? 0;
     }
-
-    // Days active this week (any health metric in the last 7 days)
-    const today = new Date();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(today.getDate() - 6); // inclusive 7 days
-
-    const activeDaysRows = await this.healthMetricRepo
-      .createQueryBuilder('hm')
-      .select('DATE(hm.recorded_date)', 'day')
-      .where('hm.trainee_id = :traineeId', { traineeId })
-      .andWhere('hm.recorded_date BETWEEN :from AND :to', {
-        from: sevenDaysAgo,
-        to: today,
-      })
-      .groupBy('DATE(hm.recorded_date)')
-      .getRawMany<{ day: string }>();
-
-    const daysActiveThisWeek = activeDaysRows.length;
 
     return {
       status: HttpStatus.OK,
@@ -218,93 +231,150 @@ export class TraineeDashboardService {
         weightChange30Days,
         activePlanName,
         planCompletion,
-        daysActiveThisWeek,
+        daysActiveThisWeek: 0,
       },
     };
   }
 
-  /**
-   * 2) Progress Charts Data
-   * GET /dashboard/trainee/progress
-   */
   async getProgress(traineeId: string) {
-    // Weight history (e.g. last 90 days)
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const profile = await this.traineeProfileRepo.findOne({
+      where: { user_id: traineeId },
+    });
 
+    const initialWeight =
+      profile?.weight_kg !== null && profile?.weight_kg !== undefined
+        ? Number(profile.weight_kg)
+        : null;
+
+    // Fetch full weight history for the trainee (no time window) so the chart
+    // can display all recorded points over time.
     const weightHistoryRaw = await this.healthMetricRepo
       .createQueryBuilder('hm')
       .select(['hm.recorded_date AS date', 'hm.value AS value'])
       .where('hm.trainee_id = :traineeId', { traineeId })
       .andWhere('hm.metric_type = :type', { type: HealthMetricType.WEIGHT })
-      .andWhere('hm.recorded_date >= :from', { from: ninetyDaysAgo })
       .orderBy('hm.recorded_date', 'ASC')
       .getRawMany<{ date: Date; value: string | number }>();
 
-    const weightHistory = weightHistoryRaw.map((row) => ({
+    let weightHistory = weightHistoryRaw.map((row) => ({
       date: new Date(row.date).toISOString().split('T')[0],
       value: Number(row.value),
     }));
 
-    // Body measurements history (we'll return latest per date with waist/chest)
+    if (weightHistory.length === 0 && initialWeight !== null) {
+      weightHistory.push({
+        date: profile?.created_date
+          ? new Date(profile.created_date).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0],
+        value: initialWeight,
+      });
+    }
+
     const bodyRaw = await this.bodyMeasurementRepo
       .createQueryBuilder('bm')
       .select([
         'bm.measured_date AS date',
         'bm.waist_cm AS waist',
         'bm.chest_cm AS chest',
+        'bm.hips_cm AS hips',
+        'bm.arm_cm AS arm',
+        'bm.thigh_cm AS thigh',
       ])
       .where('bm.trainee_id = :traineeId', { traineeId })
-      .orderBy('bm.measured_date', 'ASC')
-      .getRawMany<{ date: Date; waist: string | number | null; chest: string | number | null }>();
+      .orderBy('bm.measured_date', 'DESC')
+      .take(3)
+      .getRawMany<{
+        date: Date;
+        waist: string | number | null;
+        chest: string | number | null;
+        hips: string | number | null;
+        arm: string | number | null;
+        thigh: string | number | null;
+      }>();
 
-    const bodyMeasurements = bodyRaw.map((row) => ({
-      date: new Date(row.date).toISOString().split('T')[0],
-      waist: row.waist !== null ? Number(row.waist) : null,
-      chest: row.chest !== null ? Number(row.chest) : null,
-    }));
+    const bodyMeasurements = bodyRaw
+      .map((row) => ({
+        date: new Date(row.date).toISOString().split('T')[0],
+        waist: row.waist !== null ? Number(row.waist) : null,
+        chest: row.chest !== null ? Number(row.chest) : null,
+        hips: row.hips !== null ? Number(row.hips) : null,
+        arm: row.arm !== null ? Number(row.arm) : null,
+        thigh: row.thigh !== null ? Number(row.thigh) : null,
+      }))
+      .reverse();
 
     return {
       status: HttpStatus.OK,
       messageEn: 'Trainee progress data retrieved successfully',
       messageAr: 'تم استرجاع بيانات تقدم المتدرب بنجاح',
       data: {
+        profile: {
+          height_cm: profile?.height_cm ?? null,
+          weight_kg: initialWeight,
+          fitness_goal: profile?.fitness_goal ?? null,
+          activity_level: profile?.activity_level ?? null,
+        },
         weightHistory,
         bodyMeasurements,
       },
     };
   }
 
-  /**
-   * 3) Today’s Focus
-   * GET /dashboard/trainee/today
-   *
-   * Note: We don’t yet have a concrete workout/meal tracking model,
-   * so this returns placeholder-friendly values based on plan + meals count.
-   */
   async getToday(traineeId: string) {
-    // Active plan
     const activePlan = await this.nutritionPlanRepo
       .createQueryBuilder('np')
+      .leftJoinAndSelect('np.meals', 'meals')
+      .leftJoinAndSelect('np.planExercises', 'planExercises')
       .where('np.trainee_id = :traineeId', { traineeId })
       .andWhere('np.status = :status', { status: NutritionPlanStatus.ACTIVE })
       .orderBy('np.start_date', 'DESC')
       .getOne();
 
-    const todayWorkout = activePlan ? activePlan.title : null;
+    let todayMeals = 0;
+    let completedMeals = 0;
+    let completedWorkout = false;
 
-    // Today meals: count meals for active plan (if Meal entity exists and linked)
-    // For now, return static-friendly numbers; can be wired to real meals later.
-    const todayMeals = 4;
-    const completedMeals = 2;
-    const completedWorkout = false;
+    if (activePlan) {
+      const meals = activePlan.meals ?? [];
+      todayMeals = meals.length;
+
+      const status = await this.traineePlanStatusRepo.findOne({
+        where: { trainee_id: traineeId, plan_id: activePlan.id },
+      });
+
+      if (status) {
+        const completedMealIds = new Set(
+          Array.isArray(status.completed_meal_ids)
+            ? status.completed_meal_ids
+            : [],
+        );
+
+        completedMeals = meals.reduce(
+          (count, meal) => (completedMealIds.has(meal.id) ? count + 1 : count),
+          0,
+        );
+
+        const exercises = activePlan.planExercises ?? [];
+        if (exercises.length > 0) {
+          const completedExerciseIds = new Set(
+            Array.isArray(status.completed_exercise_ids)
+              ? status.completed_exercise_ids
+              : [],
+          );
+
+          completedWorkout = exercises.every((ex) =>
+            completedExerciseIds.has(ex.id),
+          );
+        }
+      }
+    }
 
     return {
       status: HttpStatus.OK,
       messageEn: 'Today focus data retrieved successfully',
       messageAr: 'تم استرجاع بيانات تركيز اليوم بنجاح',
       data: {
-        todayWorkout,
+        todayWorkout: activePlan ? activePlan.title : null,
         todayMeals,
         completedMeals,
         completedWorkout,
@@ -312,15 +382,7 @@ export class TraineeDashboardService {
     };
   }
 
-  /**
-   * 4) Motivation & Status
-   * GET /dashboard/trainee/status
-   *
-   * For now we approximate streakDays and lastCheckIn from health metrics.
-   * coachName would require joining coach-trainee; this can be wired in later.
-   */
   async getStatus(traineeId: string) {
-    // Last check-in = last health metric date
     const lastMetric = await this.healthMetricRepo
       .createQueryBuilder('hm')
       .select('hm.recorded_date', 'date')
@@ -328,48 +390,86 @@ export class TraineeDashboardService {
       .orderBy('hm.recorded_date', 'DESC')
       .getRawOne<{ date: Date | null }>();
 
-    let lastCheckIn: string | null = null;
-    if (lastMetric?.date) {
-      lastCheckIn = new Date(lastMetric.date).toISOString().split('T')[0];
-    }
+    const lastCheckIn = lastMetric?.date
+      ? new Date(lastMetric.date).toISOString().split('T')[0]
+      : null;
 
-    // Streak days: count consecutive days up to today having any metric
+    // ✅ Get active coach name
+    const activeRelation = await this.coachTraineeRepo.findOne({
+      where: { trainee_id: traineeId, status: CoachTraineeStatus.ACTIVE },
+      relations: ['coach'],
+    });
+
+    const coachName = activeRelation?.coach?.fullName ?? null;
+
+    // Compute streak based on fully completed plan days for the active plan.
     let streakDays = 0;
-    if (lastMetric?.date) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
 
-      // Get last 30 days of activity
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(today.getDate() - 29);
+    const activePlan = await this.nutritionPlanRepo.findOne({
+      where: {
+        trainee_id: traineeId,
+        status: NutritionPlanStatus.ACTIVE,
+      },
+      relations: ['meals', 'planExercises'],
+      order: { start_date: 'DESC' },
+    });
 
-      const activity = await this.healthMetricRepo
-        .createQueryBuilder('hm')
-        .select('DATE(hm.recorded_date)', 'day')
-        .where('hm.trainee_id = :traineeId', { traineeId })
-        .andWhere('hm.recorded_date >= :from', { from: thirtyDaysAgo })
-        .groupBy('DATE(hm.recorded_date)')
-        .orderBy('DATE(hm.recorded_date)', 'DESC')
-        .getRawMany<{ day: string }>();
+    if (activePlan) {
+      const completionStatus = await this.traineePlanStatusRepo.findOne({
+        where: {
+          trainee_id: traineeId,
+          plan_id: activePlan.id,
+        },
+      });
 
-      const activityDays = new Set(
-        activity.map((row) => new Date(row.day).toISOString().split('T')[0]),
-      );
+      if (completionStatus) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-      let cursor = new Date(today);
-      while (true) {
-        const key = cursor.toISOString().split('T')[0];
-        if (activityDays.has(key)) {
+        const startDate = new Date(activePlan.start_date);
+        startDate.setHours(0, 0, 0, 0);
+
+        const endDate = activePlan.end_date
+          ? new Date(activePlan.end_date)
+          : null;
+        if (endDate) {
+          endDate.setHours(0, 0, 0, 0);
+        }
+
+        // Start checking from today or the plan end date, whichever is earlier.
+        const cursor = new Date(
+          endDate && endDate < today ? endDate : today,
+        );
+
+        const maxDaysToCheck = 90;
+        let daysChecked = 0;
+
+        while (cursor >= startDate && daysChecked < maxDaysToCheck) {
+          const dayIndex = this.getPlanDayIndexForDate(activePlan, cursor);
+          if (dayIndex === null) {
+            break;
+          }
+
+          const { totalItems, isFullyCompleted } =
+            this.getPlanDayCompletionInfo(activePlan, completionStatus, dayIndex);
+
+          // If there are no tasks for this day, skip it without affecting streak.
+          if (totalItems === 0) {
+            cursor.setDate(cursor.getDate() - 1);
+            daysChecked += 1;
+            continue;
+          }
+
+          if (!isFullyCompleted) {
+            break;
+          }
+
           streakDays += 1;
           cursor.setDate(cursor.getDate() - 1);
-        } else {
-          break;
+          daysChecked += 1;
         }
       }
     }
-
-    // coachName: placeholder for now – requires coach-trainee join
-    const coachName = 'Your Coach';
 
     return {
       status: HttpStatus.OK,
@@ -382,5 +482,82 @@ export class TraineeDashboardService {
       },
     };
   }
-}
 
+  /**
+   * Map a calendar date to a 1-based day index within the given plan,
+   * using inclusive start/end dates. Returns null if the date is outside
+   * the plan range.
+   */
+  private getPlanDayIndexForDate(
+    plan: NutritionPlan,
+    date: Date,
+  ): number | null {
+    const startDate = new Date(plan.start_date);
+    startDate.setHours(0, 0, 0, 0);
+
+    const target = new Date(date);
+    target.setHours(0, 0, 0, 0);
+
+    const endDate = plan.end_date ? new Date(plan.end_date) : null;
+    if (endDate) {
+      endDate.setHours(0, 0, 0, 0);
+    }
+
+    if (target < startDate) {
+      return null;
+    }
+    if (endDate && target > endDate) {
+      return null;
+    }
+
+    const dayMs = 1000 * 60 * 60 * 24;
+    const diffMs = target.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffMs / dayMs);
+    return diffDays + 1;
+  }
+
+  /**
+   * For a given day index within a plan, determine how many items (exercises + meals)
+   * exist and whether all of them are marked as completed in the given status row.
+   */
+  private getPlanDayCompletionInfo(
+    plan: NutritionPlan,
+    status: TraineePlanStatus,
+    dayIndex: number,
+  ): { totalItems: number; isFullyCompleted: boolean } {
+    const exercises = (plan.planExercises ?? []).filter(
+      (ex: any) => (ex.day_index ?? 1) === dayIndex,
+    );
+    const meals = (plan.meals ?? []).filter(
+      (meal: any) => (meal.day_index ?? 1) === dayIndex,
+    );
+
+    const totalItems = exercises.length + meals.length;
+
+    if (totalItems === 0) {
+      return { totalItems: 0, isFullyCompleted: false };
+    }
+
+    const completedExerciseIds = new Set(
+      Array.isArray(status.completed_exercise_ids)
+        ? status.completed_exercise_ids
+        : [],
+    );
+    const completedMealIds = new Set(
+      Array.isArray(status.completed_meal_ids)
+        ? status.completed_meal_ids
+        : [],
+    );
+
+    const allExercisesDone =
+      exercises.length === 0 ||
+      exercises.every((ex) => completedExerciseIds.has(ex.id));
+    const allMealsDone =
+      meals.length === 0 || meals.every((meal) => completedMealIds.has(meal.id));
+
+    return {
+      totalItems,
+      isFullyCompleted: allExercisesDone && allMealsDone,
+    };
+  }
+}

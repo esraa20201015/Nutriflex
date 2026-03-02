@@ -88,6 +88,15 @@ export class TraineeProfile extends ActionTracked {
   })
   activity_level: string | null;
 
+  /** Dietary preference (e.g., normal, vegetarian) */
+  @Column('varchar', {
+    name: 'dietary_preference',
+    length: 50,
+    nullable: true,
+    comment: 'Dietary preference (normal, vegetarian, etc.)',
+  })
+  dietary_preference: string | null;
+
   /** Medical notes (injuries, conditions, etc.) */
   @Column('text', {
     name: 'medical_notes',

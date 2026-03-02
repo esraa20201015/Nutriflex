@@ -1,6 +1,6 @@
+import Logo from '@/components/template/Logo'
 import classNames from '@/utils/classNames'
 import ScrollBar from '@/components/ui/ScrollBar'
-import Logo from '@/components/template/Logo'
 import VerticalMenuContent from '@/components/template/VerticalMenuContent'
 import { useThemeStore } from '@/store/themeStore'
 import { useSessionUser } from '@/store/authStore'
@@ -10,10 +10,10 @@ import appConfig from '@/configs/app.config'
 import { Link } from 'react-router'
 import {
     SIDE_NAV_WIDTH,
+    LOGO_X_GUTTER,
     SIDE_NAV_COLLAPSED_WIDTH,
     SIDE_NAV_CONTENT_GUTTER,
     HEADER_HEIGHT,
-    LOGO_X_GUTTER,
 } from '@/constants/theme.constant'
 import type { Mode } from '@/@types/theme'
 
@@ -66,18 +66,15 @@ const SideNav = ({
         >
             <Link
                 to={appConfig.authenticatedEntryPath}
-                className="side-nav-header flex flex-col justify-center"
-                style={{ height: HEADER_HEIGHT }}
+                className="side-nav-header flex flex-col justify-center items-center overflow-hidden"
+                style={{ height: HEADER_HEIGHT, minHeight: HEADER_HEIGHT }}
             >
                 <Logo
-                    imgClass="max-h-10"
-                    mode={mode || defaultMode}
+                    mode={mode ?? defaultMode}
                     type={sideNavCollapse ? 'streamline' : 'full'}
-                    className={classNames(
-                        sideNavCollapse && 'ltr:ml-[11.5px] ltr:mr-[11.5px]',
-                        sideNavCollapse
-                            ? SIDE_NAV_CONTENT_GUTTER
-                            : LOGO_X_GUTTER,
+                    imgClass={classNames(
+                        'object-contain',
+                        sideNavCollapse ? 'max-h-12 max-w-12' : 'max-h-28 w-full px-2',
                     )}
                 />
             </Link>

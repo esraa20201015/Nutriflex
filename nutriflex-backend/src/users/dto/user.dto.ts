@@ -65,10 +65,9 @@ export class UpdateUserDto {
   @MaxLength(255)
   email?: string;
 
-  @ApiProperty({ description: 'Avatar image URL', required: false })
+  @ApiProperty({ description: 'Avatar: URL or base64 data URL (data:image/...;base64,...)', required: false })
   @IsString()
   @IsOptional()
-  @MaxLength(500)
   avatarUrl?: string;
 
   @ApiProperty({ description: 'New password (optional)', minLength: 8, required: false })

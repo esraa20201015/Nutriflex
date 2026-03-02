@@ -1,0 +1,304 @@
+{
+  "endpoints": {
+    "baseUrl": "http://localhost:3000/api/dashboard/trainee",
+    "authentication": {
+      "header": "Authorization: Bearer <access_token>",
+      "role": "TRAINEE"
+    }
+  },
+  "examples": {
+    "1_main_dashboard": {
+      "endpoint": "GET /api/dashboard/trainee",
+      "description": "Main dashboard summary data",
+      "request": {
+        "method": "GET",
+        "url": "/api/dashboard/trainee",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Trainee dashboard data retrieved successfully",
+        "messageAr": "تم استرجاع بيانات لوحة تحكم المتدرب بنجاح",
+        "data": {
+          "currentWeight": 75.5,
+          "weightChange30Days": -2.3,
+          "activePlan": "Summer Weight Loss Plan",
+          "completionPercentage": 65,
+          "lastMeasurementDate": "2026-02-08T10:30:00.000Z"
+        }
+      },
+      "response_null_example": {
+        "status": 200,
+        "messageEn": "Trainee dashboard data retrieved successfully",
+        "messageAr": "تم استرجاع بيانات لوحة تحكم المتدرب بنجاح",
+        "data": {
+          "currentWeight": null,
+          "weightChange30Days": null,
+          "activePlan": null,
+          "completionPercentage": null,
+          "lastMeasurementDate": null
+        }
+      }
+    },
+    "2_overview": {
+      "endpoint": "GET /api/dashboard/trainee/overview",
+      "description": "Personal overview statistics",
+      "request": {
+        "method": "GET",
+        "url": "/api/dashboard/trainee/overview",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Trainee overview retrieved successfully",
+        "messageAr": "تم استرجاع نظرة عامة للمتدرب بنجاح",
+        "data": {
+          "currentWeight": 75.5,
+          "weightChange7Days": -0.5,
+          "weightChange30Days": -2.3,
+          "activePlanName": "Summer Weight Loss Plan",
+          "planCompletion": 65,
+          "daysActiveThisWeek": 5
+        }
+      },
+      "response_partial_data": {
+        "status": 200,
+        "messageEn": "Trainee overview retrieved successfully",
+        "messageAr": "تم استرجاع نظرة عامة للمتدرب بنجاح",
+        "data": {
+          "currentWeight": 80.0,
+          "weightChange7Days": null,
+          "weightChange30Days": null,
+          "activePlanName": null,
+          "planCompletion": 0,
+          "daysActiveThisWeek": 2
+        }
+      }
+    },
+    "3_progress": {
+      "endpoint": "GET /api/dashboard/trainee/progress",
+      "description": "Progress charts data (weight & body measurements)",
+      "request": {
+        "method": "GET",
+        "url": "/api/dashboard/trainee/progress",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Trainee progress data retrieved successfully",
+        "messageAr": "تم استرجاع بيانات تقدم المتدرب بنجاح",
+        "data": {
+          "weightHistory": [
+            {
+              "date": "2026-01-10",
+              "value": 78.0
+            },
+            {
+              "date": "2026-01-15",
+              "value": 77.5
+            },
+            {
+              "date": "2026-01-20",
+              "value": 77.0
+            },
+            {
+              "date": "2026-01-25",
+              "value": 76.5
+            },
+            {
+              "date": "2026-02-01",
+              "value": 75.5
+            },
+            {
+              "date": "2026-02-08",
+              "value": 75.5
+            }
+          ],
+          "bodyMeasurements": [
+            {
+              "date": "2026-01-10",
+              "waist": 85.0,
+              "chest": 95.0
+            },
+            {
+              "date": "2026-02-01",
+              "waist": 82.0,
+              "chest": 96.0
+            }
+          ]
+        }
+      },
+      "response_empty": {
+        "status": 200,
+        "messageEn": "Trainee progress data retrieved successfully",
+        "messageAr": "تم استرجاع بيانات تقدم المتدرب بنجاح",
+        "data": {
+          "weightHistory": [],
+          "bodyMeasurements": []
+        }
+      },
+      "response_partial_measurements": {
+        "status": 200,
+        "messageEn": "Trainee progress data retrieved successfully",
+        "messageAr": "تم استرجاع بيانات تقدم المتدرب بنجاح",
+        "data": {
+          "weightHistory": [
+            {
+              "date": "2026-02-01",
+              "value": 75.5
+            }
+          ],
+          "bodyMeasurements": [
+            {
+              "date": "2026-02-01",
+              "waist": 82.0,
+              "chest": null
+            }
+          ]
+        }
+      }
+    },
+    "4_today": {
+      "endpoint": "GET /api/dashboard/trainee/today",
+      "description": "Today's focus (workout & meals)",
+      "request": {
+        "method": "GET",
+        "url": "/api/dashboard/trainee/today",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Today focus data retrieved successfully",
+        "messageAr": "تم استرجاع بيانات تركيز اليوم بنجاح",
+        "data": {
+          "todayWorkout": "Summer Weight Loss Plan",
+          "todayMeals": 4,
+          "completedMeals": 2,
+          "completedWorkout": false
+        }
+      },
+      "response_no_plan": {
+        "status": 200,
+        "messageEn": "Today focus data retrieved successfully",
+        "messageAr": "تم استرجاع بيانات تركيز اليوم بنجاح",
+        "data": {
+          "todayWorkout": null,
+          "todayMeals": 4,
+          "completedMeals": 2,
+          "completedWorkout": false
+        }
+      }
+    },
+    "5_status": {
+      "endpoint": "GET /api/dashboard/trainee/status",
+      "description": "Motivation & status (streak, check-in, coach)",
+      "request": {
+        "method": "GET",
+        "url": "/api/dashboard/trainee/status",
+        "headers": {
+          "Authorization": "Bearer <access_token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "messageEn": "Trainee status data retrieved successfully",
+        "messageAr": "تم استرجاع بيانات حالة المتدرب بنجاح",
+        "data": {
+          "streakDays": 12,
+          "lastCheckIn": "2026-02-08",
+          "coachName": "Your Coach"
+        }
+      },
+      "response_no_activity": {
+        "status": 200,
+        "messageEn": "Trainee status data retrieved successfully",
+        "messageAr": "تم استرجاع بيانات حالة المتدرب بنجاح",
+        "data": {
+          "streakDays": 0,
+          "lastCheckIn": null,
+          "coachName": "Your Coach"
+        }
+      }
+    }
+  },
+  "error_examples": {
+    "401_unauthorized": {
+      "statusCode": 401,
+      "message": "Unauthorized"
+    },
+    "403_forbidden": {
+      "messageEn": "User not authenticated",
+      "messageAr": "المستخدم غير مصادق عليه"
+    },
+    "500_internal_error": {
+      "statusCode": 500,
+      "message": "Internal server error"
+    }
+  },
+  "typescript_interfaces": {
+    "comment": "TypeScript interfaces for frontend implementation",
+    "DashboardResponse": {
+      "status": "number",
+      "messageEn": "string",
+      "messageAr": "string",
+      "data": {
+        "currentWeight": "number | null",
+        "weightChange30Days": "number | null",
+        "activePlan": "string | null",
+        "completionPercentage": "number | null",
+        "lastMeasurementDate": "string | null"
+      }
+    },
+    "OverviewResponse": {
+      "status": "number",
+      "messageEn": "string",
+      "messageAr": "string",
+      "data": {
+        "currentWeight": "number | null",
+        "weightChange7Days": "number | null",
+        "weightChange30Days": "number | null",
+        "activePlanName": "string | null",
+        "planCompletion": "number",
+        "daysActiveThisWeek": "number"
+      }
+    },
+    "ProgressResponse": {
+      "status": "number",
+      "messageEn": "string",
+      "messageAr": "string",
+      "data": {
+        "weightHistory": "Array<{ date: string; value: number }>",
+        "bodyMeasurements": "Array<{ date: string; waist: number | null; chest: number | null }>"
+      }
+    },
+    "TodayResponse": {
+      "status": "number",
+      "messageEn": "string",
+      "messageAr": "string",
+      "data": {
+        "todayWorkout": "string | null",
+        "todayMeals": "number",
+        "completedMeals": "number",
+        "completedWorkout": "boolean"
+      }
+    },
+    "StatusResponse": {
+      "status": "number",
+      "messageEn": "string",
+      "messageAr": "string",
+      "data": {
+        "streakDays": "number",
+        "lastCheckIn": "string | null",
+        "coachName": "string"
+      }
+    }
+  }
+}

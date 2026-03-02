@@ -10,6 +10,7 @@ import { User } from '../../users/entities/user.entity';
 import { ActionTracked } from '../../shared/ActionTrack/action-tracked.entity';
 import { NutritionPlanStatus } from '../enums/nutrition-plan-status.enum';
 import type { Meal } from '../../meal/entities/meal.entity';
+import type { PlanExercise } from './plan-exercise.entity';
 
 /**
  * Nutrition plan – coach creates structured nutrition plans for trainees.
@@ -87,4 +88,8 @@ export class NutritionPlan extends ActionTracked {
 
   @OneToMany('Meal', 'nutrition_plan')
   meals: Meal[];
+
+  /** Exercises attached to this plan (cardio, strength, calisthenics, etc.). */
+  @OneToMany('PlanExercise', 'nutrition_plan')
+  planExercises: PlanExercise[];
 }

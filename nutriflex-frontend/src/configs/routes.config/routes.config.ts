@@ -47,36 +47,76 @@ export const protectedRoutes: Routes = [
         component: lazy(() => import('@/views/admin/Roles')),
         authority: [ADMIN],
     },
-    // Coach routes
-    {
-        key: 'coach-dashboard',
-        path: '/coach/dashboard',
-        component: lazy(() => import('@/views/coach/CoachDashboard')),
-        authority: [ADMIN, COACH],
-    },
-    {
-        key: 'my-trainees',
-        path: '/coach/trainees',
-        component: lazy(() => import('@/views/coach/MyTrainees')),
-        authority: [ADMIN, COACH],
-    },
-    {
-        key: 'coach-plans',
-        path: '/coach/plans',
-        component: lazy(() => import('@/views/coach/Plans')),
-        authority: [ADMIN, COACH],
-    },
+   /* =========================
+   Coach Routes (FIXED)
+========================= */
+
+{
+    key: 'coach-dashboard',
+    path: '/coach/dashboard',
+    component: lazy(() => import('@/views/coach/CoachDashboard')),
+    authority: [COACH,ADMIN],
+},
+{
+    key: 'coach-trainees',
+    path: '/coach/trainees',
+    component: lazy(() => import('@/views/coach/MyTrainees')),
+    authority: [COACH, ADMIN],
+},
+{
+    key: 'coach-plans',
+    path: '/coach/plans',
+    component: lazy(() => import('@/views/coach/Plans')),
+    authority: [COACH, ADMIN],
+},
+{
+    key: 'coach-create-plan',
+    path: '/coach/plans/new',
+    component: lazy(() => import('@/views/coach/CreatePlan')),
+    authority: [COACH, ADMIN],
+},
+{
+    key: 'coach-view-plan',
+    path: '/coach/plans/:id/view',
+    component: lazy(() => import('@/views/coach/ViewPlanPage')),
+    authority: [COACH, ADMIN],
+},
+{
+    key: 'coach-edit-plan',
+    path: '/coach/plans/:id/edit',
+    component: lazy(() => import('@/views/coach/CreatePlan')),
+    authority: [COACH, ADMIN],
+},
+
     // Trainee routes
     {
         key: 'trainee-dashboard',
         path: '/trainee/dashboard',
-        component: lazy(() => import('@/views/trainee/TraineeDashboard')),
+        component: lazy(() => import('@/views/trainee/traineeDashboard/TraineeDashboard')),
+        authority: [ADMIN, TRAINEE],
+    },
+    {
+        key: 'trainee-coaches',
+        path: '/trainee/choose-coach',
+        component: lazy(() => import('@/views/trainee/Coaches')),
+        authority: [ADMIN, TRAINEE],
+    },
+    {
+        key: 'trainee-coach-details',
+        path: '/trainee/coaches/:id',
+        component: lazy(() => import('@/views/trainee/CoachDetails')),
         authority: [ADMIN, TRAINEE],
     },
     {
         key: 'my-plans',
         path: '/trainee/plans',
         component: lazy(() => import('@/views/trainee/MyPlans')),
+        authority: [ADMIN, TRAINEE],
+    },
+    {
+        key: 'plan-details',
+        path: '/trainee/plans/:id',
+        component: lazy(() => import('@/views/trainee/PlanDetails')),
         authority: [ADMIN, TRAINEE],
     },
     {

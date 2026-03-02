@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import Loading from '@/components/shared/Loading'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import AllRoutes from '@/components/route/AllRoutes'
 import { useLocation } from 'react-router'
 import type { LayoutType } from '@/@types/theme'
@@ -15,7 +15,7 @@ const Views = (props: ViewsProps) => {
     return (
         <Suspense
             key={location.key}
-            fallback={<Loading loading={true} className="w-full" />}
+            fallback={<CustomIndicator />}
         >
             <AllRoutes {...props} />
         </Suspense>

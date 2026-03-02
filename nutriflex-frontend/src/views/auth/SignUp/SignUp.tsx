@@ -26,12 +26,12 @@ export const SignUpBase = ({
 
     return (
         <>
-            <div className="mb-8">
+            <div className="mb-8 flex justify-center">
                 <Logo
-                    type="streamline"
+                    type="full"
                     mode={mode}
-                    imgClass="mx-auto"
-                    logoWidth={60}
+                    imgClass="mx-auto max-h-20 w-full"
+                    logoWidth={180}
                 />
             </div>
             {message && (
@@ -43,29 +43,25 @@ export const SignUpBase = ({
                 <RoleSelection signInUrl={signInUrl} />
             ) : (
                 <>
-                    <div className="mb-8 flex flex-col gap-4">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div>
-                                <h3 className="mb-1">Complete Your Registration</h3>
-                                <p className="font-semibold heading-text">
-                                    {role === 'COACH'
-                                        ? 'Fill in your coach information'
-                                        : 'Fill in your trainee information'}
-                                </p>
-                            </div>
-                            <Button
-                                asElement={Link}
-                                to="/"
-                                variant="solid"
-                                size="md"
-                                icon={<HiHome className="w-5 h-5" />}
-                                iconAlignment="start"
-                                className="shrink-0"
-                            >
-                                Home
-                            </Button>
-                        </div>
+                    <div className="mb-8 flex flex-nowrap items-center justify-between gap-4">
+                        <h3 className="mb-0 min-w-0 flex-1">Complete Your Registration</h3>
+                        <Button
+                            asElement={Link}
+                            to="/sign-up"
+                            variant="solid"
+                            size="md"
+                            icon={<HiHome className="w-5 h-5" />}
+                            iconAlignment="start"
+                            className="shrink-0"
+                        >
+                            Home
+                        </Button>
                     </div>
+                    <p className="font-semibold heading-text mb-6">
+                        {role === 'COACH'
+                            ? 'Fill in your coach information'
+                            : 'Fill in your trainee information'}
+                    </p>
                     <SignUpForm
                         disableSubmit={disableSubmit}
                         setMessage={setMessage}

@@ -7,6 +7,7 @@ import {
 import cookiesStorage from '@/utils/cookiesStorage'
 import type { InternalAxiosRequestConfig } from 'axios'
 
+/** Attaches stored access token as Authorization: Bearer <token> so backend can identify user and scope dashboard data by role/userId. */
 const AxiosRequestIntrceptorConfigCallback = (
     config: InternalAxiosRequestConfig,
 ) => {
@@ -21,7 +22,7 @@ const AxiosRequestIntrceptorConfigCallback = (
         // For cookies, we still need to send token in Authorization header
         // Cookies are used for persistence, but JWT tokens need to be in headers
         const cookieToken = cookiesStorage.getItem(TOKEN_NAME_IN_STORAGE)
-        accessToken = cookieToken || ''
+        accessToken = typeof cookieToken === 'string' ? cookieToken : ''
     }
 
     if (accessToken) {

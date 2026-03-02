@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router'
 import { useSessionUser } from '@/store/authStore'
 import ApiService from '@/services/ApiService'
+import toast from '@/components/ui/toast'
+import Notification from '@/components/ui/Notification'
 import type { ApiResponse, TraineeDashboardData } from '@/@types/api'
 
 type MeProfilePayload = {
@@ -13,10 +16,11 @@ type MeProfilePayload = {
 type MeProfileResponse = ApiResponse<MeProfilePayload>
 type TraineeDashboardResponse = ApiResponse<TraineeDashboardData>
 type GenericResponse = ApiResponse<Record<string, unknown> | null>
-type AvatarUploadResponse = ApiResponse<{ avatarUrl: string }>
 
 const Profile = () => {
+    const location = useLocation()
     const { fullName, email, role } = useSessionUser((state) => state.user)
+    const setUser = useSessionUser((state) => state.setUser)
 
     const [serverRole, setServerRole] = useState<string | null>(null)
     const [profile, setProfile] = useState<any | null>(null)
@@ -25,9 +29,9 @@ const Profile = () => {
         useState<TraineeDashboardData | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [activeTab, setActiveTab] = useState<'overview' | 'settings'>(
-        'overview',
-    )
+    const [activeTab, setActiveTab] = useState<
+        'overview' | 'settings' | 'bodyMeasurements'
+    >('overview')
 
     // Settings tab state
     const [accountName, setAccountName] = useState(fullName || '')
@@ -41,6 +45,17 @@ const Profile = () => {
     const [passwordSaving, setPasswordSaving] = useState(false)
     const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+    // Body measurements tab state (for trainees)
+    const [bmHeightCm, setBmHeightCm] = useState<string>('')
+    const [bmWeightKg, setBmWeightKg] = useState<string>('')
+    const [bmWaistCm, setBmWaistCm] = useState<string>('')
+    const [bmChestCm, setBmChestCm] = useState<string>('')
+    const [bmHipsCm, setBmHipsCm] = useState<string>('')
+    const [bmArmCm, setBmArmCm] = useState<string>('')
+    const [bmThighCm, setBmThighCm] = useState<string>('')
+    const [bmSaving, setBmSaving] = useState(false)
+    const [bmMessage, setBmMessage] = useState<string | null>(null)
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -58,6 +73,21 @@ const Profile = () => {
                 setProfile(res.data.profile)
                 const avatar = res.data.avatarUrl || ''
                 setAvatarUrl(avatar)
+                setUser({ avatar: avatar || undefined })
+
+                // Seed body measurements tab for trainees from profile snapshot if available
+                if (res.data.role === 'TRAINEE' && res.data.profile) {
+                    const p = res.data.profile as {
+                        height_cm?: number | null
+                        weight_kg?: number | null
+                    }
+                    if (typeof p.height_cm === 'number') {
+                        setBmHeightCm(String(p.height_cm))
+                    }
+                    if (typeof p.weight_kg === 'number') {
+                        setBmWeightKg(String(p.weight_kg))
+                    }
+                }
 
                 if (res.data.role === 'TRAINEE') {
                     const traineeRes =
@@ -69,6 +99,17 @@ const Profile = () => {
                         )
                     setTraineeStats(traineeRes.data)
                 }
+
+                // If we navigated here with a desired tab (e.g. from dashboard),
+                // activate it once profile & role are known.
+                const desiredState =
+                    (location.state as { activeTab?: string; focusField?: string } | null) ||
+                    null
+                if (res.data.role === 'TRAINEE' && desiredState?.activeTab === 'bodyMeasurements') {
+                    setActiveTab('bodyMeasurements')
+                    // Clear navigation state so it doesn't re-trigger on back/forward.
+                    window.history.replaceState({}, document.title, window.location.pathname)
+                }
             } catch (e) {
                 setError('Unable to load profile details.')
             } finally {
@@ -77,7 +118,7 @@ const Profile = () => {
         }
 
         fetchProfile()
-    }, [])
+    }, [location.state])
 
     useEffect(() => {
         setAccountName(fullName || '')
@@ -93,27 +134,39 @@ const Profile = () => {
         if (!file) return
 
         try {
-            const formData = new FormData()
-            formData.append('file', file)
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = () => resolve(reader.result as string)
+                reader.onerror = () => reject(reader.error)
+                reader.readAsDataURL(file)
+            })
 
-            const res =
-                await ApiService.fetchDataWithAxios<AvatarUploadResponse>({
-                    url: '/profile/avatar',
-                    method: 'post',
-                    data: formData,
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                })
-
-            const newAvatarUrl = res.data.avatarUrl
-            if (newAvatarUrl) {
-                setAvatarUrl(newAvatarUrl)
-            }
-        } catch {
-            setAccountMessage('Unable to upload avatar image.')
+            const res = await ApiService.fetchDataWithAxios<MeProfileResponse>({
+                url: '/profile/me',
+                method: 'put',
+                data: { avatarBase64: dataUrl },
+            })
+            const savedAvatar = res.data?.avatarUrl ?? dataUrl
+            setAvatarUrl(savedAvatar)
+            setUser({ avatar: savedAvatar })
+            setAccountMessage('Avatar updated.')
+            toast.push(
+                <Notification type="success" title="Success">
+                    Avatar updated.
+                </Notification>,
+            )
+        } catch (err: unknown) {
+            const errorMessage =
+                (err as { response?: { data?: { messageEn?: string } } })
+                    ?.response?.data?.messageEn ||
+                'Unable to upload avatar image.'
+            setAccountMessage(errorMessage)
+            toast.push(
+                <Notification type="danger" title="Failed">
+                    {errorMessage}
+                </Notification>,
+            )
         } finally {
-            // clear file input so same file can be selected again if needed
             if (fileInputRef.current) {
                 fileInputRef.current.value = ''
             }
@@ -140,7 +193,7 @@ const Profile = () => {
         setAccountMessage(null)
         try {
             const res =
-                await ApiService.fetchDataWithAxios<GenericResponse>({
+                await ApiService.fetchDataWithAxios<MeProfileResponse>({
                     url: '/profile/me',
                     method: 'put',
                     data: {
@@ -149,9 +202,31 @@ const Profile = () => {
                         avatarUrl: avatarUrl || null,
                     },
                 })
-            setAccountMessage(res.messageEn || 'Account updated successfully.')
-        } catch {
-            setAccountMessage('Unable to update account details.')
+            const message = res.messageEn || 'Profile updated successfully.'
+            setAccountMessage(message)
+            const updatedAvatar = res.data?.avatarUrl ?? avatarUrl
+            setAvatarUrl(updatedAvatar || '')
+            setUser({
+                fullName: accountName,
+                email: accountEmail,
+                avatar: updatedAvatar || undefined,
+            })
+            toast.push(
+                <Notification type="success" title="Success">
+                    {message}
+                </Notification>,
+            )
+        } catch (err: unknown) {
+            const errorMessage =
+                (err as { response?: { data?: { messageEn?: string } } })
+                    ?.response?.data?.messageEn ||
+                'Unable to update account details.'
+            setAccountMessage(errorMessage)
+            toast.push(
+                <Notification type="danger" title="Failed">
+                    {errorMessage}
+                </Notification>,
+            )
         } finally {
             setAccountSaving(false)
         }
@@ -162,7 +237,13 @@ const Profile = () => {
         setPasswordMessage(null)
 
         if (!newPassword || newPassword !== confirmPassword) {
-            setPasswordMessage('New password and confirmation must match.')
+            const msg = 'New password and confirmation must match.'
+            setPasswordMessage(msg)
+            toast.push(
+                <Notification type="danger" title="Validation">
+                    {msg}
+                </Notification>,
+            )
             return
         }
 
@@ -177,16 +258,132 @@ const Profile = () => {
                         newPassword,
                     },
                 })
-            setPasswordMessage(
-                res.messageEn || 'Password updated successfully.',
+            const message = res.messageEn || 'Password updated successfully.'
+            setPasswordMessage(message)
+            toast.push(
+                <Notification type="success" title="Success">
+                    {message}
+                </Notification>,
             )
             setCurrentPassword('')
             setNewPassword('')
             setConfirmPassword('')
-        } catch {
-            setPasswordMessage('Unable to update password.')
+        } catch (err: unknown) {
+            const errorMessage =
+                (err as { response?: { data?: { messageEn?: string } } })
+                    ?.response?.data?.messageEn ||
+                'Unable to update password.'
+            setPasswordMessage(errorMessage)
+            toast.push(
+                <Notification type="danger" title="Failed">
+                    {errorMessage}
+                </Notification>,
+            )
         } finally {
             setPasswordSaving(false)
+        }
+    }
+
+    const handleBodyMeasurementsSave = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (serverRole !== 'TRAINEE') return
+
+        setBmSaving(true)
+        setBmMessage(null)
+
+        try {
+            const payload: {
+                heightCm?: number | null
+                weightKg?: number | null
+                waistCm?: number | null
+                chestCm?: number | null
+                hipsCm?: number | null
+                armCm?: number | null
+                thighCm?: number | null
+            } = {}
+
+            if (bmHeightCm !== '') {
+                payload.heightCm = Number(bmHeightCm)
+            }
+            if (bmWeightKg !== '') {
+                payload.weightKg = Number(bmWeightKg)
+            }
+            if (bmWaistCm !== '') {
+                payload.waistCm = Number(bmWaistCm)
+            }
+            if (bmChestCm !== '') {
+                payload.chestCm = Number(bmChestCm)
+            }
+            if (bmHipsCm !== '') {
+                payload.hipsCm = Number(bmHipsCm)
+            }
+            if (bmArmCm !== '') {
+                payload.armCm = Number(bmArmCm)
+            }
+            if (bmThighCm !== '') {
+                payload.thighCm = Number(bmThighCm)
+            }
+
+            const res =
+                await ApiService.fetchDataWithAxios<MeProfileResponse>({
+                    url: '/profile/me/body-measurement',
+                    method: 'post',
+                    data: payload,
+                })
+
+            setBmMessage(
+                res.messageEn || 'Body measurements updated successfully.',
+            )
+
+            // Update local snapshot if height/weight came back in profile
+            if (res.data.profile) {
+                setProfile(res.data.profile)
+                const p = res.data.profile as {
+                    height_cm?: number | null
+                    weight_kg?: number | null
+                }
+                if (typeof p.height_cm === 'number') {
+                    setBmHeightCm(String(p.height_cm))
+                }
+                if (typeof p.weight_kg === 'number') {
+                    setBmWeightKg(String(p.weight_kg))
+                }
+            }
+
+            // Refresh trainee metrics so the overview card reflects the latest weight/measurements
+            if (serverRole === 'TRAINEE') {
+                try {
+                    const traineeRes =
+                        await ApiService.fetchDataWithAxios<TraineeDashboardResponse>(
+                            {
+                                url: '/dashboard/trainee',
+                                method: 'get',
+                            },
+                        )
+                    setTraineeStats(traineeRes.data)
+                } catch {
+                    // If this refresh fails, we keep the previous stats but do not break the form
+                }
+            }
+
+            toast.push(
+                <Notification type="success" title="Success">
+                    {res.messageEn || 'Body measurements updated successfully.'}
+                </Notification>,
+            )
+        } catch (err: unknown) {
+            const errorMessage =
+                (err as { response?: { data?: { messageEn?: string } } })
+                    ?.response?.data?.messageEn ||
+                'Unable to update body measurements.'
+            setBmMessage(errorMessage)
+            toast.push(
+                <Notification type="danger" title="Failed">
+                    {errorMessage}
+                </Notification>,
+            )
+        } finally {
+            setBmSaving(false)
         }
     }
 
@@ -203,8 +400,8 @@ const Profile = () => {
                             onClick={() => setActiveTab('overview')}
                             className={`pb-2 -mb-px border-b-2 ${
                                 activeTab === 'overview'
-                                    ? 'border-primary text-primary dark:border-[#fb64b6] dark:text-[#fb64b6] font-semibold'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    ? 'border-primary text-primary font-semibold'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                         >
                             Overview
@@ -214,12 +411,25 @@ const Profile = () => {
                             onClick={() => setActiveTab('settings')}
                             className={`pb-2 -mb-px border-b-2 ${
                                 activeTab === 'settings'
-                                    ? 'border-primary text-primary dark:border-[#fb64b6] dark:text-[#fb64b6] font-semibold'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    ? 'border-primary text-primary font-semibold'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                         >
                             Settings
                         </button>
+                        {serverRole === 'TRAINEE' && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('bodyMeasurements')}
+                                className={`pb-2 -mb-px border-b-2 ${
+                                    activeTab === 'bodyMeasurements'
+                                        ? 'border-primary text-primary font-semibold'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                }`}
+                            >
+                                Body Measurements
+                            </button>
+                        )}
                     </nav>
                 </div>
 
@@ -249,20 +459,18 @@ const Profile = () => {
                                 </span>
                             )}
 
-                            <div className="w-full text-left text-sm text-gray-600 dark:text-gray-300 space-y-2 mt-2">
+                            <div className="w-full text-left text-sm text-gray-600 dark:text-gray-300 space-y-3 mt-3">
                                 {email && (
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">Email:</span>
-                                        <span>{email}</span>
+                                    <div className="space-y-0.5">
+                                        <div className="text-xs font-medium text-gray-500">
+                                            Email
+                                        </div>
+                                        <div className="text-sm break-all text-gray-700 dark:text-gray-200">
+                                            {email}
+                                        </div>
                                     </div>
                                 )}
-                                {role && (
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">User Type:</span>
-                                        <span>{role}</span>
-                                    </div>
-                                )}
-                                <div className="text-xs text-gray-500 mt-2">
+                                <div className="text-xs text-gray-500">
                                     Full access based on your Nutriflex role and
                                     permissions.
                                 </div>
@@ -295,16 +503,6 @@ const Profile = () => {
                                             {role || 'Not set'}
                                         </div>
                                     </div>
-                                    {serverRole && (
-                                        <div className="space-y-1">
-                                            <div className="text-gray-500">
-                                                Backend Role
-                                            </div>
-                                            <div className="font-medium">
-                                                {serverRole}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 
@@ -357,7 +555,10 @@ const Profile = () => {
                                                 {typeof traineeStats.currentWeight ===
                                                 'number'
                                                     ? `${traineeStats.currentWeight} kg`
-                                                    : 'Not available'}
+                                                    : typeof (profile as { weight_kg?: number | null } | null)?.weight_kg ===
+                                                          'number'
+                                                      ? `${(profile as { weight_kg?: number | null }).weight_kg} kg`
+                                                      : 'Not available'}
                                             </div>
                                         </div>
                                         <div className="space-y-1">
@@ -367,7 +568,9 @@ const Profile = () => {
                                             <div className="font-medium">
                                                 {typeof traineeStats.weightChange30Days ===
                                                 'number'
-                                                    ? `${traineeStats.weightChange30Days} kg`
+                                                    ? `${traineeStats.weightChange30Days > 0 ? '+' : ''}${
+                                                          traineeStats.weightChange30Days
+                                                      } kg`
                                                     : 'Not available'}
                                             </div>
                                         </div>
@@ -376,8 +579,15 @@ const Profile = () => {
                                                 Last measurement
                                             </div>
                                             <div className="font-medium">
-                                                {traineeStats.lastMeasurementDate ||
-                                                    'Not recorded'}
+                                                {traineeStats.lastMeasurementDate
+                                                    ? new Date(
+                                                          traineeStats.lastMeasurementDate,
+                                                      ).toLocaleDateString('en-US', {
+                                                          year: 'numeric',
+                                                          month: 'short',
+                                                          day: 'numeric',
+                                                      })
+                                                    : 'Not recorded'}
                                             </div>
                                         </div>
                                     </div>
@@ -421,7 +631,7 @@ const Profile = () => {
                                     Edit avatar
                                 </button>
                                 <p className="mt-2 text-[11px] text-gray-500">
-                                    JPG, PNG, up to a few MB.
+                                    JPG, PNG, up to a few MB. Saves when you choose a file; appears in the header and everywhere.
                                 </p>
                             </div>
 
@@ -477,8 +687,8 @@ const Profile = () => {
                                 </form>
                             </div>
 
-                            {/* Password settings */}
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 text-sm text-gray-600 dark:text-gray-300">
+                            {/* Password settings - full width below Avatar + Account Details */}
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 text-sm text-gray-600 dark:text-gray-300 lg:col-span-3">
                                 <h2 className="text-sm font-semibold mb-4">
                                     Change Password
                                 </h2>
@@ -499,31 +709,33 @@ const Profile = () => {
                                             }
                                         />
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="block text-gray-500">
-                                            New password
-                                        </label>
-                                        <input
-                                            type="password"
-                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                            value={newPassword}
-                                            onChange={(e) =>
-                                                setNewPassword(e.target.value)
-                                            }
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="block text-gray-500">
-                                            Confirm new password
-                                        </label>
-                                        <input
-                                            type="password"
-                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                            value={confirmPassword}
-                                            onChange={(e) =>
-                                                setConfirmPassword(e.target.value)
-                                            }
-                                        />
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="space-y-1">
+                                            <label className="block text-gray-500">
+                                                New password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                                value={newPassword}
+                                                onChange={(e) =>
+                                                    setNewPassword(e.target.value)
+                                                }
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="block text-gray-500">
+                                                Confirm new password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                                value={confirmPassword}
+                                                onChange={(e) =>
+                                                    setConfirmPassword(e.target.value)
+                                                }
+                                            />
+                                        </div>
                                     </div>
                                     {passwordMessage && (
                                         <div className="text-xs text-gray-500">
@@ -539,6 +751,152 @@ const Profile = () => {
                                     </button>
                                 </form>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'bodyMeasurements' && serverRole === 'TRAINEE' && (
+                    <div className="space-y-4">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 max-w-3xl">
+                            <h2 className="text-sm font-semibold mb-1">
+                                Body Measurements
+                            </h2>
+                            <p className="text-xs text-gray-500 mb-4">
+                                Keep your height, weight, and key measurements up to date so Nutriflex
+                                can track your progress accurately.
+                            </p>
+
+                            <form
+                                className="space-y-4 text-sm"
+                                onSubmit={handleBodyMeasurementsSave}
+                            >
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Height (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="165.5"
+                                            value={bmHeightCm}
+                                            onChange={(e) =>
+                                                setBmHeightCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Weight (kg)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="60.5"
+                                            value={bmWeightKg}
+                                            onChange={(e) =>
+                                                setBmWeightKg(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-3">
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Waist (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="80"
+                                            value={bmWaistCm}
+                                            onChange={(e) =>
+                                                setBmWaistCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Chest (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="95"
+                                            value={bmChestCm}
+                                            onChange={(e) =>
+                                                setBmChestCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Hips (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="95"
+                                            value={bmHipsCm}
+                                            onChange={(e) =>
+                                                setBmHipsCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Arm (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="30"
+                                            value={bmArmCm}
+                                            onChange={(e) =>
+                                                setBmArmCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-gray-500">
+                                            Thigh (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="50"
+                                            value={bmThighCm}
+                                            onChange={(e) =>
+                                                setBmThighCm(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                {bmMessage && (
+                                    <div className="text-xs text-gray-500">
+                                        {bmMessage}
+                                    </div>
+                                )}
+
+                                <div className="mt-2 flex items-center justify-between">
+                                    <span className="text-[11px] text-gray-500">
+                                        Saving will update your profile snapshot and add a new
+                                        body measurement entry.
+                                    </span>
+                                    <button
+                                        type="submit"
+                                        className="inline-flex items-center px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-mild dark:bg-[#fb64b6] dark:hover:bg-[#fb64b6] disabled:opacity-60"
+                                        disabled={bmSaving}
+                                    >
+                                        {bmSaving ? 'Saving...' : 'Save changes'}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 )}

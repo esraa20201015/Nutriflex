@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -9,8 +10,11 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import { Request } from 'express';
+import { RequestUser } from '../auth/types/request-user.interface';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -34,14 +38,23 @@ import {
 @ApiBearerAuth('access-token')
 @Controller('coach-trainee')
 @UseGuards(RolesGuard)
-@Roles('ADMIN', 'COACH')
+@Roles('ADMIN', 'COACH', 'TRAINEE')
 export class CoachTraineeController {
   constructor(private readonly coachTraineeService: CoachTraineeService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create coach-trainee relationship' })
   @ApiBody({ type: CreateCoachTraineeDto })
-  async create(@Body() dto: CreateCoachTraineeDto) {
+  async create(
+    @Req() req: Request & { user?: RequestUser },
+    @Body() dto: CreateCoachTraineeDto,
+  ) {
+    if (req.user?.role === 'TRAINEE' && req.user?.id !== dto.trainee_id) {
+      throw new ForbiddenException({
+        messageEn: 'Trainees can only assign themselves to a coach. Use POST /coaches/select instead.',
+        messageAr: 'يمكن للمتدربين فقط تعيين أنفسهم لمدرب. استخدم POST /coaches/select بدلاً من ذلك.',
+      });
+    }
     return this.coachTraineeService.create(dto);
   }
 
@@ -102,5 +115,13 @@ export class CoachTraineeController {
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   async delete(@Param('id', ParseUUIDPipe) id: string) {
     return this.coachTraineeService.delete(id);
+  }
+
+  // ======= New endpoint: Get all trainees for a coach =======
+  @Get('my-trainees/:coach_id')
+  @ApiOperation({ summary: 'Get all active trainees of a specific coach' })
+  @ApiParam({ name: 'coach_id', type: String, format: 'uuid' })
+  async getTraineesByCoach(@Param('coach_id', ParseUUIDPipe) coach_id: string) {
+    return this.coachTraineeService.getTraineesByCoach(coach_id);
   }
 }

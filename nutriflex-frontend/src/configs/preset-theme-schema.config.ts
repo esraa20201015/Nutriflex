@@ -7,38 +7,38 @@ export type Variables =
 
 export type ThemeVariables = Record<'light' | 'dark', Record<Variables, string>>
 
+/** Light mode = blue primary (#1d293d). Dark mode = pink primary (#fb64b6). useThemeSchema applies these when themeSchema is set; otherwise CSS .dark in index.css controls primary. */
 const defaultTheme: ThemeVariables = {
     light: {
-        // Nutriflex landing blue
         primary: '#1d293d',
-        primaryDeep: '#020617',
+        primaryDeep: '#111827',
         primaryMild: '#334155',
         primarySubtle: '#1d293d1a',
         neutral: '#ffffff',
     },
     dark: {
-        primary: '#1d293d',
-        primaryDeep: '#020617',
-        primaryMild: '#334155',
-        primarySubtle: '#1d293d1a',
+        primary: '#fb64b6',
+        primaryDeep: '#e91e8c',
+        primaryMild: '#fd8ec9',
+        primarySubtle: '#fb64b61a',
         neutral: '#ffffff',
     },
 }
 
 const darkTheme: ThemeVariables = {
     light: {
-        primary: '#18181b',
-        primaryDeep: '#09090b',
-        primaryMild: '#27272a',
-        primarySubtle: '#18181b0d',
+        primary: '#1d293d',
+        primaryDeep: '#111827',
+        primaryMild: '#334155',
+        primarySubtle: '#1d293d1a',
         neutral: '#ffffff',
     },
     dark: {
-        primary: '#ffffff',
-        primaryDeep: '#09090b',
-        primaryMild: '#e5e7eb',
-        primarySubtle: '#ffffff1a',
-        neutral: '#111827',
+        primary: '#fb64b6',
+        primaryDeep: '#e91e8c',
+        primaryMild: '#fd8ec9',
+        primarySubtle: '#fb64b61a',
+        neutral: '#0f172a',
     },
 }
 
@@ -76,24 +76,19 @@ const purpleTheme: ThemeVariables = {
     },
 }
 
-// Nutriflex does not use an orange theme anymore; keep the key for compatibility
-// but map it to the same blue-based palette as the default theme so users
-// don't see inconsistent orange headers when "orange" is selected.
 const orangeTheme: ThemeVariables = {
     light: {
         primary: '#1d293d',
-        primaryDeep: '#020617',
+        primaryDeep: '#111827',
         primaryMild: '#334155',
         primarySubtle: '#1d293d1a',
         neutral: '#ffffff',
     },
     dark: {
-        // In dark mode we still keep primary as the deep blue;
-        // pink is applied via component-level classes where needed.
-        primary: '#1d293d',
-        primaryDeep: '#020617',
-        primaryMild: '#334155',
-        primarySubtle: '#1d293d1a',
+        primary: '#fb64b6',
+        primaryDeep: '#e91e8c',
+        primaryMild: '#fd8ec9',
+        primarySubtle: '#fb64b61a',
         neutral: '#ffffff',
     },
 }

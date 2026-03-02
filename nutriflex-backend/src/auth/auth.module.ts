@@ -6,6 +6,8 @@ import { RolesGuard } from './roles.guard';
 import { UsersModule } from '../users/users.module';
 import { RolesModule } from '../roles/roles.module';
 import { ProfilesModule } from '../profiles/profiles.module';
+import { BodyMeasurementModule } from '../body-measurement/body-measurement.module';
+import { HealthMetricModule } from '../health-metric/health-metric.module';
 import { EmailModule } from '../common/services/email.module';
 
 @Module({
@@ -13,6 +15,8 @@ import { EmailModule } from '../common/services/email.module';
     forwardRef(() => UsersModule),
     forwardRef(() => RolesModule),
     ProfilesModule,
+    BodyMeasurementModule,
+    HealthMetricModule,
     JwtModule,
     EmailModule,
   ],

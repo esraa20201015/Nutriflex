@@ -11,6 +11,7 @@ export interface CreateCoachProfileDto {
   years_of_experience?: number | null;
   certifications?: string | null;
   profile_image_url?: string | null;
+  certification_document?: string | null;
   status?: boolean;
 }
 
@@ -22,6 +23,7 @@ export interface CreateTraineeProfileDto {
   weight_kg?: number | null;
   fitness_goal?: string | null;
   activity_level?: string | null;
+  dietary_preference?: string | null;
   medical_notes?: string | null;
 }
 
@@ -43,6 +45,7 @@ export class ProfilesService {
       years_of_experience: dto.years_of_experience ?? null,
       certifications: dto.certifications ?? null,
       profile_image_url: dto.profile_image_url ?? null,
+      certification_document: dto.certification_document ?? null,
       status: dto.status ?? true, // Default to active (true)
     });
     return this.coachProfileRepo.save(profile);
@@ -58,6 +61,7 @@ export class ProfilesService {
       weight_kg: dto.weight_kg ?? null,
       fitness_goal: dto.fitness_goal ?? null,
       activity_level: dto.activity_level ?? null,
+      dietary_preference: dto.dietary_preference ?? null,
       medical_notes: dto.medical_notes ?? null,
     });
     return this.traineeProfileRepo.save(profile);

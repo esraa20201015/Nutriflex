@@ -9,6 +9,7 @@ import Chart from '@/components/shared/Chart'
 import Segment from '@/components/ui/Segment'
 import Badge from '@/components/ui/Badge'
 import Calendar from '@/components/ui/Calendar'
+import CustomIndicator from '@/components/shared/CustomIndicator'
 import {
     PiUsersThreeDuotone,
     PiClipboardTextDuotone,
@@ -18,14 +19,14 @@ import {
     PiShieldWarningDuotone,
 } from 'react-icons/pi'
 import type {
-    AdminDashboardData,
+    AdminDashboardStats,
     AdminAccountsStatusData,
     AdminActivityData,
     AdminAlertsData,
 } from '@/@types/api'
 
 const AdminDashboard = () => {
-    const [data, setData] = useState<AdminDashboardData | null>(null)
+    const [data, setData] = useState<AdminDashboardStats | null>(null)
     const [accountsStatus, setAccountsStatus] =
         useState<AdminAccountsStatusData | null>(null)
     const [activity, setActivity] = useState<AdminActivityData | null>(null)
@@ -33,7 +34,6 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [roleFilter, setRoleFilter] = useState<string>('ALL')
-    const [statusFilter, setStatusFilter] = useState<string>('ALL')
     const [newUsersDate, setNewUsersDate] = useState<Date | null>(null)
     const [activityPeriod, setActivityPeriod] = useState<'weekly' | 'monthly'>('weekly')
 
@@ -50,10 +50,10 @@ const AdminDashboard = () => {
                         apiGetAdminAlerts(),
                     ])
 
-                setData(summaryRes.data)
+                setData(summaryRes.data) // stats: totalUsers, totalCoaches, etc.
                 setAccountsStatus(accountsRes.data)
-                setActivity(activityRes.data)
-                setAlerts(alertsRes.data)
+                setActivity(activityRes.data) // activePlans, completedPlans, etc.
+                setAlerts(alertsRes.data) // { alerts: [...] }
             } catch (err) {
                 setError(
                     err instanceof Error ? err.message : 'Failed to load dashboard',
@@ -66,59 +66,18 @@ const AdminDashboard = () => {
         loadDashboard()
     }, [])
 
-    // Filter recent users
+    // Recently approved users (from accounts-status API), optionally filtered by role
     const filteredRecentUsers = useMemo(() => {
-        if (!data?.recentUsers) return []
-        let filtered = [...data.recentUsers]
-
+        const list = accountsStatus?.recentlyApproved ?? []
+        let filtered = [...list]
         if (roleFilter !== 'ALL') {
             filtered = filtered.filter((user) => user.role === roleFilter)
         }
-
-        if (statusFilter !== 'ALL') {
-            filtered = filtered.filter((user) => user.status === statusFilter)
-        }
-
-        return filtered.slice(0, 10) // Show top 10
-    }, [data?.recentUsers, roleFilter, statusFilter])
-
-    // Prepare chart data
-    const chartData = useMemo(() => {
-        if (!data?.usersGrowth || data.usersGrowth.length === 0) {
-            return {
-                series: [{ name: 'Users', data: [] }],
-                categories: [],
-            }
-        }
-
-        const sorted = [...data.usersGrowth].sort(
-            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-        )
-
-        return {
-            series: [
-                {
-                    name: 'Users',
-                    data: sorted.map((item) => item.count),
-                },
-            ],
-            categories: sorted.map((item) => {
-                const date = new Date(item.date)
-                return date.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                })
-            }),
-        }
-    }, [data?.usersGrowth])
-
+        return filtered.slice(0, 10)
+    }, [accountsStatus?.recentlyApproved, roleFilter])
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-lg">Loading dashboard...</div>
-            </div>
-        )
+        return <CustomIndicator />
     }
 
     if (error) {
@@ -150,7 +109,7 @@ const AdminDashboard = () => {
                             Total Users
                         </p>
                         <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-                            {data?.usersCount || 0}
+                            {data?.totalUsers ?? 0}
                         </p>
                     </div>
                 </div>
@@ -164,7 +123,11 @@ const AdminDashboard = () => {
                             Total Plans
                         </p>
                         <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-                            {data?.plansCount || 0}
+                            {activity != null
+                                ? activity.activePlans +
+                                  activity.completedPlans +
+                                  activity.inactivePlans
+                                : '-'}
                         </p>
                     </div>
                 </div>
@@ -178,7 +141,7 @@ const AdminDashboard = () => {
                             Coaches
                         </p>
                         <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-                            {data?.coachesCount || 0}
+                            {data?.totalCoaches ?? 0}
                         </p>
                     </div>
                 </div>
@@ -192,7 +155,7 @@ const AdminDashboard = () => {
                             Trainees
                         </p>
                         <p className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-                            {data?.traineesCount || 0}
+                            {data?.totalTrainees ?? 0}
                         </p>
                     </div>
                 </div>
@@ -344,43 +307,6 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
-            {/* Users Growth / Ads performance-style chart */}
-            {data?.usersGrowth && data.usersGrowth.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold">Users Growth</h3>
-                        <div className="flex gap-2 text-xs">
-                            <button className="rounded-full px-3 py-1 bg-gray-900 text-white text-xs">
-                                All
-                            </button>
-                            <button className="rounded-full px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs">
-                                Month
-                            </button>
-                            <button className="rounded-full px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs">
-                                Week
-                            </button>
-                        </div>
-                    </div>
-                    <Chart
-                        type="bar"
-                        series={chartData.series}
-                        xAxis={chartData.categories}
-                        height={300}
-                        customOptions={{
-                            plotOptions: {
-                                bar: {
-                                    columnWidth: '45%',
-                                    borderRadius: 6,
-                                },
-                            },
-                            colors: ['#34d399'],
-                        }}
-                    />
-                </div>
-            )}
-
-            {/* Accounts status card removed as requested */}
-
             {/* Platform Activity Metrics & System Health Alerts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Platform Activity Metrics */}
@@ -404,6 +330,14 @@ const AdminDashboard = () => {
                                 </p>
                                 <p className="text-2xl font-bold">
                                     {activity.inactivePlans}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    Average completion rate
+                                </p>
+                                <p className="text-2xl font-bold">
+                                    {activity.avgCompletionRate ?? 0}%
                                 </p>
                             </div>
                         </div>
@@ -491,51 +425,30 @@ const AdminDashboard = () => {
                 )}
             </div>
 
-            {/* Recent Users Table with Filters */}
-            {data?.recentUsers && data.recentUsers.length > 0 && (
+            {/* Recently approved (from accounts-status API) */}
+            {filteredRecentUsers.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
                     <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                         <div className="flex flex-col gap-4">
-                            <h3 className="text-lg font-semibold">Recent Users</h3>
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Filter by Role
-                                    </label>
-                                    <Segment
-                                        value={roleFilter}
-                                        onChange={(value) =>
-                                            setRoleFilter((value as string) || 'ALL')
-                                        }
-                                        size="sm"
-                                    >
-                                        <Segment.Item value="ALL">All</Segment.Item>
-                                        <Segment.Item value="ADMIN">Admin</Segment.Item>
-                                        <Segment.Item value="COACH">Coach</Segment.Item>
-                                        <Segment.Item value="TRAINEE">Trainee</Segment.Item>
-                                    </Segment>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Filter by Status
-                                    </label>
-                                    <Segment
-                                        value={statusFilter}
-                                        onChange={(value) =>
-                                            setStatusFilter((value as string) || 'ALL')
-                                        }
-                                        size="sm"
-                                    >
-                                        <Segment.Item value="ALL">All</Segment.Item>
-                                        <Segment.Item value="ACTIVE">Active</Segment.Item>
-                                        <Segment.Item value="INACTIVE">
-                                            Inactive
-                                        </Segment.Item>
-                                        <Segment.Item value="SUSPENDED">
-                                            Suspended
-                                        </Segment.Item>
-                                    </Segment>
-                                </div>
+                            <h3 className="text-lg font-semibold">
+                                Recently approved (last 7 days)
+                            </h3>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Filter by Role
+                                </label>
+                                <Segment
+                                    value={roleFilter}
+                                    onChange={(value) =>
+                                        setRoleFilter((value as string) || 'ALL')
+                                    }
+                                    size="sm"
+                                >
+                                    <Segment.Item value="ALL">All</Segment.Item>
+                                    <Segment.Item value="ADMIN">Admin</Segment.Item>
+                                    <Segment.Item value="COACH">Coach</Segment.Item>
+                                    <Segment.Item value="TRAINEE">Trainee</Segment.Item>
+                                </Segment>
                             </div>
                         </div>
                     </div>
@@ -544,81 +457,46 @@ const AdminDashboard = () => {
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        Name
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         Email
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         Role
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        Joined
+                                        Approved at
                                     </th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                {filteredRecentUsers.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan={5}
-                                            className="px-6 py-4 text-center text-gray-500"
-                                        >
-                                            No users found
+                                {filteredRecentUsers.map((user) => (
+                                    <tr key={user.userId}>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900 dark:text-gray-100">
+                                                {user.email}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <Badge
+                                                className={
+                                                    user.role === 'ADMIN'
+                                                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                                                        : user.role === 'COACH'
+                                                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                          : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                }
+                                            >
+                                                {user.role}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            {user.approvedAt
+                                                ? new Date(
+                                                      user.approvedAt,
+                                                  ).toLocaleDateString()
+                                                : '-'}
                                         </td>
                                     </tr>
-                                ) : (
-                                    filteredRecentUsers.map((user) => (
-                                        <tr key={user.id}>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                    {user.fullName}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-500 dark:text-gray-400">
-                                                    {user.email}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <Badge
-                                                    className={
-                                                        user.role === 'ADMIN'
-                                                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                                                            : user.role === 'COACH'
-                                                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                              : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                    }
-                                                >
-                                                    {user.role}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <Badge
-                                                    className={
-                                                        user.status === 'ACTIVE'
-                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                            : user.status === 'INACTIVE'
-                                                              ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                                                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                                    }
-                                                >
-                                                    {user.status || 'N/A'}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                                {user.createdAt
-                                                    ? new Date(
-                                                          user.createdAt,
-                                                      ).toLocaleDateString()
-                                                    : '-'}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                ))}
                             </tbody>
                         </table>
                     </div>

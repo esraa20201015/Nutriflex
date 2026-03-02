@@ -8,27 +8,30 @@ export type ApiResponse<T> = {
 }
 
 // Dashboard Types
+// =============================
+// ADMIN DASHBOARD TYPES
+// =============================
+
 export type UsersGrowthData = {
     date: string
     count: number
 }
 
-export type AdminDashboardData = {
-    usersCount?: number
-    plansCount?: number
-    coachesCount?: number
-    traineesCount?: number
-    activeUsers?: number
-    inactiveUsers?: number
-    blockedUsers?: number
-    pendingUsers?: number
-    newUsersThisMonth?: number
-    newUsersToday?: number
-    usersGrowth?: UsersGrowthData[]
-    recentUsers?: User[]
-    [key: string]: unknown
+// 1️⃣ Main statistics (GET /api/dashboard/admin → response.data)
+export type AdminDashboardStats = {
+    totalUsers: number
+    totalAdmins: number
+    totalCoaches: number
+    totalTrainees: number
+    activeUsers: number
+    inactiveUsers: number
+    blockedUsers: number
+    pendingUsers: number
+    newUsersThisMonth: number
+    newUsersToday: number
 }
 
+// 2️⃣ Accounts status endpoint
 export type AdminAccountsStatusData = {
     pendingCoaches: number
     pendingTrainees: number
@@ -41,6 +44,7 @@ export type AdminAccountsStatusData = {
     }>
 }
 
+// 3️⃣ Activity endpoint
 export type AdminActivityData = {
     activePlans: number
     completedPlans: number
@@ -50,12 +54,14 @@ export type AdminActivityData = {
     traineesWithNoActivity30Days: number
 }
 
+// 4️⃣ Alerts endpoint
 export type AdminAlertsData = {
     alerts: Array<{
         type: string
         count: number
     }>
 }
+
 
 export type TraineeProgressOverview = {
     traineeId: string
@@ -69,21 +75,15 @@ export type TraineeProgressOverview = {
 }
 
 export type CoachDashboardData = {
-    assignedTrainees?: number
-    activeTrainees?: number
-    inactiveTrainees?: number
-    plansCreated?: number
-    completedPlans?: number
-    averageCompletionRate?: number
-    trainees?: TraineeProgressOverview[]
-    alerts?: Array<{
-        id: string
-        message: string
-        type: 'info' | 'warning' | 'error' | 'success'
-        createdAt?: string
-        [key: string]: unknown
+    assignedTrainees: number
+    activeTrainees: number
+    inactiveTrainees: number
+    plansCreated: number
+    completedPlans: number
+    alerts: Array<{
+        traineeId: string
+        reason: string
     }>
-    [key: string]: unknown
 }
 
 export type CoachOverviewData = {
@@ -93,15 +93,23 @@ export type CoachOverviewData = {
     plansCreated: number
     activePlans: number
     completedPlans: number
+    /** Plans with status draft for this coach */
+    draftPlans?: number
+    /** Plans with status archived (inactive) for this coach */
+    archivedPlans?: number
 }
 
 export type CoachTraineeProgressItem = {
     traineeId: string
     name: string
-    currentWeight?: number
-    weightChange30Days?: number
-    completionRate?: number
-    lastActivity?: string
+    /** Optional avatar URL for this trainee (from users table) */
+    avatarUrl?: string | null
+    currentWeight: number | null
+    weightChange30Days: number | null
+    completionRate: number
+    /** How many plans this trainee has completed in total */
+    completedPlansCount?: number
+    lastActivity: string | null
 }
 
 export type CoachTraineesProgressData = {
@@ -141,6 +149,66 @@ export type HealthSummary = {
     [key: string]: unknown
 }
 
+// Trainee Dashboard Types (New API Structure)
+export type TraineeDashboardMainData = {
+    currentWeight: number | null
+    weightChange30Days: number | null
+    activePlan: string | null
+    completionPercentage: number | null
+    lastMeasurementDate: string | null
+}
+
+export type TraineeOverviewData = {
+    currentWeight: number | null
+    weightChange7Days: number | null
+    weightChange30Days: number | null
+    activePlanName: string | null
+    planCompletion: number
+    daysActiveThisWeek: number
+}
+
+export type WeightHistoryItem = {
+    date: string
+    value: number
+}
+
+export type BodyMeasurementItem = {
+    date: string
+    waist: number | null
+    chest: number | null
+    hips: number | null
+    arm: number | null
+    thigh: number | null
+}
+
+export type TraineeProfileSummary = {
+    height_cm: number | null
+    weight_kg: number | null
+    fitness_goal: string | null
+    activity_level: string | null
+}
+
+export type TraineeProgressData = {
+    profile: TraineeProfileSummary
+    weightHistory: WeightHistoryItem[]
+    bodyMeasurements: BodyMeasurementItem[]
+}
+
+
+export type TraineeTodayData = {
+    todayWorkout: string | null
+    todayMeals: number
+    completedMeals: number
+    completedWorkout: boolean
+}
+
+export type TraineeStatusData = {
+    streakDays: number
+    lastCheckIn: string | null
+    coachName: string
+}
+
+// Legacy type for backward compatibility
 export type TraineeDashboardData = {
     currentWeight?: number
     weightChange30Days?: number
@@ -215,7 +283,33 @@ export type CoachTraineesListResponse = {
     take?: number
 }
 
+export interface CreateCoachTraineeDto {
+    coach_id: string
+    trainee_id: string
+}
+
+// Coach selection types
+export interface PublicCoachProfile {
+    id: string
+    fullName: string
+    profileImageUrl?: string | null
+    specialization?: string | null
+    yearsOfExperience?: number | null
+    certifications?: string | null
+    bio?: string | null
+    isSelected?: boolean
+}
+
+export type ApiListCoachesResponse = PublicCoachProfile[]
+
+export interface SelectCoachResult {
+    coach_id: string
+    trainee_id: string
+    status: 'active' | 'paused' | 'completed'
+}
+
 // Plan Types
+// Legacy type for backward compatibility
 export type NutritionPlan = {
     id: string
     name: string
@@ -227,11 +321,269 @@ export type NutritionPlan = {
     [key: string]: unknown
 }
 
+// Coach Nutrition Plan (New API Structure)
+export type CoachNutritionPlan = {
+    id: string
+    coach_id: string
+    trainee_id: string
+    title: string
+    description: string | null
+    daily_calories: number | null
+    start_date: string
+    end_date: string | null
+    status: 'draft' | 'active' | 'archived'
+    coach: {
+        id: string
+        fullName: string
+        email: string
+    }
+    trainee: {
+        id: string
+        fullName: string
+        email: string
+    }
+    created_date: string
+    updated_date: string
+}
+
 export type PlansListResponse = {
-    plans: NutritionPlan[]
+    plans: CoachNutritionPlan[]
     total?: number
     skip?: number
     take?: number
+    meta?: {
+        total: number
+        count: number
+        skip: number
+        take: number
+    }
+}
+
+/** Plan with exercises and meals (coach view/edit). */
+export type CoachPlanDetails = CoachNutritionPlan & {
+    planExercises: TraineePlanExercise[]
+    meals: Meal[]
+}
+
+// Meal Types (Coach API Structure)
+export type CoachMeal = {
+    id: string
+    nutrition_plan_id: string
+    name: string
+    meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+    calories: number | null
+    protein: number | null
+    carbs: number | null
+    fats: number | null
+    instructions: string | null
+    order_index: number
+    created_date: string
+    updated_date: string
+}
+
+export type MealsListResponse = {
+    meals?: CoachMeal[]
+    data?: CoachMeal[]
+    total?: number
+    count?: number
+    skip?: number
+    take?: number
+    meta?: {
+        total: number
+        count: number
+        skip: number
+        take: number
+    }
+}
+
+// DTOs for creating/updating
+export type CreatePlanDto = {
+    coach_id: string
+    trainee_id: string
+    title: string
+    description?: string | null
+    daily_calories?: number | null
+    start_date: string
+    end_date?: string | null
+    status?: 'draft' | 'active' | 'archived'
+}
+
+export type UpdatePlanDto = {
+    title?: string
+    description?: string | null
+    daily_calories?: number | null
+    start_date?: string
+    end_date?: string | null
+    status?: 'draft' | 'active' | 'archived'
+}
+
+export type CreateMealDto = {
+    nutrition_plan_id: string
+    name: string
+    meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+    calories?: number | null
+    protein?: number | null
+    carbs?: number | null
+    fats?: number | null
+    instructions?: string | null
+    order_index?: number
+}
+
+// Coach Plan Wizard DTOs (create with details)
+export type NutritionPlanStatus = 'draft' | 'active' | 'archived'
+
+export type ExerciseType = 'cardio' | 'strength' | 'calisthenics' | 'flexibility'
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
+export type ExerciseSubCategory = 'Upper' | 'Core' | 'Lower'
+
+export interface PlanExerciseDto {
+    exercise_id?: string
+    name: string
+    exercise_type: ExerciseType
+    sub_category?: ExerciseSubCategory | string | null
+    day_index?: number
+    sets?: number | null
+    reps?: number | null
+    duration_minutes?: number | null
+    notes?: string | null
+    guide_image_base64?: string | null
+    guide_video_base64?: string | null
+    order_index?: number
+}
+
+export interface MealIngredientInputDto {
+    name: string
+    quantity?: number | null
+    unit?: string | null
+    calories?: number | null
+    notes?: string | null
+    order_index?: number
+}
+
+export interface PlanMealDto {
+    meal_type: MealType
+    name: string
+    calories?: number | null
+    instructions?: string | null
+    order_index?: number
+    day_index?: number
+    ingredients?: MealIngredientInputDto[]
+}
+
+export interface CreatePlanWithDetailsDto {
+    coach_id: string
+    trainee_id: string
+    title: string
+    description?: string | null
+    daily_calories?: number | null
+    start_date: string
+    end_date?: string | null
+    status?: NutritionPlanStatus
+    exercises?: PlanExerciseDto[]
+    meals?: PlanMealDto[]
+}
+
+export type UpdateMealDto = {
+    name?: string
+    meal_type?: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+    calories?: number | null
+    protein?: number | null
+    carbs?: number | null
+    fats?: number | null
+    instructions?: string | null
+    order_index?: number
+}
+
+// Trainee Plans API Types (New Structure)
+export type TraineeNutritionPlan = {
+    id: string
+    title: string
+    description: string | null
+    daily_calories: number | null
+    start_date: string
+    end_date: string | null
+    status: 'draft' | 'active' | 'archived'
+    coach: {
+        id: string
+        fullName: string
+        email: string
+    }
+    completionStatus: {
+        completion_percentage: number
+        status: 'not_started' | 'in_progress' | 'completed'
+        last_updated: string | null
+    }
+    created_date: string
+    updated_date: string
+}
+
+export type TraineePlansListResponse = {
+    data: TraineeNutritionPlan[]
+    meta: {
+        total: number
+        count: number
+        skip: number
+        take: number
+    }
+}
+
+export type Meal = {
+    id: string
+    name: string
+    meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+    calories: number | null
+    protein: number | null
+    carbs: number | null
+    fats: number | null
+    instructions: string | null
+    order_index: number
+}
+
+/** Exercise as returned for trainee plan details (includes guide media). */
+export type TraineePlanExercise = {
+    id: string
+    name: string
+    exercise_type: string
+    sub_category: string | null
+    day_index: number
+    sets: number | null
+    reps: number | null
+    duration_minutes: number | null
+    notes: string | null
+    order_index: number
+    guide_image_base64: string | null
+    guide_video_base64: string | null
+}
+
+export type TraineePlanDetails = TraineeNutritionPlan & {
+    meals: (Meal & { day_index?: number })[]
+    planExercises?: TraineePlanExercise[]
+    totalDays?: number | null
+}
+
+export type PlanMealsResponse = {
+    planId: string
+    planTitle: string
+    meals: Meal[]
+    groupedByType: {
+        breakfast: Meal[]
+        lunch: Meal[]
+        dinner: Meal[]
+        snack: Meal[]
+    }
+}
+
+export type PlanStatusData = {
+    planId: string
+    planTitle: string
+    completion_percentage: number
+    status: 'not_started' | 'in_progress' | 'completed'
+    last_updated: string | null
+    daysRemaining: number | null
+    daysElapsed: number
+    totalDays: number | null
 }
 
 // Trainee Plan Status Types

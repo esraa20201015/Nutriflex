@@ -23,7 +23,8 @@ export class User {
   @Column({ name: 'full_name', type: 'varchar', length: 255 })
   fullName: string;
 
-  @Column({ name: 'avatar_url', type: 'varchar', length: 500, nullable: true })
+  /** Avatar image: URL or base64 data URL (data:image/...;base64,...) for upload */
+  @Column({ name: 'avatar_url', type: 'text', nullable: true })
   avatarUrl: string | null;
 
   /** Unique login identifier. Normalize (lowercase, trim) in app layer before save/search. */

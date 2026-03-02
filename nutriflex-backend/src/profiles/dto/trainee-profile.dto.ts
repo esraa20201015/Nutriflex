@@ -57,6 +57,12 @@ export class CreateTraineeProfileDto {
   @MaxLength(50)
   activity_level?: string | null;
 
+  @ApiProperty({ description: 'Dietary preference', example: 'vegetarian', required: false })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  dietary_preference?: string | null;
+
   @ApiProperty({ description: 'Medical notes', required: false })
   @IsString()
   @IsOptional()
@@ -105,6 +111,12 @@ export class UpdateTraineeProfileDto {
   @IsOptional()
   @MaxLength(50)
   activity_level?: string | null;
+
+  @ApiProperty({ description: 'Dietary preference', example: 'normal', required: false })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  dietary_preference?: string | null;
 
   @ApiProperty({ required: false })
   @IsString()
