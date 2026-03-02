@@ -685,35 +685,42 @@ const PlanDetails = () => {
                                                 </p>
                                             )}
                                             {/* Guide media: image and/or video (data URL from backend) */}
-                                            <div className="flex flex-col gap-4 mt-4">
-                                                {ex.guide_image_base64 && (
-                                                    <div>
-                                                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                                                            How to perform (image)
-                                                        </p>
-                                                        <img
-                                                            src={ex.guide_image_base64}
-                                                            alt={`Guide for ${ex.name}`}
-                                                            className="max-w-full rounded-lg border border-gray-200 dark:border-gray-600 max-h-80 object-contain"
-                                                        />
-                                                    </div>
-                                                )}
-                                                {ex.guide_video_base64 && (
-                                                    <div>
-                                                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                                                            How to perform (video)
-                                                        </p>
-                                                        <video
-                                                            src={ex.guide_video_base64}
-                                                            controls
-                                                            className="max-w-full rounded-lg border border-gray-200 dark:border-gray-600 max-h-80"
-                                                            playsInline
-                                                        >
-                                                            Your browser does not support the video tag.
-                                                        </video>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            {ex.guide_image_base64 ||
+                                            ex.guide_video_base64 ? (
+                                                <div className="flex flex-col gap-4 mt-4">
+                                                    {ex.guide_image_base64 && (
+                                                        <div>
+                                                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                                                How to perform (image)
+                                                            </p>
+                                                            <img
+                                                                src={ex.guide_image_base64}
+                                                                alt={`Guide for ${ex.name}`}
+                                                                className="max-w-full rounded-lg border border-gray-200 dark:border-gray-600 max-h-80 object-contain"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    {ex.guide_video_base64 && (
+                                                        <div>
+                                                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                                                How to perform (video)
+                                                            </p>
+                                                            <video
+                                                                src={ex.guide_video_base64}
+                                                                controls
+                                                                className="max-w-full rounded-lg border border-gray-200 dark:border-gray-600 max-h-80"
+                                                                playsInline
+                                                            >
+                                                                Your browser does not support the video tag.
+                                                            </video>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                                                    No media available for this exercise.
+                                                </p>
+                                            )}
                                         </div>
                                         </Card>
                                         {effectiveStatus.planStatus === 'active' && (
