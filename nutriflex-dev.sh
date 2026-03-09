@@ -11,6 +11,21 @@
 #     - Backend:  http://localhost:3000
 #     - Frontend: http://localhost:5173
 #
+# ABOUT DEPENDENCIES (LIBRARIES)
+# ------------------------------
+# This script installs all libraries the project needs by running "npm install"
+# in both backend and frontend folders. You do NOT need to install libraries
+# manually before running this script.
+#
+# - The LIST of libraries is NOT in this file. It is defined in:
+#     - nutriflex-backend/package.json   (backend libraries)
+#     - nutriflex-frontend/package.json (frontend libraries)
+# - When you run this script (without SKIP_INSTALL), it runs "npm install"
+#   in each folder. That command reads package.json and installs every library
+#   listed there, so the project can build and run.
+# - Summary: This script handles installing dependencies for you. Just run it
+#   from the project root and the project will be ready to run.
+#
 # REQUIREMENTS
 # ------------
 # - Node.js and npm installed (LTS version recommended).
